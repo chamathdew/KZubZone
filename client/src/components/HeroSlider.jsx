@@ -15,6 +15,13 @@ export default function HeroSlider({ items = [] }) {
     return () => clearInterval(timer);
   }, [items]);
 
+  // Keep index in bounds if items size shrinks dynamically
+  useEffect(() => {
+    if (currentIndex >= items.length) {
+      setCurrentIndex(0);
+    }
+  }, [items, currentIndex]);
+
   if (items.length === 0) {
     return (
       <div className="w-full h-[70vh] bg-luxury-900 animate-pulse flex items-center justify-center">
@@ -23,7 +30,7 @@ export default function HeroSlider({ items = [] }) {
     );
   }
 
-  const current = items[currentIndex];
+  const current = items[currentIndex] || items[0] || {};
   const type = current.seasons ? 'drama' : 'movie';
 
   const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % items.length);
