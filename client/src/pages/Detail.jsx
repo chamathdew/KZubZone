@@ -228,7 +228,7 @@ export default function Detail({ type = 'Movie' }) {
             <div>
               {/* TMDB Badge */}
               <span className="px-2.5 py-0.5 bg-brand-accent/20 border border-brand-accent/50 text-brand-accent text-[10px] font-extrabold uppercase tracking-widest rounded-full inline-flex items-center gap-1 mb-3">
-                <Star className="w-2.5 h-2.5 fill-current" /> {media.tmdbRating.toFixed(1)} TMDB Rating
+                <Star className="w-2.5 h-2.5 fill-current" /> {(media.tmdbRating || 0).toFixed(1)} TMDB Rating
               </span>
 
               <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">{media.title}</h1>

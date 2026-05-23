@@ -71,7 +71,7 @@ export default function HeroSlider({ items = [] }) {
                 {/* Score badge */}
                 <div className="flex items-center gap-2 mb-3">
                   <span className="px-2.5 py-0.5 bg-brand-accent/20 border border-brand-accent/50 text-brand-accent text-[10px] font-extrabold uppercase tracking-widest rounded-full flex items-center gap-1">
-                    <Star className="w-2.5 h-2.5 fill-current" /> {current.tmdbRating.toFixed(1)} TMDB
+                    <Star className="w-2.5 h-2.5 fill-current" /> {(current.tmdbRating || 0).toFixed(1)} TMDB
                   </span>
                   {current.country && (
                     <span className="px-2.5 py-0.5 bg-white/5 border border-white/10 text-slate-300 text-[10px] font-semibold uppercase tracking-wider rounded-full">
