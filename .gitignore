@@ -1,0 +1,29 @@
+# Dependency directories
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production build outputs
+client/dist/
+
+# Environment variables
+.env
+server/.env
+
+# Local logs
+*.log
+client/*.log
+server/*.log
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
