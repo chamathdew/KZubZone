@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../services/api/apiClient';
 import { motion } from 'framer-motion';
-import { Star, Plus, Check, Heart, Upload, Download, Film, Tv, Flame, Languages, ShieldCheck, Clock, CheckCircle2, MessageSquare, ThumbsUp, PlayCircle } from 'lucide-react';
+import { Star, Plus, Check, Heart, Upload, Download, Film, Tv, Flame, Languages, ShieldCheck, Clock, CheckCircle2, MessageSquare, ThumbsUp, PlayCircle, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SeoTags from '../../components/seo/SeoTags';
 import SubtitleUploadModal from '../../components/widgets/SubtitleUploadModal';
@@ -415,6 +415,9 @@ export default function Detail({ type = 'Movie' }) {
                     <ShieldCheck className="w-2.5 h-2.5" /> {mediaSubtitleSummary.latestUploaderRole}
                   </span>
                 )}
+                <span className="px-2.5 py-0.5 bg-brand-primary/10 border border-brand-primary/25 text-brand-primary text-[10px] font-extrabold uppercase tracking-widest rounded-full inline-flex items-center gap-1">
+                  <Eye className="w-2.5 h-2.5" /> {media.viewCount || 0} Views
+                </span>
               </div>
 
               <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">{media.title}</h1>
@@ -431,6 +434,8 @@ export default function Detail({ type = 'Movie' }) {
                 <span className="uppercase">{media.country}</span>
                 <span>•</span>
                 <span className="uppercase">{media.language}</span>
+                <span>•</span>
+                <span>{media.viewCount || 0} Views</span>
               </div>
             </div>
 
