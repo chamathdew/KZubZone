@@ -150,7 +150,7 @@ export default function GlassCard({ item, type }) {
             {item.title}
           </h4>
           <div className="flex min-w-0 items-center justify-between gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-            <span className="flex-shrink-0">{releaseYear || 'TBA'} • {item.viewCount || 0} Views</span>
+            <span className="flex-shrink-0">{releaseYear || 'TBA'}</span>
             <span className="truncate text-right">
               {hasSubtitles 
                 ? (subtitleLanguages.length > 0 ? subtitleLanguages.join(' | ') : 'Sinhala | English') 
