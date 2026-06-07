@@ -14,6 +14,16 @@ class AiController {
             return;
         }
 
+        // Check if enabled
+        $db = Database::getInstance();
+        $setting = $db->findOne('settings', ['key' => 'siteContent']);
+        $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
+        if (isset($siteContent['ai']['enableChatbot']) && !$siteContent['ai']['enableChatbot']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'AI Chatbot is disabled by the administrator.']);
+            return;
+        }
+
         $body = json_decode(file_get_contents('php://input'), true);
         $message = $body['message'] ?? '';
         $history = $body['history'] ?? [];
@@ -54,6 +64,16 @@ Always be polite and helpful. If they ask for downloads, remind them they can fi
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['error' => 'Method not allowed']);
+            return;
+        }
+
+        // Check if enabled
+        $db = Database::getInstance();
+        $setting = $db->findOne('settings', ['key' => 'siteContent']);
+        $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
+        if (isset($siteContent['ai']['enableSmartSearch']) && !$siteContent['ai']['enableSmartSearch']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'AI Smart Search is disabled by the administrator.']);
             return;
         }
 
@@ -136,6 +156,16 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['error' => 'Method not allowed']);
+            return;
+        }
+
+        // Check if enabled
+        $db = Database::getInstance();
+        $setting = $db->findOne('settings', ['key' => 'siteContent']);
+        $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
+        if (isset($siteContent['ai']['enableTranslation']) && !$siteContent['ai']['enableTranslation']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'AI Subtitle Translation is disabled by the administrator.']);
             return;
         }
 

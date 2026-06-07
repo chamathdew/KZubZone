@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Film, Tv, Users, Languages, Star, TrendingUp,
-  Settings, Database, LogOut, BookOpenText, Wand2
+  Settings, Database, LogOut, BookOpenText, Wand2, Server
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -20,6 +20,7 @@ export default function AdminSidebar() {
     { to: '/management/comments', label: 'Comments & Reviews', icon: Star, color: 'text-yellow-400' },
     { to: '/management/users', label: 'Member Control', icon: Users, color: 'text-blue-400' },
     { to: '/management/settings', label: 'Site Builder', icon: Wand2, color: 'text-brand-accent' },
+    { to: '/management/database', label: 'Database Browser', icon: Server, color: 'text-amber-400' },
     { to: '/management/seo', label: 'Raw Config Keys', icon: Settings, color: 'text-slate-400' },
   ];
 

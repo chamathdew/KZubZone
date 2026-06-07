@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import apiClient from '../../services/api/apiClient';
 import {
   CheckCircle, ExternalLink, Globe2, Image, Link as LinkIcon, ListPlus,
-  Palette, RotateCcw, Save, Search, Settings, Trash2, Type
+  Palette, RotateCcw, Save, Search, Settings, Trash2, Type, Bot
 } from 'lucide-react';
 import AdminSidebar from '../../components/layout/AdminSidebar';
 import { defaultSiteContent, mergeSiteContent } from '../../config/siteContent';
@@ -14,6 +14,7 @@ const sections = [
   { id: 'navigation', label: 'Navigation', icon: LinkIcon },
   { id: 'home', label: 'Home Text', icon: Type },
   { id: 'footer', label: 'Footer', icon: Globe2 },
+  { id: 'ai', label: 'AI Features', icon: Bot },
   { id: 'advanced', label: 'Advanced JSON', icon: Settings }
 ];
 
@@ -61,6 +62,11 @@ const textFields = {
     ['searchPlaceholder', 'Search Placeholder'],
     ['signInLabel', 'Sign In Label'],
     ['adminLabel', 'Admin Label']
+  ],
+  ai: [
+    ['enableChatbot', 'Enable AI Chatbot Widget', 'checkbox'],
+    ['enableSmartSearch', 'Enable AI Smart Search', 'checkbox'],
+    ['enableTranslation', 'Enable AI Subtitle Translation', 'checkbox']
   ]
 };
 
@@ -98,7 +104,7 @@ export default function SiteManager() {
       }
     };
     loadContent();
-  }, [token]);
+  }, []);
 
   const updateField = (section, key, value) => {
     setDraft((prev) => ({
@@ -277,6 +283,16 @@ export default function SiteManager() {
                               onChange={(event) => updateField(activeSection, key, event.target.value)}
                               className="w-full rounded-xl border border-white/10 bg-luxury-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-brand-primary"
                             />
+                          ) : type === 'checkbox' ? (
+                            <div className="flex items-center h-10">
+                              <input
+                                type="checkbox"
+                                checked={!!draft[activeSection]?.[key]}
+                                onChange={(event) => updateField(activeSection, key, event.target.checked)}
+                                className="w-5 h-5 rounded border-white/10 bg-luxury-950 text-brand-primary focus:ring-brand-primary focus:ring-offset-luxury-950 cursor-pointer"
+                              />
+                              <span className="ml-2.5 text-sm text-slate-300">Enabled</span>
+                            </div>
                           ) : (
                             <input
                               type="text"

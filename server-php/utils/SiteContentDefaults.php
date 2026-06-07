@@ -67,6 +67,11 @@ class SiteContentDefaults {
                     ['label' => 'Instagram', 'url' => 'https://instagram.com'],
                     ['label' => 'YouTube', 'url' => 'https://youtube.com']
                 ]
+            ],
+            'ai' => [
+                'enableChatbot' => true,
+                'enableSmartSearch' => true,
+                'enableTranslation' => true
             ]
         ];
     }

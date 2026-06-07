@@ -452,6 +452,130 @@ $routes = [
             header('Content-Type: application/json');
             echo json_encode(['message' => 'Settings saved successfully', 'setting' => $setting]);
         }
+    ]],
+    // Admin Database Viewer APIs
+    ['GET', '/api/admin/database/collections', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        function() {
+            $db = \Config\Database::getInstance();
+            $collections = [
+                'users', 'admins', 'roles', 'permissions', 'movies', 
+                'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
+                'reviews', 'comments', 'analytics', 'settings', 'articles'
+            ];
+            $stats = [];
+            foreach ($collections as $col) {
+                $stats[] = [
+                    'name' => $col,
+                    'count' => $db->count($col)
+                ];
+            }
+            header('Content-Type: application/json');
+            echo json_encode([
+                'driver' => $db->getDriver(),
+                'collections' => $stats
+            ]);
+        }
+    ]],
+    ['GET', '/api/admin/database/collections/([a-z0-9_-]+)', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        function($collectionName) {
+            $db = \Config\Database::getInstance();
+            $allowedCollections = [
+                'users', 'admins', 'roles', 'permissions', 'movies', 
+                'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
+                'reviews', 'comments', 'analytics', 'settings', 'articles'
+            ];
+            
+            if (!in_array($collectionName, $allowedCollections)) {
+                http_response_code(400);
+                echo json_encode(['message' => 'Invalid collection name']);
+                return;
+            }
+            
+            $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
+            $skip = isset($_GET['skip']) ? intval($_GET['skip']) : 0;
+            
+            $docs = $db->find($collectionName, [], [
+                'limit' => $limit,
+                'skip' => $skip,
+                'sort' => ['createdAt' => -1]
+            ]);
+            
+            $total = $db->count($collectionName);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'collection' => $collectionName,
+                'total' => $total,
+                'limit' => $limit,
+                'skip' => $skip,
+                'documents' => $docs
+            ]);
+        }
+    ]],
+    ['PUT', '/api/admin/database/collections/([a-z0-9_-]+)/([^/]+)', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        function($collectionName, $id) {
+            $body = json_decode(file_get_contents('php://input'), true) ?: [];
+            $db = \Config\Database::getInstance();
+            
+            $allowedCollections = [
+                'users', 'admins', 'roles', 'permissions', 'movies', 
+                'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
+                'reviews', 'comments', 'analytics', 'settings', 'articles'
+            ];
+            
+            if (!in_array($collectionName, $allowedCollections)) {
+                http_response_code(400);
+                echo json_encode(['message' => 'Invalid collection name']);
+                return;
+            }
+            
+            unset($body['_id'], $body['createdAt'], $body['updatedAt']);
+            
+            $updated = $db->updateOne($collectionName, ['_id' => $id], $body);
+            
+            if ($updated > 0) {
+                $doc = $db->findOne($collectionName, ['_id' => $id]);
+                header('Content-Type: application/json');
+                echo json_encode(['message' => 'Record updated successfully', 'document' => $doc]);
+            } else {
+                http_response_code(404);
+                echo json_encode(['message' => 'Record not found or no changes made']);
+            }
+        }
+    ]],
+    ['DELETE', '/api/admin/database/collections/([a-z0-9_-]+)/([^/]+)', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        function($collectionName, $id) {
+            $db = \Config\Database::getInstance();
+            $allowedCollections = [
+                'users', 'admins', 'roles', 'permissions', 'movies', 
+                'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
+                'reviews', 'comments', 'analytics', 'settings', 'articles'
+            ];
+            
+            if (!in_array($collectionName, $allowedCollections)) {
+                http_response_code(400);
+                echo json_encode(['message' => 'Invalid collection name']);
+                return;
+            }
+            
+            $deleted = $db->deleteOne($collectionName, ['_id' => $id]);
+            
+            if ($deleted > 0) {
+                header('Content-Type: application/json');
+                echo json_encode(['message' => 'Record deleted successfully']);
+            } else {
+                http_response_code(404);
+                echo json_encode(['message' => 'Record not found']);
+            }
+        }
     ]]
 ];
 

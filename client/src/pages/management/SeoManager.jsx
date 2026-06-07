@@ -153,10 +153,14 @@ export default function SeoManager() {
                     >
                       <div>
                         <span className="text-brand-accent font-bold block sm:inline">{item.key}:</span>
-                        <span className="text-slate-300 ml-0 sm:ml-2 break-all">{item.value}</span>
+                        <span className="text-slate-300 ml-0 sm:ml-2 break-all">
+                          {typeof item.value === 'object' && item.value !== null
+                            ? JSON.stringify(item.value)
+                            : String(item.value ?? '')}
+                        </span>
                       </div>
                       <span className="text-[10px] text-slate-500 flex-shrink-0">
-                        Updated: {new Date(item.updatedAt).toLocaleDateString()}
+                        Updated: {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                   ))}

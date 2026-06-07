@@ -278,52 +278,8 @@ export default function Home() {
           )}
         </section>
 
-        {/* BOTTOM COLUMN: SUBTITLES */}
-        <div className="grid grid-cols-1 gap-8 border-t border-white/5 pt-12">
-          
-          {/* SUBTITLE UPDATES COLUMN (FULL WIDTH) */}
-          <div className="glass-panel rounded-3xl p-6 border border-white/5 flex flex-col gap-4 text-left">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2.5">
-              <Clock className="w-5 h-5 text-brand-accent" /> {home.subtitleTitle || 'Recent Subtitle Releases'}
-            </h3>
-            <hr className="border-white/5" />
-            
-            {subsLoading ? (
-              <div className="flex flex-col gap-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-14 bg-luxury-900 animate-pulse rounded-xl" />
-                ))}
-              </div>
-            ) : subtitleQueue.length === 0 ? (
-              <div className="text-center py-6 text-xs text-slate-500">
-                {home.subtitleEmpty}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {subtitleQueue.map((sub) => (
-                  <div
-                    key={sub._id}
-                    className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl flex items-center justify-between hover:bg-white/5 transition duration-300"
-                  >
-                    <div>
-                      <p className="text-xs font-black text-white uppercase tracking-wider">{sub.language} ({sub.format.toUpperCase()})</p>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        Version: {sub.version} • {sub.uploaderRole === 'Admin' ? 'Admin' : 'User'}: {sub.adminUploader?.username || sub.uploader?.username || 'Translator'}
-                      </p>
-                    </div>
-                    <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black rounded-lg">
-                      Approved
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
-
       {/* INTERACTIVE LIBRARY SHOWCASE */}
-        <section className="flex flex-col gap-8">
+        <section className="flex flex-col gap-8 border-t border-white/5 pt-12">
           
           {/* Section Header & Tabs */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-6">
@@ -478,6 +434,50 @@ export default function Home() {
           </div>
 
         </section>
+
+        {/* BOTTOM COLUMN: SUBTITLES */}
+        <div className="grid grid-cols-1 gap-8 border-t border-white/5 pt-12">
+          
+          {/* SUBTITLE UPDATES COLUMN (FULL WIDTH) */}
+          <div className="glass-panel rounded-3xl p-6 border border-white/5 flex flex-col gap-4 text-left">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2.5">
+              <Clock className="w-5 h-5 text-brand-accent" /> {home.subtitleTitle || 'Recent Subtitle Releases'}
+            </h3>
+            <hr className="border-white/5" />
+            
+            {subsLoading ? (
+              <div className="flex flex-col gap-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-14 bg-luxury-900 animate-pulse rounded-xl" />
+                ))}
+              </div>
+            ) : subtitleQueue.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-500">
+                {home.subtitleEmpty}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {subtitleQueue.map((sub) => (
+                  <div
+                    key={sub._id}
+                    className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl flex items-center justify-between hover:bg-white/5 transition duration-300"
+                  >
+                    <div>
+                      <p className="text-xs font-black text-white uppercase tracking-wider">{sub.language} ({sub.format.toUpperCase()})</p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Version: {sub.version} • {sub.uploaderRole === 'Admin' ? 'Admin' : 'User'}: {sub.adminUploader?.username || sub.uploader?.username || 'Translator'}
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black rounded-lg">
+                      Approved
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
 
         </div>
     </div>

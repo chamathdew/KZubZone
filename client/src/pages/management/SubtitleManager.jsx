@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
 import apiClient from '../../services/api/apiClient';
 import AdminSidebar from '../../components/layout/AdminSidebar';
+import { useSiteContent } from '../../hooks/useSiteContent';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
   Database, Check, X, Clipboard, ExternalLink, Download,
@@ -11,6 +12,8 @@ import {
 
 export default function SubtitleManager() {
   const { admin } = useAuth();
+  const { content } = useSiteContent();
+  const enableTranslation = content.ai?.enableTranslation !== false;
   
   const [subtitles, setSubtitles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -204,12 +207,14 @@ export default function SubtitleManager() {
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Subtitles Approvals Queue</h1>
               <p className="text-slate-400 text-xs mt-1">Review Sinhala and English subtitle uploads, verify formatting, and approve for the live catalog</p>
             </div>
-            <button
-              onClick={() => setActiveModal('ai_translate')}
-              className="px-5 py-2.5 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent rounded-xl text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-neon-accent"
-            >
-              <Sparkles className="w-4 h-4" /> AI Translate Subtitle
-            </button>
+            {enableTranslation && (
+              <button
+                onClick={() => setActiveModal('ai_translate')}
+                className="px-5 py-2.5 bg-brand-accent/10 hover:bg-brand-accent/20 border border-brand-accent/30 text-brand-accent rounded-xl text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-neon-accent"
+              >
+                <Sparkles className="w-4 h-4" /> AI Translate Subtitle
+              </button>
+            )}
           </div>
 
           {error && (

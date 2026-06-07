@@ -5,9 +5,12 @@ import apiClient from '../../services/api/apiClient';
 import GlassCard from '../../components/common/GlassCard';
 import SeoTags from '../../components/seo/SeoTags';
 import { Search as SearchIcon, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { useSiteContent } from '../../hooks/useSiteContent';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { content } = useSiteContent();
+  const enableSmartSearch = content.ai?.enableSmartSearch !== false;
   
   const initialQuery = searchParams.get('q') || '';
   const initialCategory = searchParams.get('category') || 'drama';
@@ -38,6 +41,12 @@ export default function Search() {
     setIsHistorical(initialIsHistorical);
     setPage(1);
   }, [initialQuery, initialCategory, initialGenre, initialSort, initialTrending, initialIsHistorical]);
+
+  useEffect(() => {
+    if (!enableSmartSearch) {
+      setIsAiMode(false);
+    }
+  }, [enableSmartSearch]);
 
   // Fetch search results
   const fetchUrl = category === 'movie' ? '/api/media/movies' : '/api/media/dramas';
@@ -183,14 +192,16 @@ export default function Search() {
           )}
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => { setIsAiMode(!isAiMode); setPage(1); }}
-            className={`h-11 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-lg flex items-center gap-1.5 ${isAiMode ? 'bg-brand-accent text-white' : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'}`}
-            title="Toggle AI Search Mode"
-          >
-            <Sparkles className="w-3.5 h-3.5" /> AI Mode
-          </button>
+          {enableSmartSearch && (
+            <button
+              type="button"
+              onClick={() => { setIsAiMode(!isAiMode); setPage(1); }}
+              className={`h-11 px-4 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-lg flex items-center gap-1.5 ${isAiMode ? 'bg-brand-accent text-white' : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'}`}
+              title="Toggle AI Search Mode"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> AI Mode
+            </button>
+          )}
           <button
             type="submit"
             className={`h-11 px-5 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition shadow-lg ${isAiMode ? 'bg-brand-accent/80 hover:bg-brand-accent' : 'bg-brand-primary hover:bg-brand-primary/80'}`}

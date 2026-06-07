@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
-import { SiteContentProvider } from './context/SiteContentContext';
+import { SiteContentProvider, SiteContentContext } from './context/SiteContentContext';
+import { useSiteContent } from './hooks/useSiteContent';
 
 // Error Boundary
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -32,6 +33,7 @@ const UserManager = lazy(() => import('./pages/management/UserManager'));
 const SeoManager = lazy(() => import('./pages/management/SeoManager'));
 const ArticleManager = lazy(() => import('./pages/management/ArticleManager'));
 const SiteManager = lazy(() => import('./pages/management/SiteManager'));
+const DatabaseViewer = lazy(() => import('./pages/management/DatabaseViewer'));
 
 // Layout & Global Components
 import Navbar from './components/layout/Navbar';
@@ -75,6 +77,7 @@ const PageSpinner = () => (
 function AppRoutes() {
   const location = useLocation();
   const isManagementRoute = location.pathname.startsWith('/management');
+  const { content } = useSiteContent();
 
   return (
     <>
@@ -152,6 +155,11 @@ function AppRoutes() {
                     <SiteManager />
                   </AdminRoute>
                 } />
+                <Route path="/management/database" element={
+                  <AdminRoute>
+                    <DatabaseViewer />
+                  </AdminRoute>
+                } />
                 <Route path="/management/seo" element={
                   <AdminRoute>
                     <SeoManager />
@@ -163,7 +171,7 @@ function AppRoutes() {
               </Routes>
             </Suspense>
           </main>
-          {!isManagementRoute && <AIChatWidget />}
+          {!isManagementRoute && content.ai?.enableChatbot !== false && <AIChatWidget />}
           {!isManagementRoute && <Footer />}
         </div>
       </div>
