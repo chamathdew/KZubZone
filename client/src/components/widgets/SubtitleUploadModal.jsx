@@ -71,8 +71,7 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
 
       await apiClient.post(endpoint, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          'Content-Type': 'multipart/form-data'
         }
       });
 

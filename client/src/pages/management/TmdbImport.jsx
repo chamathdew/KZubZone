@@ -54,8 +54,7 @@ export default function TmdbImport() {
     try {
 
       const res = await apiClient.get(`/api/admin/tmdb/search`, {
-        params: { query, type },
-        headers: { Authorization: `Bearer ${token}` }
+        params: { query, type }
       });
       setResults(res.data);
       setSelectedIds([]);
@@ -83,8 +82,7 @@ export default function TmdbImport() {
     try {
 
       const res = await apiClient.get('/api/admin/tmdb/discover/korean-dramas', {
-        params: { source: nextSource },
-        headers: { Authorization: `Bearer ${token}` }
+        params: { source: nextSource }
       });
       setResults(res.data.results || []);
       if (!res.data.results || res.data.results.length === 0) {
