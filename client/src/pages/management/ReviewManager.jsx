@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../../services/api/apiClient';
+import AdminSidebar from '../../components/layout/AdminSidebar';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
   Database, Trash2, MessageSquare, AlertTriangle, ShieldCheck
@@ -20,18 +21,13 @@ export default function ReviewManager() {
   const fetchItems = async () => {
     setLoading(true);
     setError('');
-    const token = localStorage.getItem('kd_admin_token');
-    
+
     try {
       if (activeTab === 'reviews') {
-        const res = await axios.get('/api/admin/reviews', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await apiClient.get('/api/admin/reviews');
         setReviews(res.data);
       } else {
-        const res = await axios.get('/api/admin/comments', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await apiClient.get('/api/admin/comments');
         setComments(res.data);
       }
     } catch (err) {
@@ -48,10 +44,8 @@ export default function ReviewManager() {
   const handleDeleteReview = async (id) => {
     if (!window.confirm('Delete this user review permanently?')) return;
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      await axios.delete(`/api/admin/reviews/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiClient.delete(`/api/admin/reviews/${id}`);
       setReviews(prev => prev.filter(r => r._id !== id));
     } catch (err) {
       alert('Delete operation failed.');
@@ -61,10 +55,8 @@ export default function ReviewManager() {
   const handleDeleteComment = async (id) => {
     if (!window.confirm('Delete this comment and its replies permanently?')) return;
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      await axios.delete(`/api/admin/comments/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiClient.delete(`/api/admin/comments/${id}`);
       setComments(prev => prev.filter(c => c._id !== id));
     } catch (err) {
       alert('Delete operation failed.');
@@ -72,69 +64,8 @@ export default function ReviewManager() {
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row pt-16">
-      
-      {/* Side Control Panel */}
-      <aside className="w-full md:w-64 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-16 md:h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="pb-4 border-b border-white/5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
-            <h3 className="font-extrabold text-sm text-slate-100 uppercase tracking-wider">KDramaVerse Admins</h3>
-          </div>
-          <p className="text-xs text-slate-400 capitalize">{admin?.role} • {admin?.username}</p>
-        </div>
-
-        <nav className="flex flex-col gap-1.5">
-          <Link 
-            to="/management/dashboard" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <TrendingUp className="w-4 h-4 text-brand-primary" /> Dashboard Metrics
-          </Link>
-          <Link 
-            to="/management/import" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Database className="w-4 h-4 text-brand-accent" /> One-Click TMDB Importer
-          </Link>
-          <Link 
-            to="/management/movies" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Film className="w-4 h-4 text-brand-primary" /> Manage Movies
-          </Link>
-          <Link 
-            to="/management/dramas" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Tv className="w-4 h-4 text-brand-primary" /> Manage Dramas
-          </Link>
-          <Link 
-            to="/management/subtitles" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Languages className="w-4 h-4 text-emerald-400" /> Subtitles Moderation
-          </Link>
-          <Link 
-            to="/management/comments" 
-            className="flex items-center gap-3 p-3 bg-white/5 border-l-2 border-brand-primary text-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Star className="w-4 h-4 text-yellow-400" /> Comments & Reviews
-          </Link>
-          <Link 
-            to="/management/users" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Users className="w-4 h-4 text-blue-400" /> Member Control
-          </Link>
-          <Link 
-            to="/management/settings" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Settings className="w-4 h-4 text-slate-400" /> Global SEO Config
-          </Link>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+      <AdminSidebar />
 
       {/* Primary Details Panel */}
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">

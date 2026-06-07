@@ -1,4 +1,4 @@
-# KDramaVerse - KDrama Streaming & Review Platform
+# KSubZone - KDrama Streaming & Review Platform
 
 මෙය KDrama Streaming සහ Review Platform එකක ව්‍යාපෘතියයි. මෙහි Frontend (React + Vite) සහ Backend (Node.js + Express) යන කොටස් දෙකම වෙන වෙනම පැහැදිලි ව්‍යුහයකට (structure) සකස් කර ඇත.
 

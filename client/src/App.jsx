@@ -1,32 +1,44 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './hooks/useAuth';
+import { SiteContentProvider } from './context/SiteContentContext';
 
-// Public Pages
-import Home from './pages/Home';
-import Detail from './pages/Detail';
-import Watch from './pages/Watch';
-import Search from './pages/Search';
-import Auth from './pages/Auth';
+// Error Boundary
+import ErrorBoundary from './components/common/ErrorBoundary';
 
-// Protected User Pages
-import Profile from './pages/Profile';
+// Public Pages (Lazy Loaded)
+const Home = lazy(() => import('./pages/public/Home'));
+const Detail = lazy(() => import('./pages/public/Detail'));
+const Watch = lazy(() => import('./pages/public/Watch'));
+const Search = lazy(() => import('./pages/public/Search'));
+const Auth = lazy(() => import('./pages/public/Auth'));
+const Articles = lazy(() => import('./pages/public/Articles'));
+const ArticleDetail = lazy(() => import('./pages/public/ArticleDetail'));
 
-// Protected Admin Pages
-import AdminLogin from './pages/management/AdminLogin';
-import AdminDashboard from './pages/management/AdminDashboard';
-import MovieManager from './pages/management/MovieManager';
-import DramaManager from './pages/management/DramaManager';
-import SubtitleManager from './pages/management/SubtitleManager';
-import ReviewManager from './pages/management/ReviewManager';
-import TmdbImport from './pages/management/TmdbImport';
-import UserManager from './pages/management/UserManager';
-import SeoManager from './pages/management/SeoManager';
+// Protected User Pages (Lazy Loaded)
+const Profile = lazy(() => import('./pages/protected/Profile'));
 
-// Layout structure
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+// Protected Admin Pages (Lazy Loaded)
+const AdminLogin = lazy(() => import('./pages/management/AdminLogin'));
+const AdminDashboard = lazy(() => import('./pages/management/AdminDashboard'));
+const MovieManager = lazy(() => import('./pages/management/MovieManager'));
+const DramaManager = lazy(() => import('./pages/management/DramaManager'));
+const SubtitleManager = lazy(() => import('./pages/management/SubtitleManager'));
+const ReviewManager = lazy(() => import('./pages/management/ReviewManager'));
+const TmdbImport = lazy(() => import('./pages/management/TmdbImport'));
+const UserManager = lazy(() => import('./pages/management/UserManager'));
+const SeoManager = lazy(() => import('./pages/management/SeoManager'));
+const ArticleManager = lazy(() => import('./pages/management/ArticleManager'));
+const SiteManager = lazy(() => import('./pages/management/SiteManager'));
+
+// Layout & Global Components
+import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
+import ScrollToTop from './components/common/ScrollToTop';
+import AIChatWidget from './components/widgets/AIChatWidget';
+import ParticleBackground from './components/layout/ParticleBackground';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,100 +52,143 @@ const queryClient = new QueryClient({
 // Guard: Simple User Protected Route
 const UserRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center text-brand-primary text-xl">Loading session...</div>;
+  if (loading) return <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center text-brand-primary text-xl font-black uppercase tracking-wider">Loading Session...</div>;
   return user ? children : <Navigate to="/auth" />;
 };
 
 // Guard: Simple Admin Protected Route
 const AdminRoute = ({ children }) => {
-  const { admin, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center text-brand-primary text-xl">Loading administration...</div>;
-  return admin ? children : <Navigate to="/management/login" />;
+  const { user, admin, loading } = useAuth();
+  if (loading) return <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center text-brand-primary text-xl font-black uppercase tracking-wider">Loading Admin...</div>;
+  if (admin) return children;
+  if (user && user.hasDashboardAccess) return children;
+  return <Navigate to="/auth" />;
 };
+
+const PageSpinner = () => (
+  <div className="h-screen w-screen bg-luxury-950 flex flex-col items-center justify-center gap-3 select-none">
+    <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+    <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Loading Portal...</span>
+  </div>
+);
+
+function AppRoutes() {
+  const location = useLocation();
+  const isManagementRoute = location.pathname.startsWith('/management');
+
+  return (
+    <>
+      <ScrollToTop />
+      <div className={`flex flex-col min-h-screen bg-luxury-950 text-slate-100 selection:bg-brand-primary selection:text-white relative ${isManagementRoute ? 'overflow-x-hidden' : ''}`}>
+        <ParticleBackground />
+        
+        {/* Rest of the app content needs relative positioning to stay above the absolute/fixed particles */}
+        <div className="relative z-10 flex flex-col min-h-screen">
+          {!isManagementRoute && <Navbar />}
+          <main className={isManagementRoute ? 'flex-grow' : 'flex-grow pb-16'}>
+            <Suspense fallback={<PageSpinner />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/movie/:slug" element={<Detail type="Movie" />} />
+                <Route path="/drama/:slug" element={<Detail type="Drama" />} />
+                <Route path="/drama/:slug/:seasonPart/:episodePart" element={<Watch />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/articles" element={<Articles />} />
+                <Route path="/articles/:slug" element={<ArticleDetail />} />
+                <Route path="/auth" element={<Auth />} />
+
+                {/* User Protected Routes */}
+                <Route path="/profile" element={
+                  <UserRoute>
+                    <Profile />
+                  </UserRoute>
+                } />
+
+                {/* Admin Management System */}
+                <Route path="/management/login" element={<AdminLogin />} />
+                <Route path="/management/dashboard" element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } />
+                <Route path="/management/movies" element={
+                  <AdminRoute>
+                    <MovieManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/dramas" element={
+                  <AdminRoute>
+                    <DramaManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/articles" element={
+                  <AdminRoute>
+                    <ArticleManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/subtitles" element={
+                  <AdminRoute>
+                    <SubtitleManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/comments" element={
+                  <AdminRoute>
+                    <ReviewManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/import" element={
+                  <AdminRoute>
+                    <TmdbImport />
+                  </AdminRoute>
+                } />
+                <Route path="/management/users" element={
+                  <AdminRoute>
+                    <UserManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/settings" element={
+                  <AdminRoute>
+                    <SiteManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/seo" element={
+                  <AdminRoute>
+                    <SeoManager />
+                  </AdminRoute>
+                } />
+
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </Suspense>
+          </main>
+          {!isManagementRoute && <AIChatWidget />}
+          {!isManagementRoute && <Footer />}
+        </div>
+      </div>
+    </>
+  );
+}
 
 function AppContent() {
   return (
     <Router>
-      <div className="flex flex-col min-h-screen bg-luxury-950 text-slate-100 selection:bg-brand-primary selection:text-white">
-        <Navbar />
-        <main className="flex-grow pb-16">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/movie/:slug" element={<Detail type="Movie" />} />
-            <Route path="/drama/:slug" element={<Detail type="Drama" />} />
-            <Route path="/drama/:slug/:seasonPart/:episodePart" element={<Watch />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/auth" element={<Auth />} />
-
-            {/* User Protected Routes */}
-            <Route path="/profile" element={
-              <UserRoute>
-                <Profile />
-              </UserRoute>
-            } />
-
-            {/* Admin Management System */}
-            <Route path="/management/login" element={<AdminLogin />} />
-            <Route path="/management/dashboard" element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            } />
-            <Route path="/management/movies" element={
-              <AdminRoute>
-                <MovieManager />
-              </AdminRoute>
-            } />
-            <Route path="/management/dramas" element={
-              <AdminRoute>
-                <DramaManager />
-              </AdminRoute>
-            } />
-            <Route path="/management/subtitles" element={
-              <AdminRoute>
-                <SubtitleManager />
-              </AdminRoute>
-            } />
-            <Route path="/management/comments" element={
-              <AdminRoute>
-                <ReviewManager />
-              </AdminRoute>
-            } />
-            <Route path="/management/import" element={
-              <AdminRoute>
-                <TmdbImport />
-              </AdminRoute>
-            } />
-            <Route path="/management/users" element={
-              <AdminRoute>
-                <UserManager />
-              </AdminRoute>
-            } />
-            <Route path="/management/settings" element={
-              <AdminRoute>
-                <SeoManager />
-              </AdminRoute>
-            } />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <AppRoutes />
     </Router>
   );
 }
 
-function App() {
+export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SiteContentProvider>
+            <AppContent />
+          </SiteContentProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
-
-export default App;

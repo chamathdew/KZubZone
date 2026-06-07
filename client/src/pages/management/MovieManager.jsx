@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../../services/api/apiClient';
+import AdminSidebar from '../../components/layout/AdminSidebar';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
   Database, Trash2, Edit3, Plus, ShieldCheck, X
@@ -30,13 +31,16 @@ export default function MovieManager() {
   const [director, setDirector] = useState('');
   const [trailer, setTrailer] = useState('');
   const [tmdbRating, setTmdbRating] = useState('');
+  const [imdbRating, setImdbRating] = useState('');
+  const [isTrending, setIsTrending] = useState(false);
+  const [isHistorical, setIsHistorical] = useState(false);
   const [status, setStatus] = useState('Published');
   const [saving, setSaving] = useState(false);
 
   const fetchMovies = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/media/movies?status=Published&limit=100');
+      const res = await apiClient.get('/api/media/movies?status=Published&limit=100');
       // Also get drafts if any (in this case, just fetch all)
       setMovies(res.data.movies);
     } catch (err) {
@@ -63,6 +67,9 @@ export default function MovieManager() {
     setDirector('');
     setTrailer('');
     setTmdbRating('8.0');
+    setImdbRating('8.0');
+    setIsTrending(false);
+    setIsHistorical(false);
     setStatus('Published');
     setShowModal(true);
   };
@@ -80,6 +87,9 @@ export default function MovieManager() {
     setDirector(movie.director || '');
     setTrailer(movie.trailer || '');
     setTmdbRating(movie.tmdbRating ? String(movie.tmdbRating) : '8.0');
+    setImdbRating(movie.imdbRating ? String(movie.imdbRating) : String(movie.tmdbRating || '8.0'));
+    setIsTrending(Boolean(movie.isTrending));
+    setIsHistorical(Boolean(movie.isHistorical));
     setStatus(movie.status || 'Published');
     setShowModal(true);
   };
@@ -101,21 +111,20 @@ export default function MovieManager() {
       director,
       trailer,
       tmdbRating: Number(tmdbRating),
-      status
+      imdbRating: Number(imdbRating),
+      isTrending,
+      status,
+      isHistorical
     };
 
     try {
-      const token = localStorage.getItem('kd_admin_token');
+
       if (editingMovie) {
         // Edit Mode
-        await axios.put(`/api/admin/movies/${editingMovie._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.put(`/api/admin/movies/${editingMovie._id}`, payload);
       } else {
         // Create Mode
-        await axios.post('/api/admin/movies', payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.post('/api/admin/movies', payload);
       }
       setShowModal(false);
       fetchMovies();
@@ -129,10 +138,8 @@ export default function MovieManager() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you absolute sure you want to delete this movie record?')) return;
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      await axios.delete(`/api/admin/movies/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiClient.delete(`/api/admin/movies/${id}`);
       fetchMovies();
     } catch (err) {
       alert('Delete operation failed.');
@@ -140,69 +147,8 @@ export default function MovieManager() {
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row pt-16">
-      
-      {/* Side Control Panel */}
-      <aside className="w-full md:w-64 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-16 md:h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="pb-4 border-b border-white/5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
-            <h3 className="font-extrabold text-sm text-slate-100 uppercase tracking-wider">KDramaVerse Admins</h3>
-          </div>
-          <p className="text-xs text-slate-400 capitalize">{admin?.role} • {admin?.username}</p>
-        </div>
-
-        <nav className="flex flex-col gap-1.5">
-          <Link 
-            to="/management/dashboard" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <TrendingUp className="w-4 h-4 text-brand-primary" /> Dashboard Metrics
-          </Link>
-          <Link 
-            to="/management/import" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Database className="w-4 h-4 text-brand-accent" /> One-Click TMDB Importer
-          </Link>
-          <Link 
-            to="/management/movies" 
-            className="flex items-center gap-3 p-3 bg-white/5 border-l-2 border-brand-primary text-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Film className="w-4 h-4 text-brand-primary" /> Manage Movies
-          </Link>
-          <Link 
-            to="/management/dramas" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Tv className="w-4 h-4 text-brand-primary" /> Manage Dramas
-          </Link>
-          <Link 
-            to="/management/subtitles" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Languages className="w-4 h-4 text-emerald-400" /> Subtitles Moderation
-          </Link>
-          <Link 
-            to="/management/comments" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Star className="w-4 h-4 text-yellow-400" /> Comments & Reviews
-          </Link>
-          <Link 
-            to="/management/users" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Users className="w-4 h-4 text-blue-400" /> Member Control
-          </Link>
-          <Link 
-            to="/management/settings" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Settings className="w-4 h-4 text-slate-400" /> Global SEO Config
-          </Link>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+      <AdminSidebar />
 
       {/* Primary Details Panel */}
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
@@ -237,7 +183,8 @@ export default function MovieManager() {
                     <tr className="border-b border-white/5 text-[10px] uppercase font-bold tracking-widest text-slate-400 bg-luxury-950/30">
                       <th className="p-4">Movie Title</th>
                       <th className="p-4">Release Year</th>
-                      <th className="p-4">Score</th>
+                      <th className="p-4">IMDb</th>
+                      <th className="p-4">TMDB</th>
                       <th className="p-4">Views</th>
                       <th className="p-4">Status</th>
                       <th className="p-4 text-right">Actions</th>
@@ -255,12 +202,20 @@ export default function MovieManager() {
                           <div>
                             <span className="font-extrabold text-slate-200 block text-sm">{movie.title}</span>
                             <span className="text-[10px] text-slate-500 font-mono mt-0.5">{movie.director || 'Unknown Director'}</span>
+                            {movie.isTrending && (
+                              <span className="inline-flex mt-1 px-1.5 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[9px] font-bold uppercase tracking-wider">
+                                Trending
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="p-4 font-mono">
                           {movie.releaseDate ? movie.releaseDate.split('-')[0] : 'N/A'}
                         </td>
                         <td className="p-4 font-mono font-bold text-brand-primary">
+                          {movie.imdbRating || movie.tmdbRating || '0.0'}
+                        </td>
+                        <td className="p-4 font-mono text-slate-400">
                           {movie.tmdbRating || '0.0'}
                         </td>
                         <td className="p-4 font-mono text-slate-400">
@@ -381,7 +336,7 @@ export default function MovieManager() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Release Date</label>
                   <input
@@ -406,6 +361,15 @@ export default function MovieManager() {
                     type="text"
                     value={tmdbRating}
                     onChange={(e) => setTmdbRating(e.target.value)}
+                    className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">IMDb Rating Score</label>
+                  <input
+                    type="text"
+                    value={imdbRating}
+                    onChange={(e) => setImdbRating(e.target.value)}
                     className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary"
                   />
                 </div>
@@ -452,6 +416,27 @@ export default function MovieManager() {
                   <option value="Published">Published</option>
                   <option value="Draft">Draft</option>
                 </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={isTrending}
+                    onChange={(e) => setIsTrending(e.target.checked)}
+                    className="w-4 h-4 accent-brand-primary"
+                  />
+                  Show this movie in Trending
+                </label>
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={isHistorical}
+                    onChange={(e) => setIsHistorical(e.target.checked)}
+                    className="w-4 h-4 accent-brand-primary"
+                  />
+                  Mark as Historical Drama
+                </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t border-white/5">

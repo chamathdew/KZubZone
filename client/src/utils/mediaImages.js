@@ -1,0 +1,66 @@
+const fallbackSets = {
+  train: {
+    poster: '/media-fallback/train-poster.svg',
+    backdrop: '/media-fallback/train-backdrop.svg'
+  },
+  parasite: {
+    poster: '/media-fallback/parasite-poster.svg',
+    backdrop: '/media-fallback/parasite-backdrop.svg'
+  },
+  moving: {
+    poster: '/media-fallback/moving-poster.svg',
+    backdrop: '/media-fallback/moving-backdrop.svg'
+  },
+  default: {
+    poster: '/media-fallback/default-poster.svg',
+    backdrop: '/media-fallback/default-backdrop.svg'
+  }
+};
+
+const isPlaceholderImage = (url = '') => {
+  if (!url) return true;
+  const value = String(url).trim().toLowerCase();
+  return !value || 
+         value === 'null' || 
+         value === 'undefined' || 
+         value.includes('placehold.co') || 
+         value.includes('placeholder') || 
+         value.includes('via.placeholder');
+};
+
+const fallbackKeyFor = (item = {}) => {
+  const text = `${item.title || ''} ${item.slug || ''}`.toLowerCase();
+  if (text.includes('train') || text.includes('busan')) return 'train';
+  if (text.includes('parasite')) return 'parasite';
+  if (text.includes('moving')) return 'moving';
+  return 'default';
+};
+
+export const getMediaImage = (item = {}, kind = 'poster') => {
+  let source = kind === 'backdrop'
+    ? item.banner || item.backdrop || item.backdrops?.[0]
+    : item.poster || item.banner || item.backdrop || item.backdrops?.[0];
+
+  // Optimize TMDB image paths to load faster (w1280 for backdrop, w500 for poster)
+  if (source && typeof source === 'string' && source.includes('image.tmdb.org/t/p/')) {
+    if (kind === 'backdrop') {
+      source = source.replace('/t/p/original/', '/t/p/w1280/');
+    } else {
+      source = source.replace('/t/p/original/', '/t/p/w500/');
+    }
+  }
+
+  if (!isPlaceholderImage(source)) return source;
+  return fallbackSets[fallbackKeyFor(item)]?.[kind] || fallbackSets.default[kind];
+};
+
+export const imageFallbackFor = (item = {}, kind = 'poster') => (
+  fallbackSets[fallbackKeyFor(item)]?.[kind] || fallbackSets.default[kind]
+);
+
+export const handleImageFallback = (event, item = {}, kind = 'poster') => {
+  const fallback = imageFallbackFor(item, kind);
+  if (event.currentTarget.src !== fallback) {
+    event.currentTarget.src = fallback;
+  }
+};

@@ -62,16 +62,16 @@ exports.seedAdminRoles = async () => {
     );
 
     // 3. Seed Default Admin (SuperAdmin)
-    const adminExists = await Admin.findOne({ email: 'admin@kdramaverse.com' });
+    const adminExists = await Admin.findOne({ email: 'admin@ksubzone.com' });
     if (!adminExists) {
       const newAdmin = new Admin({
         username: 'superadmin',
-        email: 'admin@kdramaverse.com',
+        email: 'admin@ksubzone.com',
         password: 'adminpassword123', // Undergoes automatic pre-save hashing
         role: superAdminRole._id
       });
       await newAdmin.save();
-      console.log('Seeded default Admin: admin@kdramaverse.com / adminpassword123');
+      console.log('Seeded default Admin: admin@ksubzone.com / adminpassword123');
     }
   } catch (error) {
     console.error('Error seeding roles/admin:', error);

@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../../services/api/apiClient';
 import { motion, AnimatePresence } from 'framer-motion';
+import AdminSidebar from '../../components/layout/AdminSidebar';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
-  Database, Search, Download, CheckCircle, AlertTriangle
+  Database, Search, Download, CheckCircle, AlertTriangle, RefreshCw, CheckSquare
 } from 'lucide-react';
 
 export default function TmdbImport() {
@@ -16,11 +17,29 @@ export default function TmdbImport() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
+  const [mode, setMode] = useState('discover'); // 'discover' or 'search'
+  const [source, setSource] = useState('popular');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isHistorical, setIsHistorical] = useState(false);
 
   // Import state
   const [importingId, setImportingId] = useState(null);
+  const [bulkImporting, setBulkImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState('');
   const [importError, setImportError] = useState('');
+
+  const discoverSources = [
+    { id: 'popular', label: 'Popular K-Dramas' },
+    { id: 'top_rated', label: 'Top Rated' },
+    { id: 'latest', label: 'Latest Releases' },
+    { id: 'trending', label: 'Trending Now' },
+    { id: 'airing', label: 'Airing Now' }
+  ];
+
+  useEffect(() => {
+    handleDiscover('popular');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -33,17 +52,46 @@ export default function TmdbImport() {
     setResults([]);
 
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      const res = await axios.get(`/api/admin/tmdb/search`, {
+
+      const res = await apiClient.get(`/api/admin/tmdb/search`, {
         params: { query, type },
         headers: { Authorization: `Bearer ${token}` }
       });
       setResults(res.data);
+      setSelectedIds([]);
       if (res.data.length === 0) {
         setError('No items found matching search terms.');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Search execution failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDiscover = async (nextSource = source) => {
+    setMode('discover');
+    setType('tv');
+    setSource(nextSource);
+    setLoading(true);
+    setError('');
+    setImportSuccess('');
+    setImportError('');
+    setResults([]);
+    setSelectedIds([]);
+
+    try {
+
+      const res = await apiClient.get('/api/admin/tmdb/discover/korean-dramas', {
+        params: { source: nextSource },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setResults(res.data.results || []);
+      if (!res.data.results || res.data.results.length === 0) {
+        setError('No Korean drama titles found for this source.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Korean drama discovery failed.');
     } finally {
       setLoading(false);
     }
@@ -55,15 +103,15 @@ export default function TmdbImport() {
     setImportError('');
 
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      const res = await axios.post(`/api/admin/tmdb/import`, 
-        { id: tmdbId, type },
-        { headers: { Authorization: `Bearer ${token}` } }
+
+      const res = await apiClient.post(`/api/admin/tmdb/import`, 
+        { id: tmdbId, type, isHistorical }
       );
       setImportSuccess(res.data.message || 'Import operation completed successfully!');
       
       // Remove imported item from search list
       setResults(prev => prev.filter(item => item.id !== tmdbId));
+      setSelectedIds(prev => prev.filter(id => id !== tmdbId));
     } catch (err) {
       setImportError(err.response?.data?.message || 'Cascading import failed.');
     } finally {
@@ -71,78 +119,86 @@ export default function TmdbImport() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row pt-16">
-      
-      {/* Side Control Panel */}
-      <aside className="w-full md:w-64 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-16 md:h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="pb-4 border-b border-white/5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
-            <h3 className="font-extrabold text-sm text-slate-100 uppercase tracking-wider">KDramaVerse Admins</h3>
-          </div>
-          <p className="text-xs text-slate-400 capitalize">{admin?.role} • {admin?.username}</p>
-        </div>
+  const toggleSelected = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
 
-        <nav className="flex flex-col gap-1.5">
-          <Link 
-            to="/management/dashboard" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <TrendingUp className="w-4 h-4 text-brand-primary" /> Dashboard Metrics
-          </Link>
-          <Link 
-            to="/management/import" 
-            className="flex items-center gap-3 p-3 bg-white/5 border-l-2 border-brand-primary text-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Database className="w-4 h-4 text-brand-accent" /> One-Click TMDB Importer
-          </Link>
-          <Link 
-            to="/management/movies" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Film className="w-4 h-4 text-brand-primary" /> Manage Movies
-          </Link>
-          <Link 
-            to="/management/dramas" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Tv className="w-4 h-4 text-brand-primary" /> Manage Dramas
-          </Link>
-          <Link 
-            to="/management/subtitles" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Languages className="w-4 h-4 text-emerald-400" /> Subtitles Moderation
-          </Link>
-          <Link 
-            to="/management/comments" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Star className="w-4 h-4 text-yellow-400" /> Comments & Reviews
-          </Link>
-          <Link 
-            to="/management/users" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Users className="w-4 h-4 text-blue-400" /> Member Control
-          </Link>
-          <Link 
-            to="/management/settings" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Settings className="w-4 h-4 text-slate-400" /> Global SEO Config
-          </Link>
-        </nav>
-      </aside>
+  const toggleSelectAll = () => {
+    if (selectedIds.length === results.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(results.map(item => item.id));
+    }
+  };
+
+  const handleBulkImport = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkImporting(true);
+    setImportSuccess('');
+    setImportError('');
+
+    try {
+
+      const res = await apiClient.post('/api/admin/tmdb/bulk-import',
+        { ids: selectedIds, type: 'tv', isHistorical }
+      );
+      setImportSuccess(res.data.message || 'Bulk import completed.');
+      setResults(prev => prev.filter(item => !selectedIds.includes(item.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setImportError(err.response?.data?.message || 'Bulk import failed.');
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+      <AdminSidebar />
 
       {/* Primary Details Panel */}
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
           
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">TMDB Metadata Importer</h1>
-            <p className="text-slate-400 text-xs mt-1">Search TMDB Korean catalog to seed records with complete details instantly</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Korean Drama Import Center</h1>
+            <p className="text-slate-400 text-xs mt-1">Discover, search, and bulk-import Korean dramas from legal metadata sources with seasons, episodes, cast, images, and SEO fields.</p>
+          </div>
+
+          <div className="bg-luxury-900 border border-white/5 p-5 rounded-2xl mb-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <Tv className="w-4 h-4 text-brand-primary" /> Korean Drama Discovery
+                </h2>
+                <p className="text-[11px] text-slate-500 mt-1">Use these source presets to find dramas without typing a title.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDiscover(source)}
+                disabled={loading}
+                className="h-10 px-4 rounded-xl bg-white/5 border border-white/10 hover:border-brand-primary/40 text-slate-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Source
+              </button>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-2">
+              {discoverSources.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleDiscover(item.id)}
+                  className={`h-10 px-3 rounded-xl border text-[11px] font-black uppercase tracking-wider transition ${
+                    source === item.id && mode === 'discover'
+                      ? 'bg-brand-primary border-brand-primary text-white'
+                      : 'bg-luxury-950 border-white/10 text-slate-400 hover:text-white hover:border-brand-primary/30'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Form */}
@@ -154,7 +210,7 @@ export default function TmdbImport() {
                   required
                   placeholder={type === 'movie' ? "Search K-Movies (e.g. Train to Busan, Parasite)..." : "Search K-Dramas (e.g. Moving, Goblin)..."}
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => { setQuery(e.target.value); setMode('search'); }}
                   className="w-full pl-11 pr-4 h-12 bg-luxury-950 border border-white/10 rounded-xl focus:border-brand-primary outline-none text-slate-200 text-sm transition"
                 />
                 <Search className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
@@ -164,7 +220,7 @@ export default function TmdbImport() {
               <div className="flex bg-luxury-950 border border-white/10 p-1.5 rounded-xl self-start sm:self-auto flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => setType('movie')}
+                  onClick={() => { setType('movie'); setMode('search'); }}
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
                     type === 'movie' ? 'bg-brand-primary text-white' : 'text-slate-400 hover:text-slate-200'
                   }`}
@@ -173,7 +229,7 @@ export default function TmdbImport() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setType('tv')}
+                  onClick={() => { setType('tv'); setMode('search'); }}
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
                     type === 'tv' ? 'bg-brand-primary text-white' : 'text-slate-400 hover:text-slate-200'
                   }`}
@@ -190,6 +246,18 @@ export default function TmdbImport() {
                 {loading ? 'Searching...' : 'Find Matches'}
               </button>
             </form>
+
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-6">
+              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isHistorical}
+                  onChange={(e) => setIsHistorical(e.target.checked)}
+                  className="w-4 h-4 rounded bg-luxury-950 border-white/10 text-brand-primary focus:ring-0 focus:ring-offset-0"
+                />
+                Mark imports as <span className="text-brand-primary font-bold">Historical Drama</span>
+              </label>
+            </div>
           </div>
 
           {/* Feedback alerts */}
@@ -216,7 +284,33 @@ export default function TmdbImport() {
 
           {/* Results grid */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Search Results</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                {mode === 'discover' ? 'Discovered Korean Dramas' : 'Search Results'}
+              </h3>
+
+              {results.length > 0 && mode === 'discover' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="h-9 px-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-200 text-[11px] font-bold uppercase tracking-wider flex items-center gap-2"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    {selectedIds.length === results.length ? 'Clear All' : 'Select All'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkImport}
+                    disabled={selectedIds.length === 0 || bulkImporting}
+                    className="h-9 px-4 rounded-xl bg-brand-primary disabled:bg-brand-primary/40 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {bulkImporting ? 'Importing...' : `Bulk Import ${selectedIds.length}`}
+                  </button>
+                </div>
+              )}
+            </div>
             
             {loading ? (
               <div className="text-center py-16 text-slate-500">Querying metadata provider...</div>
@@ -229,8 +323,20 @@ export default function TmdbImport() {
                 {results.map((item) => (
                   <div 
                     key={item.id}
-                    className="bg-luxury-900 border border-white/5 p-4 rounded-xl flex gap-4 transition-all hover:border-brand-primary/20"
+                    className={`bg-luxury-900 border p-4 rounded-xl flex gap-4 transition-all hover:border-brand-primary/20 ${
+                      selectedIds.includes(item.id) ? 'border-brand-primary/50 shadow-lg shadow-brand-primary/10' : 'border-white/5'
+                    }`}
                   >
+                    {mode === 'discover' && (
+                      <label className="self-start pt-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(item.id)}
+                          onChange={() => toggleSelected(item.id)}
+                          className="w-4 h-4 accent-brand-primary"
+                        />
+                      </label>
+                    )}
                     <img
                       src={item.poster_path ? (item.poster_path.startsWith('http') ? item.poster_path : `https://image.tmdb.org/t/p/w185${item.poster_path}`) : 'https://placehold.co/120x180/111/fff?text=No+Photo'}
                       alt={item.title}

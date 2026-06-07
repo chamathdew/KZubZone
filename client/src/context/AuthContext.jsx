@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { createContext, useState, useEffect } from 'react';
+import apiClient from '../services/api/apiClient';
+import { tokenService } from '../services/api/tokenService';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,28 +12,24 @@ export const AuthProvider = ({ children }) => {
   // Sync session on mount
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('kd_token');
-      const adminToken = localStorage.getItem('kd_admin_token');
+      const token = tokenService.getUserToken();
+      const adminToken = tokenService.getAdminToken();
 
       if (token) {
         try {
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          const res = await axios.get('/api/auth/me');
+          const res = await apiClient.get('/api/auth/me');
           setUser(res.data);
         } catch (error) {
-          localStorage.removeItem('kd_token');
-          delete axios.defaults.headers.common['Authorization'];
+          tokenService.removeUserToken();
         }
       }
 
       if (adminToken) {
         try {
-          const res = await axios.get('/api/admin/me', {
-            headers: { Authorization: `Bearer ${adminToken}` }
-          });
+          const res = await apiClient.get('/api/admin/me');
           setAdmin(res.data);
         } catch (error) {
-          localStorage.removeItem('kd_admin_token');
+          tokenService.removeAdminToken();
         }
       }
       setLoading(false);
@@ -41,39 +38,55 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // Listen for global auth expiration events from Axios interceptor
+  useEffect(() => {
+    const handleExpire = () => {
+      setUser(null);
+      setAdmin(null);
+    };
+    window.addEventListener('auth-session-expired', handleExpire);
+    return () => window.removeEventListener('auth-session-expired', handleExpire);
+  }, []);
+
   const loginUser = async (email, password, code2fa) => {
-    const res = await axios.post('/api/auth/login', { email, password, code2fa });
+    // Clear admin session to prevent concurrent mixed roles in single browser
+    tokenService.removeAdminToken();
+    setAdmin(null);
+
+    const res = await apiClient.post('/api/auth/login', { email, password, code2fa });
     if (res.data.token) {
-      localStorage.setItem('kd_token', res.data.token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+      tokenService.setUserToken(res.data.token);
       setUser(res.data.user);
     }
     return res.data;
   };
 
   const loginAdmin = async (email, password, code2fa) => {
-    const res = await axios.post('/api/admin/login', { email, password, code2fa });
+    // Clear user session to prevent concurrent mixed roles in single browser
+    tokenService.removeUserToken();
+    setUser(null);
+
+    const res = await apiClient.post('/api/admin/login', { email, password, code2fa });
     if (res.data.token) {
-      localStorage.setItem('kd_admin_token', res.data.token);
+      tokenService.setAdminToken(res.data.token);
       setAdmin(res.data.admin);
     }
     return res.data;
   };
 
   const logoutUser = () => {
-    localStorage.removeItem('kd_token');
-    delete axios.defaults.headers.common['Authorization'];
+    tokenService.removeUserToken();
     setUser(null);
   };
 
   const logoutAdmin = () => {
-    localStorage.removeItem('kd_admin_token');
+    tokenService.removeAdminToken();
     setAdmin(null);
   };
 
   const refreshProfile = async () => {
     try {
-      const res = await axios.get('/api/auth/me');
+      const res = await apiClient.get('/api/auth/me');
       setUser(res.data);
     } catch (err) {
       console.error('Refresh profile error:', err);
@@ -97,5 +110,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);

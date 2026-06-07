@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../../services/api/apiClient';
+import AdminSidebar from '../../components/layout/AdminSidebar';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
-  Database, Trash2, Edit3, Plus, ShieldCheck, X, ChevronDown, ChevronRight, Play
+  Database, Trash2, Edit3, Plus, ShieldCheck, X, ChevronDown, ChevronRight
 } from 'lucide-react';
 
 export default function DramaManager() {
@@ -41,6 +42,9 @@ export default function DramaManager() {
   const [director, setDirector] = useState('');
   const [trailer, setTrailer] = useState('');
   const [tmdbRating, setTmdbRating] = useState('8.0');
+  const [imdbRating, setImdbRating] = useState('8.0');
+  const [isTrending, setIsTrending] = useState(false);
+  const [isHistorical, setIsHistorical] = useState(false);
   const [status, setStatus] = useState('Published');
   const [savingDrama, setSavingDrama] = useState(false);
 
@@ -64,7 +68,7 @@ export default function DramaManager() {
   const fetchDramas = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/media/dramas?status=Published&limit=100');
+      const res = await apiClient.get('/api/media/dramas?status=Published&limit=100');
       setDramas(res.data.dramas);
     } catch (err) {
       setError('Failed to fetch dramas catalog');
@@ -86,7 +90,7 @@ export default function DramaManager() {
     setExpandedDramaId(drama._id);
     setLoadingExpansion(true);
     try {
-      const res = await axios.get(`/api/media/dramas/${drama.slug}`);
+      const res = await apiClient.get(`/api/media/dramas/${drama.slug}`);
       setExpandedData({
         seasons: res.data.seasons || [],
         episodes: res.data.episodes || []
@@ -112,6 +116,9 @@ export default function DramaManager() {
     setDirector('');
     setTrailer('');
     setTmdbRating('8.0');
+    setImdbRating('8.0');
+    setIsTrending(false);
+    setIsHistorical(false);
     setStatus('Published');
     setShowDramaModal(true);
   };
@@ -129,6 +136,9 @@ export default function DramaManager() {
     setDirector(drama.director || '');
     setTrailer(drama.trailer || '');
     setTmdbRating(drama.tmdbRating ? String(drama.tmdbRating) : '8.0');
+    setImdbRating(drama.imdbRating ? String(drama.imdbRating) : String(drama.tmdbRating || '8.0'));
+    setIsTrending(Boolean(drama.isTrending));
+    setIsHistorical(Boolean(drama.isHistorical));
     setStatus(drama.status || 'Published');
     setShowDramaModal(true);
   };
@@ -136,23 +146,19 @@ export default function DramaManager() {
   const handleDramaSubmit = async (e) => {
     e.preventDefault();
     setSavingDrama(true);
-    const token = localStorage.getItem('kd_admin_token');
+
     const payload = {
       title, description, poster, banner,
       releaseDate: releaseDate ? new Date(releaseDate) : null,
       runtime: Number(runtime), country, language, director, trailer,
-      tmdbRating: Number(tmdbRating), status
+      tmdbRating: Number(tmdbRating), imdbRating: Number(imdbRating), isTrending, status, isHistorical
     };
 
     try {
       if (editingDrama) {
-        await axios.put(`/api/admin/dramas/${editingDrama._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.put(`/api/admin/dramas/${editingDrama._id}`, payload);
       } else {
-        await axios.post('/api/admin/dramas', payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.post('/api/admin/dramas', payload);
       }
       setShowDramaModal(false);
       fetchDramas();
@@ -166,10 +172,8 @@ export default function DramaManager() {
   const handleDeleteDrama = async (id) => {
     if (!window.confirm('WARNING: Deleting a drama will delete all cascading seasons and episodes! Are you absolutely sure?')) return;
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      await axios.delete(`/api/admin/dramas/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiClient.delete(`/api/admin/dramas/${id}`);
       setExpandedDramaId(null);
       fetchDramas();
     } catch (err) {
@@ -197,7 +201,7 @@ export default function DramaManager() {
   const handleSeasonSubmit = async (e) => {
     e.preventDefault();
     setSavingSeason(true);
-    const token = localStorage.getItem('kd_admin_token');
+
     const payload = {
       dramaId: expandedDramaId,
       seasonNumber: Number(seasonNumber),
@@ -207,13 +211,9 @@ export default function DramaManager() {
 
     try {
       if (editingSeason) {
-        await axios.put(`/api/admin/seasons/${editingSeason._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.put(`/api/admin/seasons/${editingSeason._id}`, payload);
       } else {
-        await axios.post('/api/admin/seasons', payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.post('/api/admin/seasons', payload);
       }
       setShowSeasonModal(false);
       
@@ -233,10 +233,8 @@ export default function DramaManager() {
   const handleDeleteSeason = async (seasonId) => {
     if (!window.confirm('Delete season and all its episodes?')) return;
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      await axios.delete(`/api/admin/seasons/${seasonId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiClient.delete(`/api/admin/seasons/${seasonId}`);
       const dramaObj = dramas.find(d => d._id === expandedDramaId);
       if (dramaObj) {
         setExpandedDramaId(null);
@@ -277,8 +275,7 @@ export default function DramaManager() {
   const handleEpisodeSubmit = async (e) => {
     e.preventDefault();
     setSavingEpisode(true);
-    const token = localStorage.getItem('kd_admin_token');
-    
+
     const payload = {
       dramaId: expandedDramaId,
       seasonId: selectedSeasonId,
@@ -293,13 +290,9 @@ export default function DramaManager() {
 
     try {
       if (editingEpisode) {
-        await axios.put(`/api/admin/episodes/${editingEpisode._id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.put(`/api/admin/episodes/${editingEpisode._id}`, payload);
       } else {
-        await axios.post('/api/admin/episodes', payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await apiClient.post('/api/admin/episodes', payload);
       }
       setShowEpisodeModal(false);
       const dramaObj = dramas.find(d => d._id === expandedDramaId);
@@ -317,10 +310,8 @@ export default function DramaManager() {
   const handleDeleteEpisode = async (epId) => {
     if (!window.confirm('Delete this episode?')) return;
     try {
-      const token = localStorage.getItem('kd_admin_token');
-      await axios.delete(`/api/admin/episodes/${epId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiClient.delete(`/api/admin/episodes/${epId}`);
       const dramaObj = dramas.find(d => d._id === expandedDramaId);
       if (dramaObj) {
         setExpandedDramaId(null);
@@ -332,69 +323,8 @@ export default function DramaManager() {
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row pt-16">
-      
-      {/* Side Control Panel */}
-      <aside className="w-full md:w-64 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-16 md:h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="pb-4 border-b border-white/5">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
-            <h3 className="font-extrabold text-sm text-slate-100 uppercase tracking-wider">KDramaVerse Admins</h3>
-          </div>
-          <p className="text-xs text-slate-400 capitalize">{admin?.role} • {admin?.username}</p>
-        </div>
-
-        <nav className="flex flex-col gap-1.5">
-          <Link 
-            to="/management/dashboard" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <TrendingUp className="w-4 h-4 text-brand-primary" /> Dashboard Metrics
-          </Link>
-          <Link 
-            to="/management/import" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Database className="w-4 h-4 text-brand-accent" /> One-Click TMDB Importer
-          </Link>
-          <Link 
-            to="/management/movies" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Film className="w-4 h-4 text-brand-primary" /> Manage Movies
-          </Link>
-          <Link 
-            to="/management/dramas" 
-            className="flex items-center gap-3 p-3 bg-white/5 border-l-2 border-brand-primary text-slate-100 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Tv className="w-4 h-4 text-brand-primary" /> Manage Dramas
-          </Link>
-          <Link 
-            to="/management/subtitles" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Languages className="w-4 h-4 text-emerald-400" /> Subtitles Moderation
-          </Link>
-          <Link 
-            to="/management/comments" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Star className="w-4 h-4 text-yellow-400" /> Comments & Reviews
-          </Link>
-          <Link 
-            to="/management/users" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Users className="w-4 h-4 text-blue-400" /> Member Control
-          </Link>
-          <Link 
-            to="/management/settings" 
-            className="flex items-center gap-3 p-3 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider transition"
-          >
-            <Settings className="w-4 h-4 text-slate-400" /> Global SEO Config
-          </Link>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+      <AdminSidebar />
 
       {/* Primary Details Panel */}
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
@@ -403,7 +333,7 @@ export default function DramaManager() {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Manage K-Dramas</h1>
-              <p className="text-slate-400 text-xs mt-1">Manage series settings, seasons metadata, and episode video streamers</p>
+              <p className="text-slate-400 text-xs mt-1">Manage series settings, seasons metadata, and episode subtitle targets</p>
             </div>
             
             <button
@@ -438,13 +368,21 @@ export default function DramaManager() {
                         <img src={drama.poster} alt={drama.title} className="w-8 h-12 object-cover rounded bg-luxury-950 flex-shrink-0" />
                         <div>
                           <h4 className="font-extrabold text-sm text-slate-200">{drama.title}</h4>
+                          {drama.isTrending && (
+                            <span className="inline-flex mt-1 px-1.5 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[9px] font-bold uppercase tracking-wider">
+                              Trending
+                            </span>
+                          )}
                           <p className="text-[10px] text-slate-400 truncate">{drama.studio} • {drama.director}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-4 font-mono text-xs self-end sm:self-auto flex-shrink-0" onClick={e => e.stopPropagation()}>
                         <div className="text-slate-400">
-                          SCORE: <span className="text-brand-accent font-bold">{drama.tmdbRating}</span>
+                          IMDb: <span className="text-brand-accent font-bold">{drama.imdbRating || drama.tmdbRating || '0.0'}</span>
+                        </div>
+                        <div className="text-slate-400">
+                          TMDB: <span className="text-slate-100 font-bold">{drama.tmdbRating || '0.0'}</span>
                         </div>
                         <div className="text-slate-400">
                           VIEWS: <span className="text-slate-100 font-bold">{drama.viewCount}</span>
@@ -525,7 +463,7 @@ export default function DramaManager() {
                                         seasonEpisodes.map((ep) => (
                                           <div key={ep._id} className="flex justify-between items-center text-xs p-2 rounded hover:bg-white/5 text-slate-300">
                                             <div className="flex items-center gap-2 overflow-hidden mr-4">
-                                              <Play className="w-3 h-3 text-brand-primary flex-shrink-0" />
+                                              <Languages className="w-3 h-3 text-brand-primary flex-shrink-0" />
                                               <span className="font-bold font-mono text-[10px]">EP {ep.episodeNumber}:</span>
                                               <span className="truncate">{ep.episodeTitle}</span>
                                             </div>
@@ -598,7 +536,7 @@ export default function DramaManager() {
                   <input type="text" value={banner} onChange={e => setBanner(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Release Date</label>
                   <input type="date" value={releaseDate} onChange={e => setReleaseDate(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs text-slate-200" />
@@ -608,9 +546,33 @@ export default function DramaManager() {
                   <input type="number" value={runtime} onChange={e => setRuntime(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200" />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Rating</label>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">TMDB Rating</label>
                   <input type="text" value={tmdbRating} onChange={e => setTmdbRating(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200" />
                 </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">IMDb Rating</label>
+                  <input type="text" value={imdbRating} onChange={e => setImdbRating(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={isTrending}
+                    onChange={e => setIsTrending(e.target.checked)}
+                    className="w-4 h-4 accent-brand-primary"
+                  />
+                  Show this drama in Trending
+                </label>
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={isHistorical}
+                    onChange={e => setIsHistorical(e.target.checked)}
+                    className="w-4 h-4 accent-brand-primary"
+                  />
+                  Mark as Historical Drama
+                </label>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button type="button" onClick={() => setShowDramaModal(false)} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-slate-300">Cancel</button>

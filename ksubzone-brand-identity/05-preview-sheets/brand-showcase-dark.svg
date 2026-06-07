@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#070711"/>
+  <text x="86" y="112" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="850" fill="#FFFFFF" letter-spacing="-1.5">Ksubzone.com Brand Identity</text>
+  <text x="88" y="158" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="620" fill="#A8B0C3">Geometric KSZ monogram system for a Korean entertainment and subtitle platform</text>
+  <rect x="84" y="220" width="620" height="320" rx="20" fill="#12131C"/>
+  <svg x="160" y="282" width="196" height="196" viewBox="0 0 96 96">
+  <title id="sheet-dark-mark-title">Ksubzone KSZ symbol</title>
+  <desc id="sheet-dark-mark-desc">A bold geometric K monogram with S and Z hidden in a stepped negative-space channel.</desc>
+  <defs>
+    <linearGradient id="sheet-dark-mark-gradient" x1="10" y1="88" x2="88" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="0.48" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#00D5FF"/>
+    </linearGradient>
+    <filter id="sheet-dark-mark-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#1D4ED8" flood-opacity="0.2"/>
+    </filter>
+    <mask id="sheet-dark-mark-ksz-cut" maskUnits="userSpaceOnUse">
+      <rect width="96" height="96" fill="#fff"/>
+      <path d="M48 24H78L68 35H56L49 43H76V53H54L46 62H77L86 72H49L36 56L44 48L36 41Z" fill="#000"/>
+    </mask>
+  </defs>
+  
+  <g filter="url(#sheet-dark-mark-shadow)" mask="url(#sheet-dark-mark-ksz-cut)">
+    <path fill="url(#sheet-dark-mark-gradient)" d="M12 10H34V86H12Z"/>
+    <path fill="url(#sheet-dark-mark-gradient)" d="M34 42L64 10H91L55 48Z"/>
+    <path fill="url(#sheet-dark-mark-gradient)" d="M34 54L55 48L91 86H64Z"/>
+  </g>
+</svg>
+  <svg x="398" y="330" width="250" height="46" viewBox="0 0 720 128">
+  <title id="sheet-dark-word-title">Ksubzone.com wordmark</title>
+  <style>
+    .brand { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 78px; font-weight: 820; letter-spacing: -1.4px; }
+    .domain { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 48px; font-weight: 760; letter-spacing: -0.4px; }
+  </style>
+  <text x="0" y="86" class="brand" fill="#FFFFFF">Ksubzone</text>
+  <text x="404" y="86" class="domain" fill="#FFFFFF" opacity="0.58">.com</text>
+</svg>
+  <text x="398" y="418" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#A8B0C3" letter-spacing="2.5">MAIN LOGO</text>
+  <rect x="752" y="220" width="360" height="320" rx="20" fill="#12131C"/>
+  <svg x="852" y="278" width="160" height="160" viewBox="0 0 96 96">
+  <title id="sheet-dark-mono-title">Ksubzone KSZ symbol</title>
+  <desc id="sheet-dark-mono-desc">A bold geometric K monogram with S and Z hidden in a stepped negative-space channel.</desc>
+  <defs>
+    <linearGradient id="sheet-dark-mono-gradient" x1="10" y1="88" x2="88" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="0.48" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#00D5FF"/>
+    </linearGradient>
+    <filter id="sheet-dark-mono-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#1D4ED8" flood-opacity="0.2"/>
+    </filter>
+    <mask id="sheet-dark-mono-ksz-cut" maskUnits="userSpaceOnUse">
+      <rect width="96" height="96" fill="#fff"/>
+      <path d="M48 24H78L68 35H56L49 43H76V53H54L46 62H77L86 72H49L36 56L44 48L36 41Z" fill="#000"/>
+    </mask>
+  </defs>
+  
+  <g  mask="url(#sheet-dark-mono-ksz-cut)">
+    <path fill="#FFFFFF" d="M12 10H34V86H12Z"/>
+    <path fill="#FFFFFF" d="M34 42L64 10H91L55 48Z"/>
+    <path fill="#FFFFFF" d="M34 54L55 48L91 86H64Z"/>
+  </g>
+</svg>
+  <text x="932" y="474" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#A8B0C3" letter-spacing="2.5">MONO SYMBOL</text>
+  <rect x="1160" y="220" width="280" height="320" rx="54" fill="url(#app-bg)"/>
+  <svg x="1232" y="286" width="136" height="152" viewBox="0 0 96 96">
+  <title id="sheet-dark-app-title">Ksubzone KSZ symbol</title>
+  <desc id="sheet-dark-app-desc">A bold geometric K monogram with S and Z hidden in a stepped negative-space channel.</desc>
+  <defs>
+    <linearGradient id="sheet-dark-app-gradient" x1="10" y1="88" x2="88" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="0.48" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#00D5FF"/>
+    </linearGradient>
+    <filter id="sheet-dark-app-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#1D4ED8" flood-opacity="0.2"/>
+    </filter>
+    <mask id="sheet-dark-app-ksz-cut" maskUnits="userSpaceOnUse">
+      <rect width="96" height="96" fill="#fff"/>
+      <path d="M48 24H78L68 35H56L49 43H76V53H54L46 62H77L86 72H49L36 56L44 48L36 41Z" fill="#000"/>
+    </mask>
+  </defs>
+  
+  <g  mask="url(#sheet-dark-app-ksz-cut)">
+    <path fill="#FFFFFF" d="M12 10H34V86H12Z"/>
+    <path fill="#FFFFFF" d="M34 42L64 10H91L55 48Z"/>
+    <path fill="#FFFFFF" d="M34 54L55 48L91 86H64Z"/>
+  </g>
+</svg>
+  <text x="1300" y="474" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#fff" opacity="0.78" letter-spacing="2.5">APP ICON</text>
+  <defs>
+    <linearGradient id="app-bg" x1="0" y1="320" x2="280" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#070711"/>
+      <stop offset="0.46" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#00D5FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="84" y="620" width="1356" height="168" rx="20" fill="#12131C"/>
+  <svg x="120" y="654" width="172" height="100" viewBox="0 0 900 220">
+  <title id="sheet-dark-horizontal-title">Ksubzone.com horizontal logo</title>
+  <rect width="900" height="220" fill="#070711"/>
+  <svg x="58" y="48" width="124" height="124" viewBox="0 0 96 96">
+  <title id="sheet-dark-horizontal-symbol-title">Ksubzone KSZ symbol</title>
+  <desc id="sheet-dark-horizontal-symbol-desc">A bold geometric K monogram with S and Z hidden in a stepped negative-space channel.</desc>
+  <defs>
+    <linearGradient id="sheet-dark-horizontal-symbol-gradient" x1="10" y1="88" x2="88" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="0.48" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#00D5FF"/>
+    </linearGradient>
+    <filter id="sheet-dark-horizontal-symbol-shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#1D4ED8" flood-opacity="0.2"/>
+    </filter>
+    <mask id="sheet-dark-horizontal-symbol-ksz-cut" maskUnits="userSpaceOnUse">
+      <rect width="96" height="96" fill="#fff"/>
+      <path d="M48 24H78L68 35H56L49 43H76V53H54L46 62H77L86 72H49L36 56L44 48L36 41Z" fill="#000"/>
+    </mask>
+  </defs>
+  
+  <g filter="url(#sheet-dark-horizontal-symbol-shadow)" mask="url(#sheet-dark-horizontal-symbol-ksz-cut)">
+    <path fill="url(#sheet-dark-horizontal-symbol-gradient)" d="M12 10H34V86H12Z"/>
+    <path fill="url(#sheet-dark-horizontal-symbol-gradient)" d="M34 42L64 10H91L55 48Z"/>
+    <path fill="url(#sheet-dark-horizontal-symbol-gradient)" d="M34 54L55 48L91 86H64Z"/>
+  </g>
+</svg>
+  <svg x="224" y="54" width="590" height="105" viewBox="0 0 720 128">
+  <title id="sheet-dark-horizontal-word-title">Ksubzone.com wordmark</title>
+  <style>
+    .brand { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 78px; font-weight: 820; letter-spacing: -1.4px; }
+    .domain { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 48px; font-weight: 760; letter-spacing: -0.4px; }
+  </style>
+  <text x="0" y="86" class="brand" fill="#FFFFFF">Ksubzone</text>
+  <text x="404" y="86" class="domain" fill="#FFFFFF" opacity="0.58">.com</text>
+</svg>
+</svg>
+  <rect x="354" y="664" width="210" height="22" rx="11" fill="#A8B0C3" opacity="0.32"/>
+  <rect x="354" y="705" width="360" height="18" rx="9" fill="#A8B0C3" opacity="0.22"/>
+  <rect x="354" y="737" width="250" height="18" rx="9" fill="#A8B0C3" opacity="0.18"/>
+  <circle cx="1248" cy="704" r="48" fill="#8B5CF6"/>
+  <circle cx="1328" cy="704" r="48" fill="#1D4ED8"/>
+  <circle cx="1408" cy="704" r="48" fill="#00D5FF"/>
+  <text x="88" y="890" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="820" fill="#FFFFFF">Personality</text>
+  <text x="88" y="930" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="620" fill="#A8B0C3">Bold / youthful / global / premium / community-driven / digital-first</text>
+</svg>

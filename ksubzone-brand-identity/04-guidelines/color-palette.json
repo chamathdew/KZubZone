@@ -1,0 +1,41 @@
+{
+  "brand": "Ksubzone.com",
+  "palette": [
+    {
+      "name": "Electric Purple",
+      "hex": "#8B5CF6",
+      "role": "Primary gradient core"
+    },
+    {
+      "name": "Neon Blue",
+      "hex": "#1D4ED8",
+      "role": "Primary gradient base"
+    },
+    {
+      "name": "Digital Cyan",
+      "hex": "#00D5FF",
+      "role": "Primary gradient highlight"
+    },
+    {
+      "name": "Midnight Black",
+      "hex": "#070711",
+      "role": "Dark background and wordmark"
+    },
+    {
+      "name": "Dark Charcoal",
+      "hex": "#12131C",
+      "role": "Panels and UI surfaces"
+    },
+    {
+      "name": "Cloud White",
+      "hex": "#F7F8FC",
+      "role": "Light background"
+    },
+    {
+      "name": "Pulse Pink",
+      "hex": "#FF3D9A",
+      "role": "Optional entertainment accent"
+    }
+  ],
+  "gradient": "linear-gradient(135deg, #1D4ED8 0%, #8B5CF6 48%, #00D5FF 100%)"
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -32,7 +32,11 @@ export default function AdminLogin() {
         navigate('/management/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check credentials.');
+      if (!err.response) {
+        setError('Cannot connect to server. Please check if the backend is running.');
+      } else {
+        setError(err.response?.data?.message || 'Login failed. Please check credentials.');
+      }
       setLoading(false);
     }
   };
@@ -80,7 +84,7 @@ export default function AdminLogin() {
                 <input
                   type="email"
                   required
-                  placeholder="admin@kdramaverse.com"
+                  placeholder="admin@ksubzone.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 bg-luxury-950 border border-white border-opacity-10 focus:border-brand-primary rounded-xl outline-none text-slate-200 text-sm transition placeholder-slate-600"

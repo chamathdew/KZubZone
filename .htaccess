@@ -1,0 +1,25 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Route API, upload, robots.txt, and sitemap requests to the PHP backend
+  RewriteRule ^api/(.*)$ server-php/index.php [QSA,L]
+  RewriteRule ^uploads/(.*)$ server-php/index.php [QSA,L]
+  RewriteRule ^robots\.txt$ server-php/index.php [QSA,L]
+  RewriteRule ^(.*sitemap.*\.xml)$ server-php/index.php [QSA,L]
+
+  # 2. Serve the Vite production build from client/dist
+  RewriteRule ^assets/(.*)$ client/dist/assets/$1 [L]
+  RewriteRule ^media-fallback/(.*)$ client/dist/media-fallback/$1 [L]
+
+  # 3. Intercept Social Media Bot Crawlers for dynamic SEO tags
+  RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|whatsapp|twitterbot|linkedinbot|pinterest|discordbot|slackbot|telegrambot|viber) [NC]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ server-php/bot-seo.php [QSA,L]
+
+  # 4. Route all other non-file requests to the React build index.html (React Router fallback)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ client/dist/index.html [L]
+</IfModule>
