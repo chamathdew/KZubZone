@@ -300,6 +300,27 @@ export default function Detail({ type = 'Movie' }) {
     return `User: ${sub.uploader?.username || 'Translator'}`;
   };
 
+  const getEmbedUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('/embed/')) return url;
+    
+    let videoId = '';
+    if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split(/[?#]/)[0];
+    } else if (url.includes('youtube.com/watch')) {
+      try {
+        const urlParams = new URLSearchParams(new URL(url).search);
+        videoId = urlParams.get('v');
+      } catch (e) {
+        // Fallback for malformed URLs
+      }
+    } else if (url.includes('youtube.com/v/')) {
+      videoId = url.split('/v/')[1]?.split(/[?#]/)[0];
+    }
+    
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+  };
+
   return (
     <div className="w-full flex flex-col gap-12 bg-transparent text-left pb-16">
       
@@ -437,6 +458,49 @@ export default function Detail({ type = 'Movie' }) {
                 <p className="text-white font-bold">{media.studio || 'N/A'}</p>
               </div>
             </div>
+
+            {/* Cast details Section */}
+            {media.cast && media.cast.length > 0 && (
+              <div className="flex flex-col gap-4 text-left">
+                <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider">Starring Cast</h3>
+                <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-white/10 select-none">
+                  {media.cast.map((member, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-2xl min-w-[200px] flex-shrink-0">
+                      <img
+                        src={member.profilePath || `https://placehold.co/100x100/111/fff?text=${encodeURIComponent(member.name.split(' ').map(n=>n[0]).join(''))}`}
+                        alt={member.name}
+                        className="w-10 h-10 rounded-full object-cover border border-white/10"
+                        onError={(e) => {
+                          e.target.src = `https://placehold.co/100x100/111/fff?text=${encodeURIComponent(member.name.split(' ').map(n=>n[0]).join(''))}`;
+                        }}
+                      />
+                      <div className="min-w-0 flex flex-col">
+                        <span className="text-xs font-bold text-white truncate">{member.name}</span>
+                        <span className="text-[10px] text-slate-400 truncate mt-0.5">{member.character}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* YouTube Trailer Section */}
+            {media.trailer && (
+              <div className="flex flex-col gap-4 text-left">
+                <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <PlayCircle className="w-4 h-4 text-brand-primary" /> Official Trailer
+                </h3>
+                <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-white/5 bg-black shadow-2xl">
+                  <iframe
+                    src={getEmbedUrl(media.trailer)}
+                    title={`${media.title} Official Trailer`}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Drama Episode Subtitle Center */}
             {type === 'Drama' && seasons.length > 0 && (
