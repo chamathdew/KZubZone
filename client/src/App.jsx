@@ -27,6 +27,7 @@ const AdminDashboard = lazy(() => import('./pages/management/AdminDashboard'));
 const MovieManager = lazy(() => import('./pages/management/MovieManager'));
 const DramaManager = lazy(() => import('./pages/management/DramaManager'));
 const SubtitleManager = lazy(() => import('./pages/management/SubtitleManager'));
+const SubtitleTools = lazy(() => import('./pages/management/SubtitleTools'));
 const ReviewManager = lazy(() => import('./pages/management/ReviewManager'));
 const TmdbImport = lazy(() => import('./pages/management/TmdbImport'));
 const UserManager = lazy(() => import('./pages/management/UserManager'));
@@ -133,6 +134,11 @@ function AppRoutes() {
                 <Route path="/management/subtitles" element={
                   <AdminRoute>
                     <SubtitleManager />
+                  </AdminRoute>
+                } />
+                <Route path="/management/subtitle-tools" element={
+                  <AdminRoute>
+                    <SubtitleTools />
                   </AdminRoute>
                 } />
                 <Route path="/management/comments" element={
