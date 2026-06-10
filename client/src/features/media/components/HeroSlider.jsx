@@ -9,7 +9,7 @@ import { getMediaImage, handleImageFallback } from '@/utils/mediaImages';
 
 const EMPTY_ITEMS = [];
 
-export default function HeroSlider({ items = EMPTY_ITEMS }) {
+export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
 
@@ -28,11 +28,73 @@ export default function HeroSlider({ items = EMPTY_ITEMS }) {
     return () => clearInterval(timer);
   }, [items]);
 
-  if (items.length === 0) {
+  if (loading || items.length === 0) {
     return (
-      <div className="w-full h-[70vh] bg-luxury-900 animate-pulse flex items-center justify-center">
-        <span className="text-slate-500 text-sm">No recent titles available...</span>
-      </div>
+      <section className="relative w-full min-h-[86vh] overflow-hidden bg-luxury-950 flex items-center pt-20 pb-12 sm:pt-24 sm:pb-20">
+        {/* Background placeholder animation */}
+        <div className="absolute inset-0 bg-luxury-900/60 animate-pulse" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_34%,rgba(124,58,237,0.08),transparent_34%),linear-gradient(90deg,#030008_0%,rgba(3,0,8,0.72)_34%,rgba(3,0,8,0.24)_68%,rgba(3,0,8,0.42)_100%)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/10 to-black/25" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-luxury-950 to-transparent" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-8 lg:gap-12 items-center">
+            {/* Left Column (Meta & Info Skeleton) */}
+            <div className="max-w-3xl text-left flex flex-col gap-6">
+              {/* Badge */}
+              <div className="h-6 w-28 bg-white/5 border border-white/10 rounded-full animate-pulse" />
+
+              {/* Title */}
+              <div className="flex flex-col gap-3">
+                <div className="h-12 sm:h-16 w-3/4 bg-white/10 rounded-2xl animate-pulse" />
+                <div className="h-6 sm:h-8 w-1/3 bg-white/5 rounded-xl animate-pulse" />
+              </div>
+
+              {/* Badges row */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="h-7 w-20 bg-white/5 rounded-xl animate-pulse" />
+                <div className="h-7 w-16 bg-white/5 rounded-xl animate-pulse" />
+                <div className="h-7 w-24 bg-white/5 rounded-xl animate-pulse" />
+                <div className="h-7 w-16 bg-white/5 rounded-xl animate-pulse" />
+              </div>
+
+              {/* Synopsis lines */}
+              <div className="flex flex-col gap-2.5 mt-2">
+                <div className="h-4 w-full bg-white/5 rounded animate-pulse" />
+                <div className="h-4 w-11/12 bg-white/5 rounded animate-pulse" />
+                <div className="h-4 w-4/5 bg-white/5 rounded animate-pulse" />
+              </div>
+
+              {/* Metadata Cards */}
+              <div className="grid grid-cols-2 gap-3 max-w-xl text-xs mt-2">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex flex-col gap-2 h-20 animate-pulse">
+                  <div className="h-3 w-16 bg-white/5 rounded" />
+                  <div className="h-4 w-24 bg-white/10 rounded" />
+                </div>
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex flex-col gap-2 h-20 animate-pulse">
+                  <div className="h-3 w-16 bg-white/5 rounded" />
+                  <div className="h-4 w-28 bg-white/10 rounded" />
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 mt-4">
+                <div className="h-11 sm:h-12 w-32 bg-white/10 rounded-xl sm:rounded-2xl animate-pulse" />
+                <div className="h-11 sm:h-12 w-28 bg-white/5 rounded-xl sm:rounded-2xl animate-pulse" />
+              </div>
+            </div>
+
+            {/* Right Column (Poster Card Skeleton) */}
+            <div className="flex justify-center w-full lg:block order-first lg:order-none">
+              <div className="relative rounded-[2rem] border border-white/5 bg-white/[0.02] p-3 sm:p-4 max-w-[180px] sm:max-w-[260px] lg:max-w-none mx-auto w-full animate-pulse">
+                <div className="relative overflow-hidden rounded-[1.5rem] aspect-[2/3] bg-white/5 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     );
   }
 

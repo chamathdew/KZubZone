@@ -161,32 +161,34 @@ export default function Home() {
     .slice(0, 10);
 
   // Handle slide fallbacks
-  const slideItems = featuredItems.length > 0 ? featuredItems : librarySlides.length > 0 ? librarySlides : [
-    {
-      _id: "mock1",
-      title: "Moving",
-      originalTitle: "무빙",
-      banner: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925&auto=format&fit=crop",
-      poster: "https://placehold.co/500x750/111/fff?text=Moving",
-      tmdbRating: 8.4,
-      imdbRating: 8.4,
-      country: "KR",
-      description: "Children with secret superpowers and their parents who harbor painful secrets from the past face a massive imminent danger together.",
-      slug: "moving"
-    },
-    {
-      _id: "mock2",
-      title: "Train to Busan",
-      originalTitle: "부산행",
-      banner: "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2059&auto=format&fit=crop",
-      poster: "https://placehold.co/500x750/111/fff?text=Train+To+Busan",
-      tmdbRating: 8.0,
-      imdbRating: 8.0,
-      country: "KR",
-      description: "A zombie virus breaks out in South Korea, and passengers on a train from Seoul to Busan struggle to survive the outbreak.",
-      slug: "train-to-busan"
-    }
-  ];
+  const slideItems = homeCatalogLoading
+    ? []
+    : (featuredItems.length > 0 ? featuredItems : librarySlides.length > 0 ? librarySlides : [
+        {
+          _id: "mock1",
+          title: "Moving",
+          originalTitle: "무빙",
+          banner: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1925&auto=format&fit=crop",
+          poster: "https://placehold.co/500x750/111/fff?text=Moving",
+          tmdbRating: 8.4,
+          imdbRating: 8.4,
+          country: "KR",
+          description: "Children with secret superpowers and their parents who harbor painful secrets from the past face a massive imminent danger together.",
+          slug: "moving"
+        },
+        {
+          _id: "mock2",
+          title: "Train to Busan",
+          originalTitle: "부산행",
+          banner: "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=2059&auto=format&fit=crop",
+          poster: "https://placehold.co/500x750/111/fff?text=Train+To+Busan",
+          tmdbRating: 8.0,
+          imdbRating: 8.0,
+          country: "KR",
+          description: "A zombie virus breaks out in South Korea, and passengers on a train from Seoul to Busan struggle to survive the outbreak.",
+          slug: "train-to-busan"
+        }
+      ]);
 
   const isLibraryLoading = moviesLoading || dramasLoading;
   const brand = content?.brand || {};
@@ -217,7 +219,7 @@ export default function Home() {
       />
 
       {/* Hero Banner Slider */}
-      <HeroSlider items={slideItems} />
+      <HeroSlider items={slideItems} loading={homeCatalogLoading} />
 
       {/* Main Page Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex flex-col gap-14 mt-6">
