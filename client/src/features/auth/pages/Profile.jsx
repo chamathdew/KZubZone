@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '@/services/api/apiClient';
 import GlassCard from '@/components/ui/GlassCard';
 import Link from 'next/link';
+import { permalinkSlug } from '@/utils/slug';
 
 const AVATAR_PRESETS = [
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
@@ -418,11 +419,12 @@ export default function Profile() {
                   {user.continueWatching.map((item) => {
                     const media = item.details || {};
                     const progressPercent = item.duration > 0 ? (item.progress / item.duration) * 100 : 0;
+                    const mediaSlug = permalinkSlug(media);
                     
                     // Build correct watch path
                     const watchUrl = item.mediaType === 'Movie'
-                      ? `/movie/${media.slug}` // Movies play on detail/watch pages directly
-                      : `/drama/${media.slug}/season-${item.seasonNumber}/episode-${item.episodeNumber}`;
+                      ? `/movie/${mediaSlug}` // Movies play on detail/watch pages directly
+                      : `/drama/${mediaSlug}/season-${item.seasonNumber}/episode-${item.episodeNumber}`;
 
                     return (
                       <div 

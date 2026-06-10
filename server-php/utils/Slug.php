@@ -14,6 +14,28 @@ class Slug {
         return preg_replace('/-\d+$/', '', (string)$value);
     }
 
+    public static function normalizePermalinkSlug($value = '') {
+        $slug = trim((string)$value);
+        if ($slug === '') {
+            return '';
+        }
+
+        $slug = rawurldecode($slug);
+        $slug = preg_split('/[?#]/', $slug)[0];
+        $slug = trim($slug, '/');
+
+        if (preg_match_all('#(?:^|/)(?:movie|drama)/([^/?#]+)#i', $slug, $matches) && !empty($matches[1])) {
+            $slug = end($matches[1]);
+        } elseif (preg_match('#https?://#i', $slug)) {
+            $parts = preg_split('#https?://[^/]+/(?:movie|drama)/#i', $slug, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($parts)) {
+                $slug = end($parts);
+            }
+        }
+
+        return self::slugify($slug);
+    }
+
     public static function createUniqueSlug($checkCallback, $title, $existingId = null) {
         $baseSlug = self::slugify($title);
         $candidate = $baseSlug;
@@ -30,7 +52,7 @@ class Slug {
     }
 
     public static function findByPermalinkSlug($db, $collection, $slug) {
-        $slug = self::slugify($slug);
+        $slug = self::normalizePermalinkSlug($slug);
 
         $doc = $db->findOne($collection, ['slug' => $slug]);
         if ($doc) {

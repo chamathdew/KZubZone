@@ -8,14 +8,8 @@ class SeoController {
     private static $siteUrl = 'https://ksubzone.com';
 
     private static function permalinkSlug($item) {
-        $titleSlug = Slug::slugify($item['title'] ?? '');
-        if ($titleSlug && ($item['slug'] ?? '') === $titleSlug) {
-            return $item['slug'];
-        }
-        if ($titleSlug && strpos($item['slug'] ?? '', $titleSlug . '-') === 0) {
-            return $titleSlug;
-        }
-        return Slug::cleanSlug($item['slug'] ?? '');
+        $slug = Slug::normalizePermalinkSlug($item['slug'] ?? '');
+        return $slug ?: Slug::slugify($item['title'] ?? '');
     }
 
     private static function formatDate($dateStr) {

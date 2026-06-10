@@ -9,6 +9,7 @@ import HeroSlider from '@/features/media/components/HeroSlider';
 import GlassCard from '@/components/ui/GlassCard';
 import SeoTags from '@/components/seo/SeoTags';
 import { useSiteContent } from '@/hooks/useSiteContent';
+import { permalinkSlug } from '@/utils/slug';
 import { 
   Sparkles, Film, Tv, Clock, Send, 
   Flame, Star, Calendar, Compass, 
@@ -454,7 +455,7 @@ export default function Home() {
                       <div className="flex items-center gap-2 flex-wrap">
                         {sub.media?.title ? (
                           <Link
-                            href={`/${sub.media.type}/${sub.media.slug}`}
+                            href={`/${sub.media.type}/${permalinkSlug(sub.media)}`}
                             className="text-xs font-black text-white hover:text-brand-primary transition truncate max-w-[250px] sm:max-w-[400px]"
                           >
                             {sub.media.title}
