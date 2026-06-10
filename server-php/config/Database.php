@@ -445,6 +445,15 @@ class Database {
                         if (!empty($subClauses)) {
                             $clauses[] = "(" . implode(" OR ", $subClauses) . ")";
                         }
+                    } elseif ($op === '$regex') {
+                        $pattern = (string)$val;
+                        $like = $pattern;
+                        $like = preg_replace('/^\^/', '', $like);
+                        $like = preg_replace('/\$$/', '', $like);
+                        $like = str_replace(['\-', '.*', '.+', '[0-9]+'], ['-', '%', '%', '%'], $like);
+                        $like = str_replace('\\', '', $like);
+                        $clauses[] = "{$sqlField} LIKE {$paramName}_regex";
+                        $params["{$paramName}_regex"] = $like;
                     } elseif ($op === '$ne') {
                         $clauses[] = "{$sqlField} != {$paramName}_ne";
                         $params["{$paramName}_ne"] = $val;

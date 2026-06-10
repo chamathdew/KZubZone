@@ -138,17 +138,12 @@ class MovieController {
     public static function getMovieBySlug($slug) {
         $db = Database::getInstance();
         
-        // Match exact or legacy pattern
-        $movie = $db->findOne('movies', ['slug' => $slug]);
+        // Match exact slug and legacy links that stripped unique numeric suffixes.
+        $movie = Slug::findByPermalinkSlug($db, 'movies', $slug);
         if (!$movie) {
-            // Check legacy patterns
-            $clean = Slug::cleanSlug($slug);
-            $movie = $db->findOne('movies', ['slug' => ['$in' => [$clean]]]);
-            if (!$movie) {
-                http_response_code(404);
-                echo json_encode(['message' => 'Movie not found']);
-                return;
-            }
+            http_response_code(404);
+            echo json_encode(['message' => 'Movie not found']);
+            return;
         }
 
         // Increment views (wrapped in try-catch to prevent DB locking crashes)

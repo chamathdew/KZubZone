@@ -28,4 +28,25 @@ class Slug {
             $suffix++;
         }
     }
+
+    public static function findByPermalinkSlug($db, $collection, $slug) {
+        $slug = self::slugify($slug);
+
+        $doc = $db->findOne($collection, ['slug' => $slug]);
+        if ($doc) {
+            return $doc;
+        }
+
+        $clean = self::cleanSlug($slug);
+        if ($clean !== $slug) {
+            $doc = $db->findOne($collection, ['slug' => $clean]);
+            if ($doc) {
+                return $doc;
+            }
+        }
+
+        return $db->findOne($collection, [
+            'slug' => ['$regex' => '^' . preg_quote($clean, '/') . '-[0-9]+$']
+        ], ['sort' => ['createdAt' => 1]]);
+    }
 }

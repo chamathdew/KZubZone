@@ -99,16 +99,11 @@ class DramaController {
     public static function getDramaBySlug($slug) {
         $db = Database::getInstance();
 
-        $drama = $db->findOne('dramas', ['slug' => $slug]);
+        $drama = Slug::findByPermalinkSlug($db, 'dramas', $slug);
         if (!$drama) {
-            // Check legacy patterns
-            $clean = Slug::cleanSlug($slug);
-            $drama = $db->findOne('dramas', ['slug' => ['$in' => [$clean]]]);
-            if (!$drama) {
-                http_response_code(404);
-                echo json_encode(['message' => 'Drama not found']);
-                return;
-            }
+            http_response_code(404);
+            echo json_encode(['message' => 'Drama not found']);
+            return;
         }
 
         // Increment views (wrapped in try-catch to prevent DB locking crashes)
@@ -495,4 +490,3 @@ class DramaController {
         ];
     }
 }
-
