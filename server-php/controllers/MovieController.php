@@ -109,10 +109,14 @@ class MovieController {
             }
         }
 
-        // Increment views
-        $views = ($movie['viewCount'] ?? 0) + 1;
-        $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
-        $movie['viewCount'] = $views;
+        // Increment views (wrapped in try-catch to prevent DB locking crashes)
+        try {
+            $views = ($movie['viewCount'] ?? 0) + 1;
+            $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
+            $movie['viewCount'] = $views;
+        } catch (\Exception $e) {
+            // Ignore view count write-lock errors to keep page load stable
+        }
 
         // Fetch related movies (excluding current movie, sharing similar keywords)
         $related = [];

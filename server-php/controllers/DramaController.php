@@ -111,10 +111,14 @@ class DramaController {
             }
         }
 
-        // Increment views
-        $views = ($drama['viewCount'] ?? 0) + 1;
-        $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
-        $drama['viewCount'] = $views;
+        // Increment views (wrapped in try-catch to prevent DB locking crashes)
+        try {
+            $views = ($drama['viewCount'] ?? 0) + 1;
+            $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
+            $drama['viewCount'] = $views;
+        } catch (\Exception $e) {
+            // Ignore view count write-lock errors to keep page load stable
+        }
 
         // Dynamic subtitle summary
         $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id']);
