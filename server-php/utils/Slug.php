@@ -24,10 +24,10 @@ class Slug {
         $slug = preg_split('/[?#]/', $slug)[0];
         $slug = trim($slug, '/');
 
-        if (preg_match_all('#(?:^|/)(?:movie|drama)/([^/?#]+)#i', $slug, $matches) && !empty($matches[1])) {
+        if (preg_match_all('~(?:^|/)(?:movie|drama)/([^/?#]+)~i', $slug, $matches) && !empty($matches[1])) {
             $slug = end($matches[1]);
-        } elseif (preg_match('#https?://#i', $slug)) {
-            $parts = preg_split('#https?://[^/]+/(?:movie|drama)/#i', $slug, -1, PREG_SPLIT_NO_EMPTY);
+        } elseif (preg_match('~https?://~i', $slug)) {
+            $parts = preg_split('~https?://[^/]+/(?:movie|drama)/~i', $slug, -1, PREG_SPLIT_NO_EMPTY);
             if (!empty($parts)) {
                 $slug = end($parts);
             }
