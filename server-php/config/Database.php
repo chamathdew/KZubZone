@@ -14,84 +14,81 @@ class Database {
         $mongoUri = $_ENV['MONGODB_URI'] ?? getenv('MONGODB_URI') ?: '';
         $this->dbName = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'ksubzone';
         $dbDriver = $_ENV['DB_DRIVER'] ?? getenv('DB_DRIVER') ?: '';
+        $nodeEnv = $_ENV['NODE_ENV'] ?? getenv('NODE_ENV') ?: '';
+        $allowSqlFallback = strtolower($_ENV['ALLOW_SQL_FALLBACK'] ?? getenv('ALLOW_SQL_FALLBACK') ?: '') === 'true';
+        $isProduction = strtolower($nodeEnv) === 'production';
 
         $mysqlCircuitBreaker = dirname(__FILE__) . '/.mysql_failed';
-        $mongoCircuitBreaker = dirname(__FILE__) . '/.mongodb_failed';
+        $wantsMongo = $dbDriver === 'mongodb' || (!empty($mongoUri) && $dbDriver !== 'mysql') || ($isProduction && $dbDriver !== 'mysql');
 
-        $useMysql = false;
-        if ($dbDriver === 'mysql' || !empty($_ENV['DB_HOST'])) {
-            if (file_exists($mysqlCircuitBreaker)) {
-                $lastFailed = (int)@file_get_contents($mysqlCircuitBreaker);
-                if (time() - $lastFailed > 60) {
-                    @unlink($mysqlCircuitBreaker);
-                    $useMysql = true;
-                }
-            } else {
-                $useMysql = true;
+        if ($wantsMongo) {
+            if (empty($mongoUri)) {
+                throw new \RuntimeException('MONGODB_URI is required when DB_DRIVER=mongodb or NODE_ENV=production.');
             }
-        }
 
-        $useMongo = false;
-        if (empty($dbDriver) && !$useMysql && class_exists('MongoDB\Driver\Manager') && !empty($mongoUri)) {
-            if (file_exists($mongoCircuitBreaker)) {
-                $lastFailed = (int)@file_get_contents($mongoCircuitBreaker);
-                if (time() - $lastFailed > 60) {
-                    @unlink($mongoCircuitBreaker);
-                    $useMongo = true;
-                }
-            } else {
-                $useMongo = true;
-            }
-        } elseif ($dbDriver === 'mongodb') {
-            if (file_exists($mongoCircuitBreaker)) {
-                $lastFailed = (int)@file_get_contents($mongoCircuitBreaker);
-                if (time() - $lastFailed > 60) {
-                    @unlink($mongoCircuitBreaker);
-                    $useMongo = true;
-                }
-            } else {
-                $useMongo = true;
-            }
-        }
-
-        if ($useMysql) {
             try {
+                $this->initMongoDB($mongoUri);
+            } catch (\Exception $e) {
+                if ($allowSqlFallback && !$isProduction) {
+                    $this->fallbackWarning = "MongoDB Connection Failed: " . $e->getMessage() . " (SQLite Fallback active because ALLOW_SQL_FALLBACK=true)";
+                    error_log($this->fallbackWarning);
+                    $this->initSQLite();
+                } else {
+                    throw new \RuntimeException('MongoDB connection is required and fallback is disabled: ' . $e->getMessage(), 0, $e);
+                }
+            }
+        } elseif ($dbDriver === 'mysql') {
+            if (!$allowSqlFallback) {
+                throw new \RuntimeException('MySQL is disabled. Set DB_DRIVER=mongodb and MONGODB_URI for this deployment.');
+            }
+
+            try {
+                if (file_exists($mysqlCircuitBreaker)) {
+                    $lastFailed = (int)@file_get_contents($mysqlCircuitBreaker);
+                    if (time() - $lastFailed <= 60) {
+                        throw new \RuntimeException('MySQL retry circuit is still open.');
+                    }
+                    @unlink($mysqlCircuitBreaker);
+                }
                 $this->initMySQL();
             } catch (\Exception $e) {
                 @file_put_contents($mysqlCircuitBreaker, time());
-                $this->fallbackWarning = "MySQL Connection Failed: " . $e->getMessage() . " (SQLite Fallback active, retrying in 60s)";
-                error_log($this->fallbackWarning);
-                $this->initSQLite();
-            }
-        } elseif ($useMongo) {
-            try {
-                // Parse DB name from URI if present, e.g., mongodb+srv://user:pass@host/dbname?options
-                $path = parse_url($mongoUri, PHP_URL_PATH);
-                if (!empty($path) && trim($path, '/') !== '') {
-                    $this->dbName = trim($path, '/');
-                }
-                // Initialize Manager with fast timeouts (1.5 seconds)
-                $this->manager = new \MongoDB\Driver\Manager($mongoUri, [
-                    'connectTimeoutMS' => 1500,
-                    'serverSelectionTimeoutMS' => 1500
-                ]);
-                // Ping connection to verify it works
-                $command = new \MongoDB\Driver\Command(['ping' => 1]);
-                $this->manager->executeCommand('admin', $command);
-                $this->driver = 'mongodb';
-            } catch (\Exception $e) {
-                @file_put_contents($mongoCircuitBreaker, time());
-                // Fail-safe to SQLite if MongoDB fails to initialize
-                $this->fallbackWarning = "MongoDB Connection Failed: " . $e->getMessage() . " (SQLite Fallback active, retrying in 60s)";
+                $this->fallbackWarning = "MySQL Connection Failed: " . $e->getMessage() . " (SQLite Fallback active because ALLOW_SQL_FALLBACK=true)";
                 error_log($this->fallbackWarning);
                 $this->initSQLite();
             }
         } else {
-            $this->initSQLite();
+            if ($allowSqlFallback || !$isProduction) {
+                $this->initSQLite();
+            } else {
+                throw new \RuntimeException('No database configured. Set MONGODB_URI for production.');
+            }
         }
 
         // Initialize schema and seed data if needed
         $this->initializeDatabase();
+    }
+
+    private function initMongoDB($mongoUri) {
+        if (!class_exists('MongoDB\Driver\Manager')) {
+            throw new \RuntimeException('PHP MongoDB extension is not installed or enabled.');
+        }
+
+        // Parse DB name from URI if present, e.g., mongodb+srv://user:pass@host/dbname?options
+        $path = parse_url($mongoUri, PHP_URL_PATH);
+        if (!empty($path) && trim($path, '/') !== '') {
+            $this->dbName = trim($path, '/');
+        }
+
+        $this->manager = new \MongoDB\Driver\Manager($mongoUri, [
+            'connectTimeoutMS' => 5000,
+            'serverSelectionTimeoutMS' => 5000
+        ]);
+
+        // Ping connection to verify it works before serving API data.
+        $command = new \MongoDB\Driver\Command(['ping' => 1]);
+        $this->manager->executeCommand('admin', $command);
+        $this->driver = 'mongodb';
     }
 
     public static function getInstance() {
