@@ -44,7 +44,7 @@ export const defaultSiteContent = {
     quickLinksTitle: 'Quick Links',
     contactTitle: 'Contact',
     contactText: 'Seoul-curated Korean entertainment catalog for global fans.',
-    email: 'hello@ksubzone.com',
+    email: 'contact@ksubzone.com',
     requestText: 'Request a title or subtitle sync',
     followTitle: 'Follow Us',
     newsletterPlaceholder: 'Get release alerts',
