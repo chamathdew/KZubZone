@@ -201,11 +201,7 @@ class DramaController {
             $updates = array_merge($updates, $seoContent);
         }
 
-        if (!empty($updates['title']) && $updates['title'] !== $drama['title']) {
-            $updates['slug'] = Slug::createUniqueSlug(function($candidate) use ($db) {
-                return $db->findOne('dramas', ['slug' => $candidate]);
-            }, $updates['title'], $drama['_id']);
-        }
+
 
         $db->updateOne('dramas', ['_id' => $id], $updates);
         $updatedDrama = $db->findOne('dramas', ['_id' => $id]);

@@ -184,11 +184,7 @@ class MovieController {
             $updates = array_merge($updates, $seoContent);
         }
 
-        if (!empty($updates['title']) && $updates['title'] !== $movie['title']) {
-            $updates['slug'] = Slug::createUniqueSlug(function($candidate) use ($db) {
-                return $db->findOne('movies', ['slug' => $candidate]);
-            }, $updates['title'], $movie['_id']);
-        }
+
 
         $db->updateOne('movies', ['_id' => $id], $updates);
         $updatedMovie = $db->findOne('movies', ['_id' => $id]);
