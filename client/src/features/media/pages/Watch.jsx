@@ -176,7 +176,7 @@ export default function Watch({ initialDramaData }) {
                   >
                     <span className="flex items-center justify-between gap-3">
                       <span className="text-xs font-black text-white uppercase inline-flex items-center gap-1.5">
-                        <Languages className="w-3.5 h-3.5 text-emerald-300" /> {sub.language} ({sub.format.toUpperCase()})
+                        <Languages className="w-3.5 h-3.5 text-emerald-300" /> {sub.language} ({(sub.format || 'srt').toUpperCase()})
                       </span>
                       <Download className="w-3.5 h-3.5 text-brand-primary flex-shrink-0" />
                     </span>
