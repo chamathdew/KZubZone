@@ -24,7 +24,7 @@ export async function generateMetadata({ params }) {
       return {
         title: media.metaTitle || `${media.title} Sinhala & English Subtitles | KSubZone`,
         description: media.metaDescription || `${media.description || media.title} Sinhala and English subtitle downloads.`,
-        keywords: media.seoKeywords || [media.title.toLowerCase()],
+        keywords: media.seoKeywords || (media.title ? [media.title.toLowerCase()] : []),
         alternates: {
           canonical: `https://ksubzone.com/drama/${slug}`,
         },

@@ -300,15 +300,15 @@ export default function Detail({ type = 'Movie', initialData }) {
   const posterImage = getMediaImage(media, 'poster');
   const backdropImage = getMediaImage(media, 'backdrop');
   const sortedSubtitles = [...(subtitles || [])].sort((a, b) => {
-    const aSinhala = a.language?.toLowerCase() === 'sinhala' ? 0 : 1;
-    const bSinhala = b.language?.toLowerCase() === 'sinhala' ? 0 : 1;
+    const aSinhala = a?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
+    const bSinhala = b?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
     return aSinhala - bSinhala;
   });
   const titleLevelSubtitles = sortedSubtitles.filter(sub => !sub.seasonNumber && !sub.episodeNumber);
   const standaloneSubtitles = type === 'Drama' ? titleLevelSubtitles : sortedSubtitles;
   const sortSubtitleFiles = (items = []) => [...items].sort((a, b) => {
-    const aSinhala = a.language?.toLowerCase() === 'sinhala' ? 0 : 1;
-    const bSinhala = b.language?.toLowerCase() === 'sinhala' ? 0 : 1;
+    const aSinhala = a?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
+    const bSinhala = b?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
     if (aSinhala !== bSinhala) return aSinhala - bSinhala;
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
@@ -357,7 +357,7 @@ export default function Detail({ type = 'Movie', initialData }) {
       <SeoTags
         title={media.metaTitle || `${media.title} Sinhala & English Subtitles | KSubZone`}
         description={media.metaDescription || `${media.description || media.title} Sinhala and English subtitle downloads.`}
-        keywords={media.seoKeywords || [media.title.toLowerCase()]}
+        keywords={media.seoKeywords || (media.title ? [media.title.toLowerCase()] : [])}
         canonical={`https://ksubzone.com/${type.toLowerCase()}/${mediaPermalink}`}
         image={media.poster}
         schemaMarkup={media.schemaMarkup}
@@ -633,7 +633,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                               <div className="min-w-0 flex flex-col justify-center">
                                 <div className="flex items-center gap-2">
                                   <h4 className="text-sm font-bold text-white truncate">
-                                    {ep.episodeTitle && ep.episodeTitle.toLowerCase() !== `episode ${ep.episodeNumber}`.toLowerCase() 
+                                    {ep.episodeTitle && typeof ep.episodeTitle === 'string' && ep.episodeTitle.toLowerCase() !== `episode ${ep.episodeNumber}`.toLowerCase() 
                                       ? `Episode ${ep.episodeNumber}: ${ep.episodeTitle}` 
                                       : `Episode ${ep.episodeNumber}`}
                                   </h4>
@@ -703,7 +703,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                                 >
                                   <div className="flex flex-col min-w-0">
                                     <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate flex items-center gap-1.5">
-                                      {sub.language} {sub.format.toUpperCase()}
+                                      {sub.language} {(sub?.format || 'srt').toUpperCase()}
                                       <span className="px-1 py-0.5 rounded bg-white/10 text-[7px] text-slate-300">v{sub.version}</span>
                                     </span>
                                     <span className="text-[8px] text-slate-500 uppercase tracking-widest mt-0.5 truncate">
@@ -744,7 +744,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                       >
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-xs font-bold text-white uppercase tracking-wider">{sub.language} ({sub.format.toUpperCase()})</p>
+                            <p className="text-xs font-bold text-white uppercase tracking-wider">{sub?.language} ({(sub?.format || 'srt').toUpperCase()})</p>
                             <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
                               sub.uploaderRole === 'Admin' 
                                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/35 shadow-sm shadow-rose-500/10' 
