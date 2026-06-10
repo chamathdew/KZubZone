@@ -187,6 +187,18 @@ class DramaController {
             return;
         }
 
+        // Handle manual slug update - sanitize and ensure uniqueness
+        if (!empty($updates['slug'])) {
+            $newSlug = Slug::slugify($updates['slug']);
+            $conflict = $db->findOne('dramas', ['slug' => $newSlug]);
+            if ($conflict && (string)$conflict['_id'] !== (string)$id) {
+                http_response_code(409);
+                echo json_encode(['message' => "Slug '{$newSlug}' is already used by another drama."]);
+                return;
+            }
+            $updates['slug'] = $newSlug;
+        }
+
         // Re-generate SEO package if title or description changes
         if (!empty($updates['title']) || !empty($updates['description'])) {
             $title = $updates['title'] ?? $drama['title'];

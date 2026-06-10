@@ -44,6 +44,7 @@ export default function DramaManager() {
   const [trailer, setTrailer] = useState('');
   const [tmdbRating, setTmdbRating] = useState('8.0');
   const [imdbRating, setImdbRating] = useState('8.0');
+  const [slug, setSlug] = useState('');
   const [isTrending, setIsTrending] = useState(false);
   const [isHistorical, setIsHistorical] = useState(false);
   const [status, setStatus] = useState('Published');
@@ -107,6 +108,7 @@ export default function DramaManager() {
   const handleOpenCreateDrama = () => {
     setEditingDrama(null);
     setTitle('');
+    setSlug('');
     setDescription('');
     setPoster('');
     setBanner('');
@@ -127,6 +129,7 @@ export default function DramaManager() {
   const handleOpenEditDrama = (drama) => {
     setEditingDrama(drama);
     setTitle(drama.title || '');
+    setSlug(drama.slug || '');
     setDescription(drama.description || '');
     setPoster(drama.poster || '');
     setBanner(drama.banner || '');
@@ -150,6 +153,7 @@ export default function DramaManager() {
 
     const payload = {
       title, description, poster, banner,
+      slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || undefined,
       releaseDate: releaseDate ? new Date(releaseDate) : null,
       runtime: Number(runtime), country, language, director, trailer,
       tmdbRating: Number(tmdbRating), imdbRating: Number(imdbRating), isTrending, status, isHistorical
@@ -522,6 +526,20 @@ export default function DramaManager() {
                   <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Director</label>
                   <input type="text" value={director} onChange={e => setDirector(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">
+                  URL Slug
+                  <span className="ml-2 text-slate-500 font-normal normal-case">/drama/<span className="text-brand-primary">{slug || 'auto-generated'}</span></span>
+                </label>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                  placeholder="e.g. teach-you-a-lesson"
+                  className="w-full px-3 py-2 bg-luxury-950 border border-brand-primary/30 rounded-xl text-xs outline-none text-brand-primary font-mono focus:border-brand-primary/60"
+                />
+                <p className="text-[9px] text-slate-500 mt-1">⚠️ Changing slug will break existing links to this drama</p>
               </div>
               <div>
                 <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Synoptical Overview</label>
