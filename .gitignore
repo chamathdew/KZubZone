@@ -34,3 +34,7 @@ client/out/
 # Server uploads
 server-php/uploads/
 
+# SQLite Databases & initialized flags
+server-php/*.sqlite
+server-php/.db_initialized_*
+
