@@ -36,5 +36,5 @@ server-php/uploads/
 
 # SQLite Databases & initialized flags
 server-php/*.sqlite
-server-php/.db_initialized_*
+server-php/config/.db_initialized_*
 
