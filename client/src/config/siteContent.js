@@ -4,8 +4,8 @@ export const defaultSiteContent = {
     shortName: 'KDV',
     tagline: 'K-Drama & Movie Subtitles',
     logoText: 'KSUBZONE',
-    logoUrl: '',
-    faviconUrl: '',
+    logoUrl: '/main-logo.svg',
+    faviconUrl: '/main-logo.svg',
     primaryUrl: 'https://ksubzone.com'
   },
   seo: {
@@ -67,6 +67,10 @@ export const defaultSiteContent = {
     enableChatbot: true,
     enableSmartSearch: true,
     enableTranslation: true
+  },
+  system: {
+    maintenanceMode: false,
+    maintenanceMessage: 'KSubZone is currently undergoing scheduled maintenance. We will be back online shortly.'
   }
 };
 

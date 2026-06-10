@@ -64,3 +64,19 @@ export const handleImageFallback = (event, item = {}, kind = 'poster') => {
     event.currentTarget.src = fallback;
   }
 };
+
+export const resolveLogoUrl = (url = '') => {
+  if (!url) return '';
+  const urlStr = String(url).trim();
+  if (urlStr.includes('drive.google.com')) {
+    const fileDMatch = urlStr.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileDMatch && fileDMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${fileDMatch[1]}`;
+    }
+    const idMatch = urlStr.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (idMatch && idMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+    }
+  }
+  return urlStr;
+};

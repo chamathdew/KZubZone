@@ -24,6 +24,13 @@ server/*.log
 *.sln
 *.swp
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Next.js build output
+client/.next/
+client/out/
+
+# Generated deployment archives
+*.zip
+
+# Server uploads
+server-php/uploads/
+

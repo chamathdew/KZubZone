@@ -1,14 +1,18 @@
+'use client';
+
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Clapperboard, Facebook, Instagram, Mail, MapPin, MessageCircle, Play, Search, Send, Star, Youtube, Sparkles } from 'lucide-react';
-import { useSiteContent } from '../../hooks/useSiteContent';
+import { useSiteContent } from '@/hooks/useSiteContent';
+import { resolveLogoUrl } from '@/utils/mediaImages';
 
 const socialIcons = { Facebook, Instagram, YouTube: Youtube, Youtube };
 
 export default function Footer() {
-  const location = useLocation();
+  const pathname = usePathname();
   const { content } = useSiteContent();
-  const hideFooter = location.pathname.startsWith('/management') || location.pathname.includes('/episode-');
+  const hideFooter = pathname?.startsWith('/management') || pathname?.includes('/episode-');
   const brand = content?.brand || {};
   const footer = content?.footer || {};
   const footerLinks = (footer.links || []).filter((link) => link.label && link.url);
@@ -22,11 +26,11 @@ export default function Footer() {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-primary/60 to-transparent" />
       <div className="bg-luxury-900/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-14">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
             <div className="space-y-5">
-              <Link to="/" className="inline-flex items-center gap-3">
+              <Link href="/" className="inline-flex items-center gap-3">
                 {brand.logoUrl ? (
-                  <img src={brand.logoUrl} alt={brand.siteName || 'Site logo'} className="h-14 w-14 rounded-2xl object-cover border border-brand-primary/30 shadow-glass-neon" />
+                  <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Site logo'} className="h-14 w-auto object-contain shadow-glass-neon" />
                 ) : (
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-primary/30 bg-brand-primary/10 shadow-glass-neon">
                     <Clapperboard className="h-7 w-7 text-brand-primary" />
@@ -46,7 +50,7 @@ export default function Footer() {
               </h3>
               <nav className="flex flex-col gap-3 text-sm text-slate-400">
                 {footerLinks.map((link) => (
-                  <Link key={`${link.label}-${link.url}`} to={link.url} className="transition hover:text-brand-primary">
+                  <Link key={`${link.label}-${link.url}`} href={link.url} className="transition hover:text-brand-primary">
                     {link.label}
                   </Link>
                 ))}
@@ -86,6 +90,24 @@ export default function Footer() {
                     </a>
                   );
                 })}
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <h3 className="mb-5 text-sm font-extrabold uppercase tracking-wider text-white">
+                Attribution
+                <span className="mt-2 block h-0.5 w-8 rounded-full bg-brand-primary" />
+              </h3>
+              <div className="glass-panel border border-white/5 bg-white/[0.015] p-4 rounded-2xl flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-black tracking-wider bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+                    TMDB
+                  </span>
+                  <div className="h-4 w-10 rounded-full bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.3)] animate-pulse" />
+                </div>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  This product uses the TMDB API but is not endorsed or certified by TMDB.
+                </p>
               </div>
             </div>
           </div>

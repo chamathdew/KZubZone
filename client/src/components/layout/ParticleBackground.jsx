@@ -1,4 +1,7 @@
+'use client';
+
 import { useMemo, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Particles, { ParticlesProvider } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 
@@ -8,22 +11,17 @@ const initParticles = async (engine) => {
 };
 
 export default function ParticleBackground() {
-  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    handleResize(); // run on mount
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    setMounted(true);
   }, []);
 
   const options = useMemo(
     () => ({
       fullScreen: {
-        enable: true,
-        zIndex: 1, // Draw on top of background but below z-10 content
+        enable: false,
       },
       background: {
         color: {
@@ -35,11 +33,11 @@ export default function ParticleBackground() {
         detectsOn: "window",
         events: {
           onClick: {
-            enable: true, // Enable mobile click/tap push
+            enable: true,
             mode: "push",
           },
           onHover: {
-            enable: true, // Enable hover/touch interactions
+            enable: true,
             mode: "grab",
           },
           resize: true,
@@ -63,8 +61,8 @@ export default function ParticleBackground() {
         links: {
           color: "#8b5cf6",
           distance: 120,
-          enable: true, // Enable linking lines on all screen sizes
-          opacity: 0.12,
+          enable: true,
+          opacity: 0.12, // Lower opacity for high transparency as requested
           width: 1,
         },
         move: {
@@ -74,7 +72,7 @@ export default function ParticleBackground() {
             default: "out",
           },
           random: true,
-          speed: 0.8, // Slightly slower speed for cleaner background motion
+          speed: 0.8, // Slow speed for clean background motion
           straight: false,
         },
         number: {
@@ -82,7 +80,7 @@ export default function ParticleBackground() {
             enable: true,
             area: 800,
           },
-          value: isMobile ? 50 : 90, // Scale down to 50 on mobile screens (balanced for performance)
+          value: 90,
         },
         opacity: {
           value: 0.4,
@@ -94,7 +92,6 @@ export default function ParticleBackground() {
         },
         shape: {
           type: "circle",
-          options: {},
         },
         size: {
           value: { min: 1, max: 3.5 },
@@ -105,24 +102,40 @@ export default function ParticleBackground() {
           }
         },
         shadow: {
-          enable: true, // Enable shadows on all screens for premium aesthetic
+          enable: true,
           color: "#8b5cf6",
           blur: 4,
         }
       },
+      responsive: [
+        {
+          maxWidth: 768,
+          options: {
+            particles: {
+              number: {
+                value: 50, // Scale down particle count on mobile screens
+              },
+            },
+          },
+        },
+      ],
       detectRetina: true,
     }),
-    [isMobile],
+    [],
   );
+
+  if (!mounted) return null;
 
   return (
     <ParticlesProvider init={initParticles}>
       <Particles
+        key={pathname}
         id="tsparticles"
         options={options}
-        className="pointer-events-none"
-        style={{ pointerEvents: "none" }}
+        className="fixed inset-0 pointer-events-none"
+        style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1, pointerEvents: "none" }}
       />
     </ParticlesProvider>
   );
 }
+

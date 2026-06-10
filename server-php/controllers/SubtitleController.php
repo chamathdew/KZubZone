@@ -158,7 +158,7 @@ class SubtitleController {
             'limit' => $limit
         ]);
 
-        // Populate uploader
+        // Populate uploader and media info
         foreach ($subtitles as &$sub) {
             $uploader = $db->findOne('users', ['_id' => $sub['uploader']]);
             $sub['uploader'] = $uploader ? [
@@ -166,6 +166,43 @@ class SubtitleController {
                 'username' => $uploader['username'],
                 'avatar' => $uploader['avatar'] ?? ''
             ] : null;
+
+            // Fetch associated media details
+            $mediaTitle = '';
+            $mediaSlug = '';
+            $mediaType = strtolower($sub['mediaType'] ?? '');
+
+            if ($mediaType === 'episode') {
+                $episode = $db->findOne('episodes', ['_id' => $sub['mediaId']]);
+                if ($episode) {
+                    $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
+                    if ($drama) {
+                        $mediaTitle = $drama['title'];
+                        $mediaSlug = $drama['slug'];
+                        $mediaType = 'drama';
+                    }
+                }
+            } elseif ($mediaType === 'movie') {
+                $movie = $db->findOne('movies', ['_id' => $sub['mediaId']]);
+                if ($movie) {
+                    $mediaTitle = $movie['title'];
+                    $mediaSlug = $movie['slug'];
+                    $mediaType = 'movie';
+                }
+            } else {
+                $drama = $db->findOne('dramas', ['_id' => $sub['mediaId']]);
+                if ($drama) {
+                    $mediaTitle = $drama['title'];
+                    $mediaSlug = $drama['slug'];
+                    $mediaType = 'drama';
+                }
+            }
+
+            $sub['media'] = [
+                'title' => $mediaTitle,
+                'slug' => $mediaSlug,
+                'type' => $mediaType
+            ];
         }
 
         header('Content-Type: application/json');

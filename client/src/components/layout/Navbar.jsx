@@ -1,17 +1,20 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, User, LogOut, Menu, X } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
-import { useSiteContent } from '../../hooks/useSiteContent';
-import { permalinkSlug } from '../../utils/slug';
-import { getMediaImage, handleImageFallback } from '../../utils/mediaImages';
-import apiClient from '../../services/api/apiClient';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useSiteContent } from '@/hooks/useSiteContent';
+import { permalinkSlug } from '@/utils/slug';
+import { getMediaImage, handleImageFallback, resolveLogoUrl } from '@/utils/mediaImages';
+import apiClient from '@/services/api/apiClient';
 
 export default function Navbar() {
   const { user, admin, logoutUser, logoutAdmin } = useAuth();
   const { content } = useSiteContent();
-  const navigate = useNavigate();
+  const router = useRouter();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -76,7 +79,7 @@ export default function Navbar() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setShowSuggestions(false);
-      navigate(`/search?q=${searchQuery}`);
+      router.push(`/search?q=${searchQuery}`);
     }
   };
 
@@ -95,10 +98,12 @@ export default function Navbar() {
         
         <div className="flex items-center gap-4 min-w-0">
           {/* LOGO */}
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            {brand.logoUrl && (
-              <img src={brand.logoUrl} alt={brand.siteName || 'Site logo'} className="h-9 w-9 rounded-xl object-cover border border-white/10" />
-            )}
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <img
+              src={resolveLogoUrl(brand.logoUrl) || "/main-logo.svg"}
+              alt={brand.siteName || 'KSubZone'}
+              className="h-9 w-auto object-contain"
+            />
             <span className="text-xl xl:text-2xl font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans">
               {brand.logoText || brand.siteName || 'KSUBZONE'}
             </span>
@@ -108,11 +113,11 @@ export default function Navbar() {
         {/* CENTER NAV LINKS */}
         <nav className="hidden xl:flex items-center justify-center gap-7">
           {catalogLinks.map((item) => (
-            <Link key={`${item.label}-${item.url}`} to={item.url} className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+            <Link key={`${item.label}-${item.url}`} href={item.url} className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">
               {item.label}
             </Link>
           ))}
-          <Link to="/search" className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">Explore</Link>
+          <Link href="/search" className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">Explore</Link>
         </nav>
 
         {/* CONTROLS */}
@@ -141,7 +146,7 @@ export default function Navbar() {
                   {suggestions.map((item) => (
                     <Link
                       key={item._id}
-                      to={`/${item.type}/${permalinkSlug(item)}`}
+                      href={`/${item.type}/${permalinkSlug(item)}`}
                       onClick={() => { setSearchQuery(''); setShowSuggestions(false); }}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                     >
@@ -235,7 +240,7 @@ export default function Navbar() {
                       className="absolute right-0 top-12 w-48 glass-panel-heavy rounded-2xl p-1.5 shadow-2xl border border-white/10"
                     >
                       <Link
-                        to="/profile"
+                        href="/profile"
                         onClick={() => setShowUserDropdown(false)}
                         className="flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition"
                       >
@@ -259,7 +264,7 @@ export default function Navbar() {
             </div>
           ) : (
             <Link
-              to="/auth"
+              href="/auth"
               className="h-10 px-3 sm:pl-2 sm:pr-4 rounded-full bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-brand-primary/40 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-black/20"
             >
               <span className="w-6 h-6 rounded-full bg-brand-primary/20 text-brand-primary flex items-center justify-center flex-shrink-0">
@@ -273,7 +278,7 @@ export default function Navbar() {
           {(admin || (user && user.hasDashboardAccess)) && (
             <div className="flex items-center gap-5 ml-4">
               <Link
-                to="/management/dashboard"
+                href="/management/dashboard"
                 className="px-3 h-8 border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 rounded-full flex items-center text-[11px] font-bold transition"
               >
                 Dashboard
@@ -321,21 +326,21 @@ export default function Navbar() {
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
             </form>
 
-            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">Home</Link>
-            <Link to="/search" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">Browse Catalog</Link>
+            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">Home</Link>
+            <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">Browse Catalog</Link>
             {catalogLinks.map((item) => (
-              <Link key={`${item.label}-${item.url}`} to={item.url} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">
+              <Link key={`${item.label}-${item.url}`} href={item.url} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">
                 {item.label}
               </Link>
             ))}
             {user && (
-              <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">My Profile</Link>
+              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">My Profile</Link>
             )}
             {admin && (
-              <Link to="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
+              <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
             )}
             {!user && (
-              <Link to="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-sm font-medium py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>
+              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-sm font-medium py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>
             )}
           </motion.div>
         )}

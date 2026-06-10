@@ -83,6 +83,10 @@ class DramaController {
             'skip' => $skip
         ]);
 
+        foreach ($dramas as &$drama) {
+            $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id']);
+        }
+
         header('Content-Type: application/json');
         echo json_encode([
             'total' => $total,
@@ -112,6 +116,9 @@ class DramaController {
         $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
         $drama['viewCount'] = $views;
 
+        // Dynamic subtitle summary
+        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id']);
+
         // Fetch seasons
         $seasons = $db->find('seasons', ['dramaId' => $drama['_id']], ['sort' => ['seasonNumber' => 1]]);
 
@@ -125,6 +132,10 @@ class DramaController {
                 '_id' => ['$ne' => $drama['_id']],
                 'keywords' => ['$in' => $drama['keywords']]
             ], ['limit' => 4]);
+
+            foreach ($related as &$r) {
+                $r['subtitleSummary'] = self::getSubtitleSummaryForDrama($r['_id']);
+            }
         }
 
         header('Content-Type: application/json');
@@ -373,4 +384,115 @@ class DramaController {
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Episode deleted successfully']);
     }
+
+    public static function getSubtitleSummaryForDrama($dramaId) {
+        $db = Database::getInstance();
+        
+        // 1. Get all episodes of the drama
+        $episodes = $db->find('episodes', ['dramaId' => $dramaId]);
+        $totalEpisodesCount = count($episodes);
+        
+        // 2. Get all approved subtitles for the drama itself
+        $titleSubtitles = $db->find('subtitles', [
+            'mediaId' => $dramaId,
+            'approvalStatus' => 'Approved'
+        ]);
+        
+        // 3. Get all approved subtitles for the episodes of the drama
+        $episodeSubtitles = [];
+        $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
+        if (!empty($episodeIds)) {
+            $episodeSubtitles = $db->find('subtitles', [
+                'mediaId' => ['$in' => $episodeIds],
+                'approvalStatus' => 'Approved'
+            ]);
+        }
+        
+        $allSubtitles = array_merge($titleSubtitles, $episodeSubtitles);
+        $totalSubtitles = count($allSubtitles);
+        
+        if ($totalSubtitles === 0) {
+            return [
+                'totalSubtitles' => 0,
+                'languages' => [],
+                'progressLabel' => 'No subs',
+                'seasonStatus' => 'Ongoing',
+                'latestUploaderRole' => null
+            ];
+        }
+        
+        // 4. Languages list
+        $languages = [];
+        foreach ($allSubtitles as $sub) {
+            if (!empty($sub['language']) && !in_array($sub['language'], $languages)) {
+                $languages[] = $sub['language'];
+            }
+        }
+        usort($languages, function($a, $b) {
+            if ($a === 'Sinhala') return -1;
+            if ($b === 'Sinhala') return 1;
+            return strcmp($a, $b);
+        });
+        
+        // 5. Determine which episodes have subtitles
+        $subbedEpisodes = [];
+        foreach ($episodeSubtitles as $sub) {
+            $epNum = isset($sub['episodeNumber']) ? (int)$sub['episodeNumber'] : null;
+            if ($epNum !== null && !in_array($epNum, $subbedEpisodes)) {
+                $subbedEpisodes[] = $epNum;
+            }
+        }
+        
+        foreach ($episodeSubtitles as $sub) {
+            if (!isset($sub['episodeNumber']) || $sub['episodeNumber'] === null) {
+                foreach ($episodes as $ep) {
+                    if ($ep['_id'] === $sub['mediaId']) {
+                        $epNum = (int)$ep['episodeNumber'];
+                        if (!in_array($epNum, $subbedEpisodes)) {
+                            $subbedEpisodes[] = $epNum;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        $subbedCount = count($subbedEpisodes);
+        $maxEpisodeNumber = !empty($subbedEpisodes) ? max($subbedEpisodes) : 0;
+        
+        // Determine status
+        $seasonStatus = 'Ongoing';
+        $progressLabel = '';
+        
+        if ($totalEpisodesCount > 0 && $subbedCount >= $totalEpisodesCount) {
+            $seasonStatus = 'Complete';
+            $progressLabel = 'Completed';
+        } else {
+            if ($maxEpisodeNumber > 0) {
+                $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
+            } else {
+                $progressLabel = $totalSubtitles . ' subs';
+            }
+        }
+
+        // Get the latest approved subtitle's uploader role
+        $latestUploaderRole = null;
+        if (!empty($allSubtitles)) {
+            usort($allSubtitles, function($a, $b) {
+                $t1 = isset($a['createdAt']) ? strtotime($a['createdAt']) : 0;
+                $t2 = isset($b['createdAt']) ? strtotime($b['createdAt']) : 0;
+                return $t2 - $t1;
+            });
+            $latestUploaderRole = $allSubtitles[0]['uploaderRole'] ?? null;
+        }
+        
+        return [
+            'totalSubtitles' => $totalSubtitles,
+            'languages' => $languages,
+            'progressLabel' => $progressLabel,
+            'seasonStatus' => $seasonStatus,
+            'latestUploaderRole' => $latestUploaderRole
+        ];
+    }
 }
+
