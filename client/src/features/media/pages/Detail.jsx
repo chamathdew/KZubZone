@@ -299,7 +299,7 @@ export default function Detail({ type = 'Movie', initialData }) {
   const mediaPermalink = permalinkSlug(media);
   const posterImage = getMediaImage(media, 'poster');
   const backdropImage = getMediaImage(media, 'backdrop');
-  const sortedSubtitles = [...subtitles].sort((a, b) => {
+  const sortedSubtitles = [...(subtitles || [])].sort((a, b) => {
     const aSinhala = a.language?.toLowerCase() === 'sinhala' ? 0 : 1;
     const bSinhala = b.language?.toLowerCase() === 'sinhala' ? 0 : 1;
     return aSinhala - bSinhala;
@@ -330,7 +330,7 @@ export default function Detail({ type = 'Movie', initialData }) {
   };
 
   const getEmbedUrl = (url) => {
-    if (!url) return '';
+    if (!url || typeof url !== 'string') return '';
     if (url.includes('/embed/')) return url;
     
     let videoId = '';
@@ -510,16 +510,16 @@ export default function Detail({ type = 'Movie', initialData }) {
                   {media.cast.map((member, idx) => (
                     <div key={idx} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-2xl min-w-[200px] flex-shrink-0">
                       <img
-                        src={member.profilePath || `https://placehold.co/100x100/111/fff?text=${encodeURIComponent(member.name.split(' ').map(n=>n[0]).join(''))}`}
-                        alt={member.name}
+                        src={member?.profilePath || `https://placehold.co/100x100/111/fff?text=${encodeURIComponent((member?.name || 'Cast').split(' ').map(n=>n[0]).join(''))}`}
+                        alt={member?.name || 'Cast Member'}
                         className="w-10 h-10 rounded-full object-cover border border-white/10"
                         onError={(e) => {
-                          e.target.src = `https://placehold.co/100x100/111/fff?text=${encodeURIComponent(member.name.split(' ').map(n=>n[0]).join(''))}`;
+                          e.target.src = `https://placehold.co/100x100/111/fff?text=${encodeURIComponent((member?.name || 'Cast').split(' ').map(n=>n[0]).join(''))}`;
                         }}
                       />
                       <div className="min-w-0 flex flex-col">
-                        <span className="text-xs font-bold text-white truncate">{member.name}</span>
-                        <span className="text-[10px] text-slate-400 truncate mt-0.5">{member.character}</span>
+                        <span className="text-xs font-bold text-white truncate">{member?.name || 'Unknown'}</span>
+                        <span className="text-[10px] text-slate-400 truncate mt-0.5">{member?.character || 'Actor'}</span>
                       </div>
                     </div>
                   ))}
@@ -842,7 +842,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                           <button
                             type="button"
                             onClick={() => {
-                              if (!user) navigate('/auth');
+                              if (!user) router.push('/auth');
                               else likeCommentMutation.mutate(comment._id);
                             }}
                             className={`flex items-center gap-1 text-[10px] font-bold ${comment.likes?.includes(user?._id) ? 'text-brand-primary' : 'text-slate-400 hover:text-white'} transition`}
