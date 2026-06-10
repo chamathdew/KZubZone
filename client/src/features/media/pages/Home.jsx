@@ -21,21 +21,25 @@ export default function Home() {
   const [sortBy, setSortBy] = useState('popular'); // 'popular' | 'rating' | 'newest'
   const [country, setCountry] = useState(''); // '' | 'KR' | 'JP'
 
-  // Fetch latest posts for Hero Slider so every newly added title can surface first.
-  const { data: featuredItems = [], isLoading: featuredLoading } = useQuery({
-    queryKey: ['homeHeroLatest'],
+  // Fetch combined Home Catalog data (single API request)
+  const { data: homeCatalog = {}, isLoading: homeCatalogLoading } = useQuery({
+    queryKey: ['homeCatalog'],
     queryFn: async () => {
-      const [moviesRes, dramasRes] = await Promise.all([
-        apiClient.get('/api/media/movies?sort=newest&limit=10'),
-        apiClient.get('/api/media/dramas?sort=newest&limit=10')
-      ]);
-      const movies = (moviesRes.data.movies || []).map(item => ({ ...item, mediaType: 'movie' }));
-      const dramas = (dramasRes.data.dramas || []).map(item => ({ ...item, mediaType: 'drama' }));
-      return [...dramas, ...movies]
-        .sort((a, b) => new Date(b.createdAt || b.updatedAt || b.releaseDate || 0) - new Date(a.createdAt || a.updatedAt || a.releaseDate || 0))
-        .slice(0, 10);
+      const res = await apiClient.get('/api/media/home');
+      return res.data;
     }
   });
+
+  const featuredItems = React.useMemo(() => {
+    const movies = (homeCatalog.latestMovies || []).map(item => ({ ...item, mediaType: 'movie' }));
+    const dramas = (homeCatalog.latestDramas || []).map(item => ({ ...item, mediaType: 'drama' }));
+    return [...dramas, ...movies]
+      .sort((a, b) => new Date(b.createdAt || b.updatedAt || b.releaseDate || 0) - new Date(a.createdAt || a.updatedAt || a.releaseDate || 0))
+      .slice(0, 10);
+  }, [homeCatalog.latestMovies, homeCatalog.latestDramas]);
+
+  const featuredLoading = homeCatalogLoading;
+  const categoryRowsLoading = homeCatalogLoading;
 
   // Fetch Library Movies (reactive to sort and country)
   const { data: moviesData, isLoading: moviesLoading } = useQuery({
@@ -65,87 +69,69 @@ export default function Home() {
     retry: false
   });
 
-  const { data: categoryRows = [], isLoading: categoryRowsLoading } = useQuery({
-    queryKey: ['homeCategoryRows'],
-    queryFn: async () => {
-      const [
-        latestMoviesRes,
-        latestDramasRes,
-        dramaMoviesRes,
-        dramaShowsRes,
-        trendingMoviesRes,
-        trendingDramasRes,
-        popularMoviesRes,
-        popularDramasRes
-      ] = await Promise.all([
-        apiClient.get('/api/media/movies?sort=newest&limit=12'),
-        apiClient.get('/api/media/dramas?sort=newest&limit=12'),
-        apiClient.get('/api/media/movies?isHistorical=true&sort=rating&limit=12'),
-        apiClient.get('/api/media/dramas?isHistorical=true&sort=rating&limit=12'),
-        apiClient.get('/api/media/movies?trending=true&sort=views&limit=12'),
-        apiClient.get('/api/media/dramas?trending=true&sort=views&limit=12'),
-        apiClient.get('/api/media/movies?sort=views&limit=12'),
-        apiClient.get('/api/media/dramas?sort=views&limit=12')
-      ]);
+  const categoryRows = React.useMemo(() => {
+    if (homeCatalogLoading || !homeCatalog) return [];
 
-      const withType = (items, type) => (items || []).map(item => ({ ...item, mediaType: type }));
-      const latestMovies = withType(latestMoviesRes.data.movies, 'movie');
-      const latestDramas = withType(latestDramasRes.data.dramas, 'drama');
-      const historicalTitles = [
-        ...withType(dramaShowsRes.data.dramas, 'drama'),
-        ...withType(dramaMoviesRes.data.movies, 'movie')
-      ]
-        .sort((a, b) => (b.imdbRating || b.tmdbRating || 0) - (a.imdbRating || a.tmdbRating || 0))
-        .slice(0, 12);
-      const trendingTitles = [
-        ...withType(trendingDramasRes.data.dramas, 'drama'),
-        ...withType(trendingMoviesRes.data.movies, 'movie')
-      ]
-        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-        .slice(0, 12);
-      const popularTitles = [
-        ...withType(popularDramasRes.data.dramas, 'drama'),
-        ...withType(popularMoviesRes.data.movies, 'movie')
-      ]
-        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-        .slice(0, 12);
+    const withType = (items, type) => (items || []).map(item => ({ ...item, mediaType: type }));
+    const latestMovies = withType(homeCatalog.latestMovies, 'movie');
+    const latestDramas = withType(homeCatalog.latestDramas, 'drama');
+    
+    const historicalTitles = [
+      ...withType(homeCatalog.historicalDramas, 'drama'),
+      ...withType(homeCatalog.historicalMovies, 'movie')
+    ]
+      .sort((a, b) => (b.imdbRating || b.tmdbRating || 0) - (a.imdbRating || a.tmdbRating || 0))
+      .slice(0, 12);
 
-      return [
-        {
-          id: 'trending',
-          title: 'Trending',
-          description: 'Titles viewers are opening the most.',
-          icon: Flame,
-          link: '/search?category=all&trending=true&sort=views',
-          items: trendingTitles.length > 0 ? trendingTitles : popularTitles
-        },
-        {
-          id: 'latest-movies',
-          title: 'Movies',
-          description: 'Fresh movie additions from the catalog.',
-          icon: Film,
-          link: '/search?category=movie&sort=newest',
-          items: latestMovies
-        },
-        {
-          id: 'latest-tv-shows',
-          title: 'TV Series',
-          description: 'Newest drama and series updates.',
-          icon: Tv,
-          link: '/search?category=drama&sort=newest',
-          items: latestDramas
-        },
-        {
-          id: 'historical-drama',
-          title: 'Historical Drama',
-          description: 'Period pieces, royal court intrigue, and epic history.',
-          icon: Star,
-          link: '/search?category=all&isHistorical=true&sort=rating',
-          items: historicalTitles.length > 0 ? historicalTitles : latestDramas
-        }
-      ];
-    }
-  });
+    const trendingTitles = [
+      ...withType(homeCatalog.trendingDramas, 'drama'),
+      ...withType(homeCatalog.trendingMovies, 'movie')
+    ]
+      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      .slice(0, 12);
+
+    const popularTitles = [
+      ...withType(homeCatalog.popularDramas, 'drama'),
+      ...withType(homeCatalog.popularMovies, 'movie')
+    ]
+      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      .slice(0, 12);
+
+    return [
+      {
+        id: 'trending',
+        title: 'Trending',
+        description: 'Titles viewers are opening the most.',
+        icon: Flame,
+        link: '/search?category=all&trending=true&sort=views',
+        items: trendingTitles.length > 0 ? trendingTitles : popularTitles
+      },
+      {
+        id: 'latest-movies',
+        title: 'Movies',
+        description: 'Fresh movie additions from the catalog.',
+        icon: Film,
+        link: '/search?category=movie&sort=newest',
+        items: latestMovies
+      },
+      {
+        id: 'latest-tv-shows',
+        title: 'TV Series',
+        description: 'Newest drama and series updates.',
+        icon: Tv,
+        link: '/search?category=drama&sort=newest',
+        items: latestDramas
+      },
+      {
+        id: 'historical-drama',
+        title: 'Historical Drama',
+        description: 'Period pieces, royal court intrigue, and epic history.',
+        icon: Star,
+        link: '/search?category=all&isHistorical=true&sort=rating',
+        items: historicalTitles.length > 0 ? historicalTitles : latestDramas
+      }
+    ];
+  }, [homeCatalog, homeCatalogLoading]);
 
   const movies = (moviesData?.movies || []).map(item => ({ ...item, mediaType: 'movie' }));
   const dramas = (dramasData?.dramas || []).map(item => ({ ...item, mediaType: 'drama' }));

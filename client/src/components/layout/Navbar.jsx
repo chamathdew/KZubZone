@@ -169,51 +169,53 @@ export default function Navbar() {
 
           
           {/* USER SECTION */}
-          {user ? (
+          {user || admin ? (
             <div className="flex items-center gap-4">
               
               {/* NOTIFICATION ICON */}
-              <div className="relative">
-                <button
-                  onClick={() => { setShowNotifications(!showNotifications); setShowUserDropdown(false); }}
-                  className="p-2 rounded-full hover:bg-white/5 text-slate-300 hover:text-white transition"
-                >
-                  <Bell className="w-5 h-5" />
-                  {notifications.filter(n => !n.isRead).length > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-secondary rounded-full" />
-                  )}
-                </button>
+              {user && (
+                <div className="relative">
+                  <button
+                    onClick={() => { setShowNotifications(!showNotifications); setShowUserDropdown(false); }}
+                    className="p-2 rounded-full hover:bg-white/5 text-slate-300 hover:text-white transition"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {notifications.filter(n => !n.isRead).length > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-secondary rounded-full" />
+                    )}
+                  </button>
 
-                <AnimatePresence>
-                  {showNotifications && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 top-12 w-80 glass-panel-heavy rounded-2xl p-3 shadow-2xl border border-white/10"
-                    >
-                      <p className="text-xs font-bold text-slate-300 mb-2 px-1">Notifications</p>
-                      <hr className="border-white/5 mb-2" />
-                      {notifications.length === 0 ? (
-                        <p className="text-[11px] text-slate-500 text-center py-4">No notifications yet</p>
-                      ) : (
-                        <div className="flex flex-col gap-2">
-                          {notifications.map(n => (
-                            <div
-                              key={n._id}
-                              onClick={() => handleMarkAsRead(n._id)}
-                              className={`p-2 rounded-xl transition cursor-pointer text-left ${n.isRead ? 'bg-transparent' : 'bg-brand-primary/10 hover:bg-brand-primary/20'}`}
-                            >
-                              <p className="text-xs font-semibold text-white">{n.title}</p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">{n.message}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                  <AnimatePresence>
+                    {showNotifications && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 top-12 w-80 glass-panel-heavy rounded-2xl p-3 shadow-2xl border border-white/10"
+                      >
+                        <p className="text-xs font-bold text-slate-300 mb-2 px-1">Notifications</p>
+                        <hr className="border-white/5 mb-2" />
+                        {notifications.length === 0 ? (
+                          <p className="text-[11px] text-slate-500 text-center py-4">No notifications yet</p>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {notifications.map(n => (
+                              <div
+                                key={n._id}
+                                onClick={() => handleMarkAsRead(n._id)}
+                                className={`p-2 rounded-xl transition cursor-pointer text-left ${n.isRead ? 'bg-transparent' : 'bg-brand-primary/10 hover:bg-brand-primary/20'}`}
+                              >
+                                <p className="text-xs font-semibold text-white">{n.title}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{n.message}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
               {/* USER PROFILE DROPDOWN */}
               <div className="relative">
@@ -222,13 +224,13 @@ export default function Navbar() {
                   className="flex items-center gap-2 p-1 pl-2 pr-2.5 rounded-full border border-white/10 hover:bg-white/5 transition"
                 >
                   <div className="w-6 h-6 rounded-full bg-brand-primary flex items-center justify-center text-white overflow-hidden">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                    {user?.avatar || admin?.avatar ? (
+                      <img src={user?.avatar || admin?.avatar} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
                       <User className="w-3.5 h-3.5" />
                     )}
                   </div>
-                  <span className="text-xs font-semibold hidden sm:inline">{user.username}</span>
+                  <span className="text-xs font-semibold hidden sm:inline">{user?.username || admin?.username || 'Admin'}</span>
                 </button>
 
                 <AnimatePresence>
@@ -239,23 +241,41 @@ export default function Navbar() {
                       exit={{ opacity: 0, y: 10 }}
                       className="absolute right-0 top-12 w-48 glass-panel-heavy rounded-2xl p-1.5 shadow-2xl border border-white/10"
                     >
-                      <Link
-                        href="/profile"
-                        onClick={() => setShowUserDropdown(false)}
-                        className="flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition"
-                      >
-                        <User className="w-4 h-4 text-brand-primary" /> Profile Settings
-                      </Link>
-                      
-
-
-                      <hr className="border-white/5 my-1" />
-                      <button
-                        onClick={() => { setShowUserDropdown(false); logoutUser(); }}
-                        className="w-full flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-brand-secondary hover:bg-brand-secondary/10 transition text-left"
-                      >
-                        <LogOut className="w-4 h-4" /> Logout User
-                      </button>
+                      {user ? (
+                        <>
+                          <Link
+                            href="/profile"
+                            onClick={() => setShowUserDropdown(false)}
+                            className="flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition"
+                          >
+                            <User className="w-4 h-4 text-brand-primary" /> Profile Settings
+                          </Link>
+                          <hr className="border-white/5 my-1" />
+                          <button
+                            onClick={() => { setShowUserDropdown(false); logoutUser(); }}
+                            className="w-full flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-brand-secondary hover:bg-brand-secondary/10 transition text-left"
+                          >
+                            <LogOut className="w-4 h-4" /> Logout User
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            href="/management/dashboard"
+                            onClick={() => setShowUserDropdown(false)}
+                            className="flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-slate-300 hover:text-white hover:bg-white/5 transition"
+                          >
+                            <User className="w-4 h-4 text-brand-primary" /> Admin Dashboard
+                          </Link>
+                          <hr className="border-white/5 my-1" />
+                          <button
+                            onClick={() => { setShowUserDropdown(false); logoutAdmin(); }}
+                            className="w-full flex items-center gap-2 p-2 text-xs font-semibold rounded-xl text-brand-secondary hover:bg-brand-secondary/10 transition text-left"
+                          >
+                            <LogOut className="w-4 h-4" /> Logout Admin
+                          </button>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -283,15 +303,6 @@ export default function Navbar() {
               >
                 Dashboard
               </Link>
-              {admin && !user && (
-                <button
-                  onClick={logoutAdmin}
-                  className="p-1.5 text-slate-400 hover:text-brand-secondary transition"
-                  title="Logout Admin"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              )}
             </div>
           )}
 
@@ -358,7 +369,7 @@ export default function Navbar() {
                 </button>
               </>
             )}
-            {!user && (
+            {!user && !admin && (
               <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-sm font-medium py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>
             )}
           </motion.div>
