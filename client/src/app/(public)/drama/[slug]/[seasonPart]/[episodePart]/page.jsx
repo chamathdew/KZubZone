@@ -11,9 +11,10 @@ export async function generateMetadata({ params }) {
   const { slug, seasonPart, episodePart } = params;
   const seasonNumber = Number(String(seasonPart || '').replace('season-', ''));
   const episodeNumber = Number(String(episodePart || '').replace('episode-', ''));
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 
   try {
-    const res = await fetch(`http://127.0.0.1:5000/api/media/dramas/${slug}`, { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/api/media/dramas/${slug}`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       const drama = data?.drama;
@@ -52,10 +53,11 @@ export async function generateMetadata({ params }) {
 
 export default async function EpisodeWatchPage({ params }) {
   const { slug } = params;
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
   let initialDramaData = null;
 
   try {
-    const res = await fetch(`http://127.0.0.1:5000/api/media/dramas/${slug}`, { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/api/media/dramas/${slug}`, { cache: 'no-store' });
     if (res.ok) {
       initialDramaData = await res.json();
     }

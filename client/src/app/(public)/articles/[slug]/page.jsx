@@ -3,8 +3,9 @@ import ArticleDetail from '@/features/articles/pages/ArticleDetail';
 
 export async function generateMetadata({ params }) {
   const { slug } = params;
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
   try {
-    const res = await fetch(`http://127.0.0.1:5000/api/articles/${slug}`, { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/api/articles/${slug}`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       const article = data?.article;
@@ -43,9 +44,10 @@ export async function generateMetadata({ params }) {
 
 export default async function ArticleDetailPage({ params }) {
   const { slug } = params;
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
   let initialData = null;
   try {
-    const res = await fetch(`http://127.0.0.1:5000/api/articles/${slug}`, { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/api/articles/${slug}`, { cache: 'no-store' });
     if (res.ok) {
       initialData = await res.json();
     }

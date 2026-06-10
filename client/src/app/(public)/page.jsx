@@ -2,8 +2,9 @@ import React from 'react';
 import Home from '@/features/media/pages/Home';
 
 export async function generateMetadata() {
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
   try {
-    const res = await fetch('http://127.0.0.1:5000/api/site-content', { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/api/site-content`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
       const seo = data.seo || {};
