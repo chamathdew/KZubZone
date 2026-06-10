@@ -38,7 +38,8 @@ export default function Detail({ type = 'Movie', initialData }) {
       const res = await apiClient.get(endpoint);
       return res.data;
     },
-    initialData
+    initialData,
+    staleTime: 1000 * 60 * 5 // 5 minutes
   });
 
   const media = type === 'Drama' ? data?.drama : data?.movie;
@@ -73,21 +74,33 @@ export default function Detail({ type = 'Movie', initialData }) {
       const res = await apiClient.get(`/api/subtitles/media/${media._id}`);
       return res.data;
     },
-    enabled: !!media?._id
+    enabled: !!media?._id,
+    staleTime: 1000 * 60 * 2 // 2 minutes
   });
 
   const { data: episodeSubtitlesById = {}, isFetching: episodeSubtitlesLoading, refetch: refetchEpisodeSubtitles } = useQuery({
     queryKey: ['activeSeasonEpisodeSubtitles', media?._id, selectedSeason, activeEpisodes.map(ep => ep._id).join(',')],
     queryFn: async () => {
-      const entries = await Promise.all(
-        activeEpisodes.map(async (episode) => {
-          const res = await apiClient.get(`/api/subtitles/media/${episode._id}`);
-          return [episode._id, res.data || []];
-        })
-      );
-      return Object.fromEntries(entries);
+      const episodeIds = activeEpisodes.map(ep => ep._id).filter(Boolean).join(',');
+      if (!episodeIds) return {};
+      const res = await apiClient.get(`/api/subtitles/media/${episodeIds}`);
+      const subs = res.data || [];
+      const grouped = {};
+      activeEpisodes.forEach(ep => {
+        grouped[ep._id] = [];
+      });
+      subs.forEach(sub => {
+        if (sub.mediaId) {
+          if (!grouped[sub.mediaId]) {
+            grouped[sub.mediaId] = [];
+          }
+          grouped[sub.mediaId].push(sub);
+        }
+      });
+      return grouped;
     },
-    enabled: type === 'Drama' && activeEpisodes.length > 0
+    enabled: type === 'Drama' && activeEpisodes.length > 0,
+    staleTime: 1000 * 60 * 2 // 2 minutes
   });
 
   // Fetch Comments
@@ -97,7 +110,8 @@ export default function Detail({ type = 'Movie', initialData }) {
       const res = await apiClient.get(`/api/media/comments/target/${media._id}`);
       return res.data;
     },
-    enabled: !!media?._id
+    enabled: !!media?._id,
+    staleTime: 1000 * 60 // 1 minute
   });
 
   const { data: recommendationRows = [], isLoading: recommendationsLoading } = useQuery({
@@ -155,7 +169,8 @@ export default function Detail({ type = 'Movie', initialData }) {
         }
       ];
     },
-    enabled: !!media?._id
+    enabled: !!media?._id,
+    staleTime: 1000 * 60 * 10 // 10 minutes
   });
 
   // Check Watchlist / Favorites states

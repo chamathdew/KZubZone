@@ -142,7 +142,7 @@ $routes = [
     // Subtitles
     ['POST', '/api/subtitles/upload', ['Middleware\AuthMiddleware::protectUser', 'Controllers\SubtitleController::uploadSubtitle']],
     ['GET', '/api/subtitles/recent', 'Controllers\SubtitleController::getRecentApprovedSubtitles'],
-    ['GET', '/api/subtitles/media/([a-f0-9]+)', 'Controllers\SubtitleController::getSubtitlesForMedia'],
+    ['GET', '/api/subtitles/media/([a-f0-9,]+)', 'Controllers\SubtitleController::getSubtitlesForMedia'],
     ['POST', '/api/subtitles/([a-f0-9]+)/rate', ['Middleware\AuthMiddleware::protectUser', 'Controllers\SubtitleController::rateSubtitle']],
     ['POST', '/api/subtitles/([a-f0-9]+)/download', 'Controllers\SubtitleController::trackDownload'],
     ['GET', '/api/subtitles/translator/([a-f0-9]+)', 'Controllers\SubtitleController::getUploaderHistory'],

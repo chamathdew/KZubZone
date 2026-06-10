@@ -117,10 +117,16 @@ class SubtitleController {
 
     public static function getSubtitlesForMedia($mediaId) {
         $db = Database::getInstance();
-        $subtitles = $db->find('subtitles', [
-            'mediaId' => $mediaId,
-            'approvalStatus' => 'Approved'
-        ], ['sort' => ['downloads' => -1, 'rating' => -1]]);
+
+        $query = ['approvalStatus' => 'Approved'];
+        if (strpos($mediaId, ',') !== false) {
+            $ids = explode(',', $mediaId);
+            $query['mediaId'] = ['$in' => $ids];
+        } else {
+            $query['mediaId'] = $mediaId;
+        }
+
+        $subtitles = $db->find('subtitles', $query, ['sort' => ['downloads' => -1, 'rating' => -1]]);
 
         // Populate uploader
         foreach ($subtitles as &$sub) {
