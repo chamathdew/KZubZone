@@ -362,9 +362,11 @@ class TmdbController {
         }
 
         $existingMovie = $db->findOne('movies', ['tmdbId' => $data['id']]);
+        // Strip trailing year patterns like "Movie Title 2026" or "Movie Title (2026)" from slug
+        $slugTitle = preg_replace('/\s*[\(\[]?\d{4}[\)\]]?\s*$/', '', $data['title']);
         $slug = Slug::createUniqueSlug(function($candidate) use ($db) {
             return $db->findOne('movies', ['slug' => $candidate]);
-        }, $data['title'], $existingMovie['_id'] ?? null);
+        }, $slugTitle ?: $data['title'], $existingMovie['_id'] ?? null);
 
         $director = $data['director'] ?? '';
         $writers = $data['writers'] ?? [];
@@ -465,9 +467,11 @@ class TmdbController {
         }
 
         $existingDrama = $db->findOne('dramas', ['tmdbId' => $data['id']]);
+        // Strip trailing year patterns like "Drama Title 2026" or "Drama Title (2026)" from slug
+        $slugTitle = preg_replace('/\s*[\(\[]?\d{4}[\)\]]?\s*$/', '', $data['name']);
         $slug = Slug::createUniqueSlug(function($candidate) use ($db) {
             return $db->findOne('dramas', ['slug' => $candidate]);
-        }, $data['name'], $existingDrama['_id'] ?? null);
+        }, $slugTitle ?: $data['name'], $existingDrama['_id'] ?? null);
 
         $director = $data['director'] ?? '';
         $writers = $data['writers'] ?? [];
