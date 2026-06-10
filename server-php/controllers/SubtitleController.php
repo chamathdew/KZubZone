@@ -47,19 +47,9 @@ class SubtitleController {
             return;
         }
 
-        // Save locally
-        $folder = 'subtitles';
-        $targetDir = dirname(__DIR__) . '/uploads/' . $folder;
-        if (!file_exists($targetDir)) {
-            mkdir($targetDir, 0777, true);
-        }
-
-        $fileName = 'subtitle-' . time() . '-' . rand(1000, 9999) . '.' . $ext;
-        $destination = $targetDir . '/' . $fileName;
-
-        if (move_uploaded_file($file['tmp_name'], $destination)) {
-            $fileUrl = "/uploads/{$folder}/{$fileName}";
-        } else {
+        // Save file
+        $fileUrl = \Utils\Storage::uploadFile($file, 'subtitles');
+        if (!$fileUrl) {
             http_response_code(500);
             echo json_encode(['message' => 'Failed to save subtitle file']);
             return;
@@ -388,11 +378,8 @@ class SubtitleController {
             return;
         }
 
-        if (!empty($subtitle['fileUrl']) && strpos($subtitle['fileUrl'], '/uploads/') === 0) {
-            $filePath = dirname(dirname(__DIR__)) . $subtitle['fileUrl'];
-            if (file_exists($filePath)) {
-                @unlink($filePath);
-            }
+        if (!empty($subtitle['fileUrl'])) {
+            \Utils\Storage::deleteFile($subtitle['fileUrl']);
         }
 
         $db->deleteOne('subtitles', ['_id' => $id]);

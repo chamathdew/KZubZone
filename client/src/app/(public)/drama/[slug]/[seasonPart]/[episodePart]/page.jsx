@@ -1,4 +1,5 @@
 import React from 'react';
+import { cache } from 'react';
 import Watch from '@/features/media/pages/Watch';
 
 const getId = (value) => {
@@ -7,16 +8,27 @@ const getId = (value) => {
   return value._id || value.$oid || String(value);
 };
 
+const getDrama = cache(async (slug) => {
+  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
+  try {
+    const res = await fetch(`${backendUrl}/api/media/dramas/${slug}`, { next: { revalidate: 30 } });
+    if (res.ok) {
+      return res.json();
+    }
+  } catch (e) {
+    console.error('Error fetching drama details for cache:', e);
+  }
+  return null;
+});
+
 export async function generateMetadata({ params }) {
   const { slug, seasonPart, episodePart } = params;
   const seasonNumber = Number(String(seasonPart || '').replace('season-', ''));
   const episodeNumber = Number(String(episodePart || '').replace('episode-', ''));
-  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 
   try {
-    const res = await fetch(`${backendUrl}/api/media/dramas/${slug}`, { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
+    const data = await getDrama(slug);
+    if (data) {
       const drama = data?.drama;
       const episodes = data?.episodes || [];
       const activeSeasonDoc = data?.seasons?.find(s => s.seasonNumber === seasonNumber);
@@ -53,17 +65,7 @@ export async function generateMetadata({ params }) {
 
 export default async function EpisodeWatchPage({ params }) {
   const { slug } = params;
-  const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
-  let initialDramaData = null;
-
-  try {
-    const res = await fetch(`${backendUrl}/api/media/dramas/${slug}`, { cache: 'no-store' });
-    if (res.ok) {
-      initialDramaData = await res.json();
-    }
-  } catch (e) {
-    console.error('Error fetching drama details for watch page:', e);
-  }
+  const initialDramaData = await getDrama(slug);
 
   return <Watch initialDramaData={initialDramaData} />;
 }

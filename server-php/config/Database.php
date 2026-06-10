@@ -15,30 +15,74 @@ class Database {
         $this->dbName = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'ksubzone';
         $dbDriver = $_ENV['DB_DRIVER'] ?? getenv('DB_DRIVER') ?: '';
 
+        $mysqlCircuitBreaker = dirname(__FILE__) . '/.mysql_failed';
+        $mongoCircuitBreaker = dirname(__FILE__) . '/.mongodb_failed';
+
+        $useMysql = false;
         if ($dbDriver === 'mysql' || !empty($_ENV['DB_HOST'])) {
+            if (file_exists($mysqlCircuitBreaker)) {
+                $lastFailed = (int)@file_get_contents($mysqlCircuitBreaker);
+                if (time() - $lastFailed > 60) {
+                    @unlink($mysqlCircuitBreaker);
+                    $useMysql = true;
+                }
+            } else {
+                $useMysql = true;
+            }
+        }
+
+        $useMongo = false;
+        if (empty($dbDriver) && !$useMysql && class_exists('MongoDB\Driver\Manager') && !empty($mongoUri)) {
+            if (file_exists($mongoCircuitBreaker)) {
+                $lastFailed = (int)@file_get_contents($mongoCircuitBreaker);
+                if (time() - $lastFailed > 60) {
+                    @unlink($mongoCircuitBreaker);
+                    $useMongo = true;
+                }
+            } else {
+                $useMongo = true;
+            }
+        } elseif ($dbDriver === 'mongodb') {
+            if (file_exists($mongoCircuitBreaker)) {
+                $lastFailed = (int)@file_get_contents($mongoCircuitBreaker);
+                if (time() - $lastFailed > 60) {
+                    @unlink($mongoCircuitBreaker);
+                    $useMongo = true;
+                }
+            } else {
+                $useMongo = true;
+            }
+        }
+
+        if ($useMysql) {
             try {
                 $this->initMySQL();
             } catch (\Exception $e) {
-                // Fail-safe to SQLite if MySQL fails to initialize
-                $this->fallbackWarning = "MySQL Connection Failed: " . $e->getMessage();
+                @file_put_contents($mysqlCircuitBreaker, time());
+                $this->fallbackWarning = "MySQL Connection Failed: " . $e->getMessage() . " (SQLite Fallback active, retrying in 60s)";
                 error_log($this->fallbackWarning);
                 $this->initSQLite();
             }
-        } elseif (class_exists('MongoDB\Driver\Manager') && !empty($mongoUri)) {
+        } elseif ($useMongo) {
             try {
                 // Parse DB name from URI if present, e.g., mongodb+srv://user:pass@host/dbname?options
                 $path = parse_url($mongoUri, PHP_URL_PATH);
                 if (!empty($path) && trim($path, '/') !== '') {
                     $this->dbName = trim($path, '/');
                 }
-                $this->manager = new \MongoDB\Driver\Manager($mongoUri);
+                // Initialize Manager with fast timeouts (1.5 seconds)
+                $this->manager = new \MongoDB\Driver\Manager($mongoUri, [
+                    'connectTimeoutMS' => 1500,
+                    'serverSelectionTimeoutMS' => 1500
+                ]);
                 // Ping connection to verify it works
                 $command = new \MongoDB\Driver\Command(['ping' => 1]);
                 $this->manager->executeCommand('admin', $command);
                 $this->driver = 'mongodb';
             } catch (\Exception $e) {
+                @file_put_contents($mongoCircuitBreaker, time());
                 // Fail-safe to SQLite if MongoDB fails to initialize
-                $this->fallbackWarning = "MongoDB Connection Failed: " . $e->getMessage();
+                $this->fallbackWarning = "MongoDB Connection Failed: " . $e->getMessage() . " (SQLite Fallback active, retrying in 60s)";
                 error_log($this->fallbackWarning);
                 $this->initSQLite();
             }
@@ -67,6 +111,15 @@ class Database {
         $this->pdo = new \PDO("sqlite:" . $dbPath);
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+
+        // Optimize SQLite performance for concurrency
+        try {
+            $this->pdo->exec("PRAGMA journal_mode=WAL;");
+            $this->pdo->exec("PRAGMA busy_timeout=5000;");
+            $this->pdo->exec("PRAGMA synchronous=NORMAL;");
+        } catch (\Exception $e) {
+            // Ignore PRAGMA configuration errors
+        }
     }
 
     private function initMySQL() {
@@ -78,14 +131,18 @@ class Database {
         $pass = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
 
         // Connect to MySQL server without dbname to create database if it doesn't exist
-        $pdo = new \PDO("mysql:host={$host};port={$port}", $user, $pass);
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo = new \PDO("mysql:host={$host};port={$port}", $user, $pass, [
+            \PDO::ATTR_TIMEOUT => 2,
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+        ]);
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
         // Connect to the specific database
-        $this->pdo = new \PDO("mysql:host={$host};port={$port};dbname={$dbName}", $user, $pass);
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $this->pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+        $this->pdo = new \PDO("mysql:host={$host};port={$port};dbname={$dbName}", $user, $pass, [
+            \PDO::ATTR_TIMEOUT => 2,
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+        ]);
     }
 
     public function getDriver() {
@@ -93,12 +150,31 @@ class Database {
     }
 
     private function initializeDatabase() {
+        // Skip setup if database is already initialized
+        $flagFile = dirname(__FILE__) . '/.db_initialized_' . $this->driver;
+        
+        $needsSetup = false;
+        if ($this->driver === 'sqlite' || $this->driver === 'mysql') {
+            try {
+                // If count throws an exception, the notifications table is missing
+                $this->count('notifications');
+            } catch (\Exception $e) {
+                $needsSetup = true;
+            }
+        }
+
+        if (file_exists($flagFile) && !$needsSetup) {
+            $this->ensureIndexesExist();
+            return;
+        }
+
         if ($this->driver === 'sqlite' || $this->driver === 'mysql') {
             // Ensure collections exist
             $collections = [
                 'users', 'admins', 'roles', 'permissions', 'movies', 
                 'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
-                'reviews', 'comments', 'analytics', 'settings', 'articles'
+                'reviews', 'comments', 'analytics', 'settings', 'articles',
+                'notifications'
             ];
             foreach ($collections as $col) {
                 if ($this->driver === 'sqlite') {
@@ -108,12 +184,14 @@ class Database {
                         createdAt TEXT,
                         updatedAt TEXT
                     )");
+                    $this->pdo->exec("CREATE INDEX IF NOT EXISTS `idx_{$col}_createdAt` ON `{$col}` (createdAt DESC)");
                 } else {
                     $this->pdo->exec("CREATE TABLE IF NOT EXISTS `{$col}` (
                         `_id` VARCHAR(255) PRIMARY KEY,
                         `data` LONGTEXT,
                         `createdAt` VARCHAR(50),
-                        `updatedAt` VARCHAR(50)
+                        `updatedAt` VARCHAR(50),
+                        INDEX `idx_{$col}_createdAt` (`createdAt` DESC)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
                 }
             }
@@ -122,6 +200,129 @@ class Database {
         // Seed roles & super admin
         $this->seedRolesAndAdmin();
         $this->seedArticles();
+        $this->ensureIndexesExist();
+
+        // Write the flag file to mark successful setup
+        @file_put_contents($flagFile, date('Y-m-d H:i:s'));
+    }
+
+    private function ensureIndexesExist() {
+        if ($this->driver === 'sqlite') {
+            $sqliteIndexes = [
+                'subtitles' => [
+                    'idx_subtitles_mediaId' => "json_extract(data, '$.mediaId')",
+                    'idx_subtitles_approvalStatus' => "json_extract(data, '$.approvalStatus')",
+                    'idx_subtitles_uploader' => "json_extract(data, '$.uploader')",
+                    'idx_subtitles_media_approval' => "json_extract(data, '$.mediaId'), json_extract(data, '$.approvalStatus')"
+                ],
+                'users' => [
+                    'idx_users_username' => "json_extract(data, '$.username')",
+                    'idx_users_email' => "json_extract(data, '$.email')",
+                ],
+                'admins' => [
+                    'idx_admins_username' => "json_extract(data, '$.username')",
+                    'idx_admins_email' => "json_extract(data, '$.email')",
+                ],
+                'movies' => [
+                    'idx_movies_slug' => "json_extract(data, '$.slug')",
+                    'idx_movies_status' => "json_extract(data, '$.status')",
+                    'idx_movies_isTrending' => "json_extract(data, '$.isTrending')",
+                    'idx_movies_isFeatured' => "json_extract(data, '$.isFeatured')",
+                ],
+                'dramas' => [
+                    'idx_dramas_slug' => "json_extract(data, '$.slug')",
+                    'idx_dramas_status' => "json_extract(data, '$.status')",
+                    'idx_dramas_isTrending' => "json_extract(data, '$.isTrending')",
+                    'idx_dramas_isFeatured' => "json_extract(data, '$.isFeatured')",
+                ],
+                'seasons' => [
+                    'idx_seasons_dramaId' => "json_extract(data, '$.dramaId')",
+                ],
+                'episodes' => [
+                    'idx_episodes_dramaId' => "json_extract(data, '$.dramaId')",
+                    'idx_episodes_seasonId' => "json_extract(data, '$.seasonId')",
+                ],
+                'comments' => [
+                    'idx_comments_mediaId' => "json_extract(data, '$.mediaId')",
+                ],
+                'reviews' => [
+                    'idx_reviews_mediaId' => "json_extract(data, '$.mediaId')",
+                ],
+                'articles' => [
+                    'idx_articles_slug' => "json_extract(data, '$.slug')",
+                    'idx_articles_status' => "json_extract(data, '$.status')",
+                ],
+                'notifications' => [
+                    'idx_notifications_recipient' => "json_extract(data, '$.recipient')",
+                    'idx_notifications_recipientType' => "json_extract(data, '$.recipientType')",
+                ]
+            ];
+
+            foreach ($sqliteIndexes as $table => $tableIndexes) {
+                foreach ($tableIndexes as $indexName => $expr) {
+                    try {
+                        $this->pdo->exec("CREATE INDEX IF NOT EXISTS `{$indexName}` ON `{$table}` ({$expr})");
+                    } catch (\Exception $e) {
+                        error_log("Failed to create SQLite index {$indexName}: " . $e->getMessage());
+                    }
+                }
+            }
+        } elseif ($this->driver === 'mysql') {
+            $mysqlIndexes = [
+                'subtitles' => [
+                    'idx_subtitles_mediaId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.mediaId'))",
+                    'idx_subtitles_approvalStatus' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.approvalStatus'))",
+                    'idx_subtitles_uploader' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.uploader'))",
+                ],
+                'users' => [
+                    'idx_users_username' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.username'))",
+                    'idx_users_email' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.email'))",
+                ],
+                'admins' => [
+                    'idx_admins_username' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.username'))",
+                    'idx_admins_email' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.email'))",
+                ],
+                'movies' => [
+                    'idx_movies_slug' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.slug'))",
+                    'idx_movies_status' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.status'))",
+                ],
+                'dramas' => [
+                    'idx_dramas_slug' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.slug'))",
+                    'idx_dramas_status' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.status'))",
+                ],
+                'seasons' => [
+                    'idx_seasons_dramaId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.dramaId'))",
+                ],
+                'episodes' => [
+                    'idx_episodes_dramaId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.dramaId'))",
+                    'idx_episodes_seasonId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.seasonId'))",
+                ],
+                'comments' => [
+                    'idx_comments_mediaId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.mediaId'))",
+                ],
+                'reviews' => [
+                    'idx_reviews_mediaId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.mediaId'))",
+                ],
+                'articles' => [
+                    'idx_articles_slug' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.slug'))",
+                    'idx_articles_status' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.status'))",
+                ],
+                'notifications' => [
+                    'idx_notifications_recipient' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.recipient'))",
+                    'idx_notifications_recipientType' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.recipientType'))",
+                ]
+            ];
+
+            foreach ($mysqlIndexes as $table => $tableIndexes) {
+                foreach ($tableIndexes as $indexName => $expr) {
+                    try {
+                        $this->pdo->exec("CREATE INDEX `{$indexName}` ON `{$table}` ((CAST({$expr} AS CHAR(255))))");
+                    } catch (\Exception $e) {
+                        // Ignore error if index already exists or version doesn't support functional indexes
+                    }
+                }
+            }
+        }
     }
 
     // Helper: Convert string _id to MongoDB ObjectId

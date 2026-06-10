@@ -16,7 +16,7 @@ export default async function sitemap() {
   let articleUrls = [];
 
   try {
-    const moviesRes = await fetch(`${backendUrl}/api/media/movies?limit=500`, { cache: 'no-store' });
+    const moviesRes = await fetch(`${backendUrl}/api/media/movies?limit=500`, { next: { revalidate: 3600 } });
     if (moviesRes.ok) {
       const data = await moviesRes.json();
       movieUrls = (data.movies || []).map((m) => ({
@@ -29,7 +29,7 @@ export default async function sitemap() {
   }
 
   try {
-    const dramasRes = await fetch(`${backendUrl}/api/media/dramas?limit=500`, { cache: 'no-store' });
+    const dramasRes = await fetch(`${backendUrl}/api/media/dramas?limit=500`, { next: { revalidate: 3600 } });
     if (dramasRes.ok) {
       const data = await dramasRes.json();
       dramaUrls = (data.dramas || []).map((d) => ({
@@ -42,7 +42,7 @@ export default async function sitemap() {
   }
 
   try {
-    const articlesRes = await fetch(`${backendUrl}/api/articles?limit=500`, { cache: 'no-store' });
+    const articlesRes = await fetch(`${backendUrl}/api/articles?limit=500`, { next: { revalidate: 3600 } });
     if (articlesRes.ok) {
       const data = await articlesRes.json();
       articleUrls = (data.articles || []).map((a) => ({

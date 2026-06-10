@@ -609,6 +609,7 @@ foreach ($routes as $route) {
                 }
             }
         } catch (\Exception $e) {
+            error_log("API Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             http_response_code(500);
             header('Content-Type: application/json');
             echo json_encode([
