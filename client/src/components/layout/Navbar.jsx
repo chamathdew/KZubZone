@@ -276,7 +276,7 @@ export default function Navbar() {
 
           {/* ADMIN IS ALREADY AUTHENTICATED DIRECT BUTTON OR USER WITH DASHBOARD ACCESS */}
           {(admin || (user && user.hasDashboardAccess)) && (
-            <div className="flex items-center gap-5 ml-4">
+            <div className="hidden md:flex items-center gap-5 ml-4">
               <Link
                 href="/management/dashboard"
                 className="px-3 h-8 border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 rounded-full flex items-center text-[11px] font-bold transition"
@@ -334,10 +334,29 @@ export default function Navbar() {
               </Link>
             ))}
             {user && (
-              <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">My Profile</Link>
+              <>
+                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">My Profile</Link>
+                {user.hasDashboardAccess && (
+                  <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
+                )}
+                <button
+                  onClick={() => { setMobileMenuOpen(false); logoutUser(); }}
+                  className="text-left text-brand-secondary text-sm font-medium py-1 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> Logout User
+                </button>
+              </>
             )}
             {admin && (
-              <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
+              <>
+                <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); logoutAdmin(); }}
+                  className="text-left text-brand-secondary text-sm font-medium py-1 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> Logout Admin
+                </button>
+              </>
             )}
             {!user && (
               <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-sm font-medium py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>

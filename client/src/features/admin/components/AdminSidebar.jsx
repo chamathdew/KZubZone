@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -8,7 +8,7 @@ import { useSiteContent } from '@/hooks/useSiteContent';
 import { resolveLogoUrl } from '@/utils/mediaImages';
 import {
   Film, Tv, Users, Languages, Star, TrendingUp,
-  Settings, Database, LogOut, BookOpenText, Wand2, Server
+  Settings, Database, LogOut, BookOpenText, Wand2, Server, Menu, X
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -16,6 +16,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { content } = useSiteContent();
   const brand = content?.brand || {};
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
     { to: '/management/dashboard', label: 'Dashboard Metrics', icon: TrendingUp, color: 'text-brand-primary' },
@@ -35,13 +36,14 @@ export default function AdminSidebar() {
   const adminRoleName = admin?.role?.name || (typeof admin?.role === 'object' ? admin.role.name : String(admin?.role || 'Admin'));
 
   return (
-    <aside className="w-full md:w-72 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-0 md:h-screen overflow-y-auto flex-shrink-0">
-      <div className="pb-4 border-b border-white/5 flex flex-col gap-3">
+    <>
+      {/* Mobile Sticky Header */}
+      <div className="flex md:hidden items-center justify-between px-6 py-4 bg-luxury-900 border-b border-white/5 sticky top-0 z-40 w-full">
         <Link href="/" className="flex items-center gap-2.5 group">
           {brand.logoUrl ? (
-            <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-9 w-auto object-contain transition" />
+            <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-8 w-auto object-contain transition" />
           ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-primary/30 bg-brand-primary/10">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand-primary/30 bg-brand-primary/10">
               <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
             </span>
           )}
@@ -49,39 +51,88 @@ export default function AdminSidebar() {
             {brand.logoText || brand.siteName || 'KSUBZONE'}
           </span>
         </Link>
-        <div className="pl-1">
-          <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Admin Workspace</p>
-          <p className="text-[11px] text-slate-300 truncate mt-0.5 capitalize">{adminRoleName} • {admin?.username}</p>
-        </div>
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="p-1 rounded-md text-slate-400 hover:text-white transition"
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
       </div>
 
-      <nav className="flex flex-col gap-1.5 flex-grow">
-        {links.map((link) => {
-          const Icon = link.icon;
-          const isActive = pathname === link.to;
-          return (
-            <Link
-              key={link.to}
-              href={link.to}
-              className={`flex items-center gap-3 p-3 rounded-xl text-xs font-bold uppercase tracking-wider transition border-l-[3px] ${
-                isActive
-                  ? 'bg-brand-primary/10 border-brand-primary text-white'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${link.color}`} />
-              <span className="truncate">{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
 
-      <button
-        onClick={logoutAdmin}
-        className="flex items-center gap-3 p-3 mt-auto rounded-xl text-xs font-bold uppercase tracking-wider border border-white/5 hover:bg-brand-secondary/10 text-brand-secondary hover:border-brand-secondary/20 transition text-left flex-shrink-0"
+      {/* Sidebar Aside */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-0 md:h-screen overflow-y-auto flex-shrink-0 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
-        <LogOut className="w-4 h-4" /> Terminate Session
-      </button>
-    </aside>
+        {/* Mobile Close Button */}
+        <div className="flex md:hidden justify-end">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="pb-4 border-b border-white/5 flex flex-col gap-3">
+          <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
+            {brand.logoUrl ? (
+              <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-9 w-auto object-contain transition" />
+            ) : (
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-primary/30 bg-brand-primary/10">
+                <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
+              </span>
+            )}
+            <span className="text-base font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
+              {brand.logoText || brand.siteName || 'KSUBZONE'}
+            </span>
+          </Link>
+          <div className="pl-1">
+            <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Admin Workspace</p>
+            <p className="text-[11px] text-slate-300 truncate mt-0.5 capitalize">{adminRoleName} • {admin?.username}</p>
+          </div>
+        </div>
+
+        <nav className="flex flex-col gap-1.5 flex-grow">
+          {links.map((link) => {
+            const Icon = link.icon;
+            const isActive = pathname === link.to;
+            return (
+              <Link
+                key={link.to}
+                href={link.to}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 p-3 rounded-xl text-xs font-bold uppercase tracking-wider transition border-l-[3px] ${
+                  isActive
+                    ? 'bg-brand-primary/10 border-brand-primary text-white'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${link.color}`} />
+                <span className="truncate">{link.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <button
+          onClick={() => { setMobileOpen(false); logoutAdmin(); }}
+          className="flex items-center gap-3 p-3 mt-auto rounded-xl text-xs font-bold uppercase tracking-wider border border-white/5 hover:bg-brand-secondary/10 text-brand-secondary hover:border-brand-secondary/20 transition text-left flex-shrink-0"
+        >
+          <LogOut className="w-4 h-4" /> Terminate Session
+        </button>
+      </aside>
+    </>
   );
 }

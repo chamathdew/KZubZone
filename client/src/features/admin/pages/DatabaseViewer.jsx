@@ -331,7 +331,7 @@ export default function DatabaseViewer() {
                 {loadingCollections ? (
                   <div className="py-8 text-center text-xs text-slate-500 animate-pulse">Loading collections...</div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-col gap-2 lg:gap-0 lg:space-y-1">
                     {collections.map(col => {
                       const isActive = selectedCol === col.name;
                       return (

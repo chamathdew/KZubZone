@@ -397,7 +397,7 @@ export default function SubtitleTools() {
           </div>
 
           {/* Workflow Tabs */}
-          <div className="flex border-b border-white/5 mb-8">
+          <div className="flex overflow-x-auto whitespace-nowrap border-b border-white/5 mb-8 scrollbar-none">
             <button
               onClick={() => setActiveTab('upload')}
               className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all ${

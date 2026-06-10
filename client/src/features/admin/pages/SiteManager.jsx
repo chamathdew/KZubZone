@@ -244,7 +244,7 @@ export default function SiteManager() {
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-[220px_minmax(0,1fr)_300px] gap-6">
-            <aside className="rounded-2xl border border-white/5 bg-luxury-900 p-3 h-fit">
+            <aside className="rounded-2xl border border-white/5 bg-luxury-900 p-3 h-fit grid grid-cols-2 sm:grid-cols-4 xl:flex xl:flex-col gap-2 xl:gap-0 xl:space-y-1">
               {sections.map((section) => {
                 const Icon = section.icon;
                 const active = activeSection === section.id;
