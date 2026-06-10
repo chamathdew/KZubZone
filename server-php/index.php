@@ -455,6 +455,27 @@ $routes = [
         }
     ]],
     // Admin Database Viewer APIs
+    ['POST', '/api/admin/database/wipe-all', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        function() {
+            $db = \Config\Database::getInstance();
+            $collections = [
+                'movies', 'dramas', 'seasons', 'episodes', 'subtitles', 
+                'reviews', 'comments', 'analytics', 'articles', 'notifications'
+            ];
+            $counts = [];
+            foreach ($collections as $col) {
+                $counts[$col] = $db->deleteMany($col, []);
+            }
+            header('Content-Type: application/json');
+            echo json_encode([
+                'message' => 'All media, subtitle, and article records have been wiped successfully.',
+                'driver' => $db->getDriver(),
+                'deleted' => $counts
+            ]);
+        }
+    ]],
     ['GET', '/api/admin/database/collections', [
         'Middleware\AuthMiddleware::protectAdmin',
         function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },

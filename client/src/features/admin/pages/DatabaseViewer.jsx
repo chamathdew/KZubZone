@@ -28,6 +28,7 @@ export default function DatabaseViewer() {
   const [rawJsonText, setRawJsonText] = useState(''); // Raw JSON textarea string
   const [editTab, setEditTab] = useState('fields'); // 'fields' | 'json'
   const [saving, setSaving] = useState(false);
+  const [wiping, setWiping] = useState(false);
 
   // Pagination
   const [limit] = useState(50);
@@ -279,6 +280,31 @@ export default function DatabaseViewer() {
     }
   };
 
+  const handleWipeDatabase = async () => {
+    const confirmInput = window.prompt(
+      "WARNING: This will permanently delete all Movies, Dramas, Seasons, Episodes, Subtitles, and Articles from the live database. Active accounts and roles will NOT be deleted. Type 'WIPE' to confirm:"
+    );
+    if (confirmInput !== 'WIPE') {
+      if (confirmInput !== null) {
+        alert("Wipe cancelled. Confirmation word did not match.");
+      }
+      return;
+    }
+
+    setWiping(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await apiClient.post('/api/admin/database/wipe-all');
+      setSuccess(res.data.message || 'Database cleared successfully.');
+      fetchCollections();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to wipe database.');
+    } finally {
+      setWiping(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
       <AdminSidebar />
@@ -299,12 +325,21 @@ export default function DatabaseViewer() {
               </p>
             </div>
             
-            <button
-              onClick={fetchCollections}
-              className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center gap-2 transition self-start sm:self-auto"
-            >
-              <RefreshCw className="w-4 h-4" /> Refresh Database
-            </button>
+            <div className="flex gap-2 self-start sm:self-auto">
+              <button
+                onClick={handleWipeDatabase}
+                disabled={wiping}
+                className="h-10 px-4 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-xs font-bold text-red-400 flex items-center gap-2 transition"
+              >
+                <Trash2 className="w-4 h-4" /> {wiping ? 'Wiping...' : 'Wipe Media Data'}
+              </button>
+              <button
+                onClick={fetchCollections}
+                className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center gap-2 transition"
+              >
+                <RefreshCw className="w-4 h-4" /> Refresh Database
+              </button>
+            </div>
           </div>
 
           {error && (
