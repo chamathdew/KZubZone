@@ -366,7 +366,7 @@ export default function SiteManager() {
 
               <div className="rounded-2xl border border-white/10 bg-luxury-950 p-4">
                 <div className="flex items-center gap-3">
-                  {brand.logoUrl ? (
+                  {resolveLogoUrl(brand.logoUrl) ? (
                     <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-12 w-auto object-contain" />
                   ) : (
                     <span className="h-12 w-12 rounded-xl bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center">

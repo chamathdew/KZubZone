@@ -40,7 +40,7 @@ export default function AdminSidebar() {
       {/* Mobile Sticky Header */}
       <div className="flex md:hidden items-center justify-between px-6 py-4 bg-luxury-900 border-b border-white/5 sticky top-0 z-40 w-full">
         <Link href="/" className="flex items-center gap-2.5 group">
-          {brand.logoUrl ? (
+          {resolveLogoUrl(brand.logoUrl) ? (
             <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-8 w-auto object-contain transition" />
           ) : (
             <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand-primary/30 bg-brand-primary/10">
@@ -87,7 +87,7 @@ export default function AdminSidebar() {
 
         <div className="pb-4 border-b border-white/5 flex flex-col gap-3">
           <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
-            {brand.logoUrl ? (
+            {resolveLogoUrl(brand.logoUrl) ? (
               <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-9 w-auto object-contain transition" />
             ) : (
               <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-primary/30 bg-brand-primary/10">

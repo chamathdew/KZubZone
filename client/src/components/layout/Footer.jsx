@@ -29,7 +29,7 @@ export default function Footer() {
           <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
             <div className="space-y-5">
               <Link href="/" className="inline-flex items-center gap-3">
-                {brand.logoUrl ? (
+                {resolveLogoUrl(brand.logoUrl) ? (
                   <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Site logo'} className="h-14 w-auto object-contain shadow-glass-neon" />
                 ) : (
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-primary/30 bg-brand-primary/10 shadow-glass-neon">

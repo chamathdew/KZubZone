@@ -68,7 +68,7 @@ export default function AdminLogin() {
       >
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            {brand.logoUrl ? (
+            {resolveLogoUrl(brand.logoUrl) ? (
               <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-16 w-auto object-contain shadow-[0_0_20px_rgba(244,63,94,0.15)]" />
             ) : (
               <span className="text-xs font-bold uppercase tracking-widest text-brand-primary bg-brand-primary bg-opacity-10 px-3 py-1 rounded-full border border-brand-primary border-opacity-20">

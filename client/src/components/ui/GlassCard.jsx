@@ -51,11 +51,11 @@ export default function GlassCard({ item, type }) {
           />
 
           {/* Top Badges — single balanced row: left=episode progress, right=IMDb rating */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-20">
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex flex-wrap items-center justify-between gap-1 z-20">
             {/* Left: Episode progress (drama only, semi-transparent) */}
-            <div className="min-w-0">
+            <div className="flex-shrink-0">
               {mediaType === 'drama' && hasSubtitles ? (
-                <span className={`h-6 px-2.5 inline-flex items-center justify-center rounded-full border backdrop-blur-md text-[10px] font-black uppercase tracking-wider ${
+                <span className={`h-5 px-1.5 inline-flex items-center justify-center rounded-full border backdrop-blur-md text-[9px] font-black uppercase tracking-wider ${
                   subtitleSummary.seasonStatus === 'Complete'
                     ? 'bg-rose-500/25 border-rose-500/40 text-rose-200'
                     : 'bg-emerald-500/25 border-emerald-500/40 text-emerald-200'
@@ -69,9 +69,9 @@ export default function GlassCard({ item, type }) {
             </div>
 
             {/* Right: IMDb rating badge only */}
-            <div className={`h-6 px-2.5 inline-flex items-center justify-center gap-1 rounded-full border backdrop-blur-md text-[10px] font-black uppercase tracking-wider ${getRatingBadgeClass(rating)}`}>
+            <div className={`h-5 px-1.5 inline-flex items-center justify-center gap-1 rounded-full border backdrop-blur-md text-[9px] font-black uppercase tracking-wider ${getRatingBadgeClass(rating)}`}>
               <Star className="w-2.5 h-2.5 fill-current flex-shrink-0" />
-              <span>{rating > 0 ? `IMDb ${rating.toFixed(1)}` : 'NR'}</span>
+              <span>{rating > 0 ? rating.toFixed(1) : 'NR'}</span>
             </div>
           </div>
 

@@ -66,7 +66,7 @@ export const handleImageFallback = (event, item = {}, kind = 'poster') => {
 };
 
 export const resolveLogoUrl = (url = '') => {
-  if (!url) return '';
+  if (!url) return '/main-logo.svg';
   const urlStr = String(url).trim();
   if (urlStr.includes('drive.google.com')) {
     const fileDMatch = urlStr.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
