@@ -42,12 +42,18 @@ export const AuthProvider = ({ children }) => {
 
   // Listen for global auth expiration events from Axios interceptor
   useEffect(() => {
-    const handleExpire = () => {
+    const handleUserExpire = () => {
       setUser(null);
+    };
+    const handleAdminExpire = () => {
       setAdmin(null);
     };
-    window.addEventListener('auth-session-expired', handleExpire);
-    return () => window.removeEventListener('auth-session-expired', handleExpire);
+    window.addEventListener('user-session-expired', handleUserExpire);
+    window.addEventListener('admin-session-expired', handleAdminExpire);
+    return () => {
+      window.removeEventListener('user-session-expired', handleUserExpire);
+      window.removeEventListener('admin-session-expired', handleAdminExpire);
+    };
   }, []);
 
   const loginUser = async (email, password, code2fa) => {

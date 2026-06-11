@@ -15,8 +15,11 @@ const apiClient = axios.create({
 // Request Interceptor: Automatically inject Authorization token
 apiClient.interceptors.request.use(
   (config) => {
-    // Check for admin token first, then user token
-    const token = tokenService.getAdminToken() || tokenService.getUserToken();
+    // Determine which token to use based on URL path to prevent token pollution
+    const url = config.url || '';
+    const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');
+    
+    const token = isAdminRoute ? tokenService.getAdminToken() : tokenService.getUserToken();
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -34,10 +37,17 @@ apiClient.interceptors.response.use(
     const status = error.response ? error.response.status : null;
     
     if (status === 401) {
-      // Unauthorized: Clear compromised tokens
-      tokenService.clearAllTokens();
-      // Dispatch global event so App.jsx or AuthContext can react and redirect
-      window.dispatchEvent(new Event('auth-session-expired'));
+      // Clear only the expired role token based on URL
+      const url = error.config?.url || '';
+      const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');
+      
+      if (isAdminRoute) {
+        tokenService.removeAdminToken();
+        window.dispatchEvent(new Event('admin-session-expired'));
+      } else {
+        tokenService.removeUserToken();
+        window.dispatchEvent(new Event('user-session-expired'));
+      }
     }
     
     // Normalize error shape
