@@ -543,8 +543,12 @@ class Database {
         }
         
         $now = date('Y-m-d H:i:s');
-        $data['createdAt'] = $now;
-        $data['updatedAt'] = $now;
+        if (!isset($data['createdAt'])) {
+            $data['createdAt'] = $now;
+        }
+        if (!isset($data['updatedAt'])) {
+            $data['updatedAt'] = $now;
+        }
 
         if ($this->driver === 'mongodb') {
             $bulk = new \MongoDB\Driver\BulkWrite();

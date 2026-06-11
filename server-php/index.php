@@ -71,7 +71,14 @@ if (strpos($uri, '/uploads/') === 0) {
 
 // Dynamic visitor hit logger for pages (non-api/uploads requests)
 if ($method === 'GET' && strpos($uri, '/api/') !== 0) {
-    \Controllers\AnalyticsController::logPageVisit();
+    try {
+        $db = \Config\Database::getInstance();
+        if ($db->getDriver() !== 'sqlite') {
+            \Controllers\AnalyticsController::logPageVisit();
+        }
+    } catch (\Exception $e) {
+        // Safe fallback to prevent locking crashes
+    }
 }
 
 // Define routes layout (Method, URI regex pattern, Handler pipeline)
@@ -453,6 +460,37 @@ $routes = [
             header('Content-Type: application/json');
             echo json_encode(['message' => 'Settings saved successfully', 'setting' => $setting]);
         }
+    ]],
+    // Admin Backup & Restore Management
+    ['GET', '/api/admin/backup/settings', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        'Controllers\BackupController::getSettings'
+    ]],
+    ['POST', '/api/admin/backup/settings', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        'Controllers\BackupController::saveSettings'
+    ]],
+    ['GET', '/api/admin/backup/list', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        'Controllers\BackupController::listBackups'
+    ]],
+    ['POST', '/api/admin/backup/create', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        'Controllers\BackupController::createBackup'
+    ]],
+    ['POST', '/api/admin/backup/restore', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        'Controllers\BackupController::restoreBackup'
+    ]],
+    ['DELETE', '/api/admin/backup/delete/([a-z0-9_-]+)', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
+        'Controllers\BackupController::deleteBackup'
     ]],
     // Admin Database Viewer APIs
     ['POST', '/api/admin/database/wipe-all', [

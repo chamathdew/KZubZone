@@ -107,10 +107,16 @@ class ArticleController {
             }
         }
 
-        // Increment views
-        $views = ($article['viewCount'] ?? 0) + 1;
-        $db->updateOne('articles', ['_id' => $article['_id']], ['viewCount' => $views]);
-        $article['viewCount'] = $views;
+        // Increment views (wrapped in try-catch to prevent DB locking crashes)
+        try {
+            if ($db->getDriver() !== 'sqlite') {
+                $views = ($article['viewCount'] ?? 0) + 1;
+                $db->updateOne('articles', ['_id' => $article['_id']], ['viewCount' => $views]);
+                $article['viewCount'] = $views;
+            }
+        } catch (\Exception $e) {
+            // Ignore view count write-lock errors to keep page load stable
+        }
 
         // Fetch related articles
         $tagsIn = !empty($article['tags']) ? $article['tags'] : [];

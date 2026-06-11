@@ -8,7 +8,7 @@ import { useSiteContent } from '@/hooks/useSiteContent';
 import { resolveLogoUrl } from '@/utils/mediaImages';
 import {
   Film, Tv, Users, Languages, Star, TrendingUp,
-  Settings, Database, LogOut, BookOpenText, Wand2, Server, Menu, X
+  Settings, Database, LogOut, BookOpenText, Wand2, Server, Menu, X, Cloud
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -30,6 +30,7 @@ export default function AdminSidebar() {
     { to: '/management/users', label: 'Member Control', icon: Users, color: 'text-blue-400' },
     { to: '/management/settings', label: 'Site Builder', icon: Wand2, color: 'text-brand-accent' },
     { to: '/management/database', label: 'Database Browser', icon: Server, color: 'text-amber-400' },
+    { to: '/management/backup', label: 'Backup & Restore', icon: Cloud, color: 'text-emerald-400' },
     { to: '/management/seo', label: 'Raw Config Keys', icon: Settings, color: 'text-slate-400' },
   ];
 

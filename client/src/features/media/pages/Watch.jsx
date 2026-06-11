@@ -51,8 +51,8 @@ export default function Watch({ initialDramaData }) {
     enabled: !!activeEpisodeDoc?._id
   });
   const sortedSubtitles = [...subtitles].sort((a, b) => {
-    const aSinhala = a.language?.toLowerCase() === 'sinhala' ? 0 : 1;
-    const bSinhala = b.language?.toLowerCase() === 'sinhala' ? 0 : 1;
+    const aSinhala = a?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
+    const bSinhala = b?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
     return aSinhala - bSinhala;
   });
 

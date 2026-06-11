@@ -238,7 +238,7 @@ export default function Detail({ type = 'Movie', initialData }) {
     );
   }
 
-  if (error || !media) {
+  if (error && !media) {
     return (
       <div className="h-screen w-full bg-transparent flex flex-col items-center justify-center gap-3">
         <p className="text-brand-secondary text-sm">Failed to retrieve media entry.</p>
@@ -304,7 +304,7 @@ export default function Detail({ type = 'Movie', initialData }) {
     const bSinhala = b?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
     return aSinhala - bSinhala;
   });
-  const titleLevelSubtitles = sortedSubtitles.filter(sub => !sub.seasonNumber && !sub.episodeNumber);
+  const titleLevelSubtitles = sortedSubtitles.filter(sub => !sub?.seasonNumber && !sub?.episodeNumber);
   const standaloneSubtitles = type === 'Drama' ? titleLevelSubtitles : sortedSubtitles;
   const sortSubtitleFiles = (items = []) => [...items].sort((a, b) => {
     const aSinhala = a?.language?.toLowerCase() === 'sinhala' ? 0 : 1;
@@ -608,12 +608,12 @@ export default function Detail({ type = 'Movie', initialData }) {
                       const languages = summary.languages || [];
                       const directEpisodeFiles = episodeSubtitlesById[ep._id] || [];
                       const taggedTitleFiles = sortedSubtitles.filter((sub) => (
-                        Number(sub.seasonNumber || selectedSeason) === Number(selectedSeason) &&
-                        Number(sub.episodeNumber) === Number(ep.episodeNumber)
+                        Number(sub?.seasonNumber || selectedSeason) === Number(selectedSeason) &&
+                        Number(sub?.episodeNumber) === Number(ep.episodeNumber)
                       ));
                       const episodeFiles = sortSubtitleFiles(
                         [...directEpisodeFiles, ...taggedTitleFiles]
-                          .filter((sub, index, arr) => arr.findIndex(item => item._id === sub._id) === index)
+                          .filter((sub, index, arr) => sub && arr.findIndex(item => item?._id === sub?._id) === index)
                       );
                       const hasSubtitles = episodeFiles.length > 0 || (summary.totalSubtitles || 0) > 0;
                       const episodeUrl = `/drama/${mediaPermalink}/season-${selectedSeason}/episode-${ep.episodeNumber}`;
