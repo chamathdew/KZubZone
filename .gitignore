@@ -38,3 +38,6 @@ server-php/uploads/
 server-php/*.sqlite
 server-php/config/.db_initialized_*
 
+# Temporary build artifacts
+temp-update-build/
+backend-update.zip
