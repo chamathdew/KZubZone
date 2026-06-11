@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { Star, Plus, Check, Heart, Upload, Download, Film, Tv, Flame, Languages, ShieldCheck, Clock, CheckCircle2, MessageSquare, ThumbsUp, PlayCircle, Eye } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import SeoTags from '@/components/seo/SeoTags';
-import SubtitleUploadModal from '@/features/media/components/SubtitleUploadModal';
+
 import GlassCard from '@/components/ui/GlassCard';
 import { permalinkSlug } from '@/utils/slug';
 import { getMediaImage, handleImageFallback } from '@/utils/mediaImages';
@@ -21,8 +21,7 @@ export default function Detail({ type = 'Movie', initialData }) {
   const { user, admin, refreshProfile } = useAuth();
   
   const [selectedSeason, setSelectedSeason] = useState(1);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [uploadTarget, setUploadTarget] = useState(null);
+
   const [commentText, setCommentText] = useState('');
   const [commentError, setCommentError] = useState('');
   const [replyText, setReplyText] = useState({});
@@ -323,14 +322,7 @@ export default function Detail({ type = 'Movie', initialData }) {
   });
   const mediaSubtitleSummary = media.subtitleSummary || {};
   const subtitleLanguages = mediaSubtitleSummary.languages || [];
-  const openSubtitleUpload = (target) => {
-    if (!user && !admin) {
-      router.push('/auth');
-      return;
-    }
-    setUploadTarget(target);
-    setUploadModalOpen(true);
-  };
+
   const getUploaderLabel = (sub) => {
     if (sub.uploaderRole === 'Admin') {
       return `Admin: ${sub.adminUploader?.username || 'Admin'}`;
@@ -417,18 +409,7 @@ export default function Detail({ type = 'Movie', initialData }) {
               </div>
             )}
 
-            {isAdmin && (
-              <button
-                onClick={() => openSubtitleUpload({
-                  mediaId: media._id,
-                  mediaType: type,
-                  label: media.title
-                })}
-                className="w-full h-11 bg-brand-primary hover:bg-brand-primary/80 text-white text-xs font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-brand-primary/10"
-              >
-                <Upload className="w-4 h-4" /> Upload Subtitle
-              </button>
-            )}
+
           </div>
 
           {/* RIGHT: DETAILS CONTROLLER */}
@@ -562,19 +543,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Subtitle Center</p>
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">Episodes & Downloads</h3>
                   </div>
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => openSubtitleUpload({
-                        mediaId: media._id,
-                        mediaType: type,
-                        label: media.title
-                      })}
-                      className="h-10 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-wider transition"
-                    >
-                      <Upload className="w-3.5 h-3.5" /> Upload Title Subtitle
-                    </button>
-                  )}
+
                 </div>
                 
                 {/* Season selection pills */}
@@ -660,22 +629,7 @@ export default function Detail({ type = 'Movie', initialData }) {
 
                             {/* Right: Actions */}
                             <div className="flex flex-shrink-0 items-center justify-end w-full sm:w-auto mt-2 sm:mt-0 gap-2">
-                              {isAdmin && (
-                                <button
-                                  type="button"
-                                  onClick={() => openSubtitleUpload({
-                                    mediaId: ep._id,
-                                    mediaType: 'Episode',
-                                    label: `${media.title} S${selectedSeason} E${ep.episodeNumber}`,
-                                    seasonNumber: selectedSeason,
-                                    episodeNumber: ep.episodeNumber,
-                                    seasonStatus: summary.seasonStatus || 'Ongoing'
-                                  })}
-                                  className="flex-1 sm:flex-none h-8 px-4 rounded-lg bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/20 text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 transition shadow-sm shadow-brand-primary/5"
-                                >
-                                  <Upload className="w-3.5 h-3.5" /> Upload
-                                </button>
-                              )}
+
                               {hasSubtitles ? (
                                 <Link
                                   href={episodeUrl}
@@ -958,22 +912,7 @@ export default function Detail({ type = 'Movie', initialData }) {
         )}
       </div>
 
-      {/* Subtitle Uploader Modal Box */}
-      <SubtitleUploadModal
-        isOpen={uploadModalOpen}
-        onClose={() => {
-          setUploadModalOpen(false);
-          setUploadTarget(null);
-        }}
-        mediaId={uploadTarget?.mediaId || media._id}
-        mediaType={uploadTarget?.mediaType || type}
-        targetMeta={uploadTarget || { label: media.title }}
-        onUploadSuccess={() => {
-          refetchSubtitles();
-          refetchEpisodeSubtitles();
-          queryClient.invalidateQueries(['mediaDetails', slug, type]);
-        }}
-      />
+
 
     </div>
   );

@@ -3,7 +3,7 @@
 import React from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import AIChatWidget from '@/features/ai-chat/components/AIChatWidget';
+
 import ScrollToTop from '@/components/ui/ScrollToTop';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -38,7 +38,7 @@ export default function PublicLayout({ children }) {
       <main className="flex-grow pb-16">
         {children}
       </main>
-      {content?.ai?.enableChatbot !== false && <AIChatWidget />}
+
       <Footer />
     </>
   );

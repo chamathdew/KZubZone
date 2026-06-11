@@ -6,8 +6,9 @@ import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
-  Database, Trash2, Edit3, Plus, ShieldCheck, X, ChevronDown, ChevronRight
+  Database, Trash2, Edit3, Plus, ShieldCheck, X, ChevronDown, ChevronRight, UploadCloud
 } from 'lucide-react';
+import SubtitleUploadModal from '@/features/media/components/SubtitleUploadModal';
 
 export default function DramaManager() {
   const { admin } = useAuth();
@@ -30,6 +31,14 @@ export default function DramaManager() {
 
   const [showEpisodeModal, setShowEpisodeModal] = useState(false);
   const [editingEpisode, setEditingEpisode] = useState(null);
+
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadTarget, setUploadTarget] = useState(null);
+
+  const openSubtitleUpload = (target) => {
+    setUploadTarget(target);
+    setUploadModalOpen(true);
+  };
 
   // Drama Fields State
   const [title, setTitle] = useState('');
@@ -474,6 +483,20 @@ export default function DramaManager() {
                                             </div>
                                             <div className="flex items-center gap-3 font-mono text-[10px] flex-shrink-0">
                                               <span className="text-slate-500">{ep.runtime}m</span>
+                                              <button
+                                                onClick={() => openSubtitleUpload({
+                                                  mediaId: ep._id,
+                                                  mediaType: 'Episode',
+                                                  label: `S${season.seasonNumber} E${ep.episodeNumber}`,
+                                                  seasonNumber: season.seasonNumber,
+                                                  episodeNumber: ep.episodeNumber,
+                                                  seasonStatus: 'Ongoing'
+                                                })}
+                                                className="text-brand-primary hover:text-white flex items-center gap-1 font-bold"
+                                                title="Upload Subtitle"
+                                              >
+                                                <UploadCloud className="w-3.5 h-3.5" /> Sub
+                                              </button>
                                               <button 
                                                 onClick={() => handleOpenEditEpisode(ep)}
                                                 className="text-slate-400 hover:text-white"
@@ -683,6 +706,21 @@ export default function DramaManager() {
           </div>
         </div>
       )}
+
+      {/* Subtitle Uploader Modal Box */}
+      <SubtitleUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => {
+          setUploadModalOpen(false);
+          setUploadTarget(null);
+        }}
+        mediaId={uploadTarget?.mediaId}
+        mediaType={uploadTarget?.mediaType || 'Episode'}
+        targetMeta={uploadTarget || { label: 'Episode' }}
+        onUploadSuccess={() => {
+          // Additional refresh logic could go here if needed
+        }}
+      />
 
     </div>
   );
