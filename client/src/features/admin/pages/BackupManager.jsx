@@ -122,13 +122,23 @@ export default function BackupManager() {
     setError('');
     setSuccess('');
     try {
-      // Trigger native download
-      window.location.href = apiClient.defaults.baseURL 
-        ? `${apiClient.defaults.baseURL}/api/admin/backup/create`
-        : '/api/admin/backup/create';
-      setSuccess('Local backup archive generation started.');
+      const res = await apiClient.post('/api/admin/backup/create', {}, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `ksubzone_backup_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      
+      setSuccess('Local backup archive downloaded successfully.');
     } catch (err) {
-      setError('Failed to trigger direct download.');
+      setError('Failed to download local backup archive.');
     } finally {
       setDownloadingLocal(false);
     }
