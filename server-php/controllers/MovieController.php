@@ -105,6 +105,7 @@ class MovieController {
         foreach ($latestDramas as &$drama) {
             $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
         }
+        unset($drama); // Break reference to avoid corrupting next loop
         
         // 3. Historical movies (status: Published, isHistorical: true, sort: imdbRating DESC, limit 12)
         $historicalMovies = $db->find('movies', array_merge($statusFilter, ['isHistorical' => true]), ['sort' => ['imdbRating' => -1], 'limit' => 12]);
@@ -114,6 +115,7 @@ class MovieController {
         foreach ($historicalDramas as &$drama) {
             $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
         }
+        unset($drama); // Break reference to avoid corrupting next loop
         
         // 5. Trending movies (status: Published, isTrending: true, sort: viewCount DESC, limit 12)
         $trendingMovies = $db->find('movies', array_merge($statusFilter, ['isTrending' => true]), ['sort' => ['viewCount' => -1], 'limit' => 12]);
@@ -123,6 +125,7 @@ class MovieController {
         foreach ($trendingDramas as &$drama) {
             $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
         }
+        unset($drama); // Break reference to avoid corrupting next loop
         
         // 7. Popular movies (status: Published, sort: viewCount DESC, limit 12)
         $popularMovies = $db->find('movies', $statusFilter, ['sort' => ['viewCount' => -1], 'limit' => 12]);
@@ -132,6 +135,7 @@ class MovieController {
         foreach ($popularDramas as &$drama) {
             $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
         }
+        unset($drama); // Break reference
 
         header('Content-Type: application/json');
         echo json_encode([
