@@ -186,7 +186,7 @@ class DramaController {
             'genres' => $data['keywords'] ?? [],
             'releaseDate' => $data['releaseDate'] ?? null,
             'director' => $data['director'] ?? '',
-            'cast' => array_map(function($c) { return $c['name'] ?? ''; }, $data['cast'] ?? [])
+            'cast' => array_map(function($c) { return is_array($c) ? ($c['name'] ?? '') : (is_string($c) ? $c : ''); }, $data['cast'] ?? [])
         ]);
 
         $finalDramaData = array_merge($data, $seoContent);
@@ -227,7 +227,7 @@ class DramaController {
                 'genres' => $updates['keywords'] ?? $drama['keywords'] ?? [],
                 'releaseDate' => $updates['releaseDate'] ?? $drama['releaseDate'] ?? null,
                 'director' => $updates['director'] ?? $drama['director'] ?? '',
-                'cast' => array_map(function($c) { return $c['name'] ?? ''; }, $updates['cast'] ?? $drama['cast'] ?? [])
+                'cast' => array_map(function($c) { return is_array($c) ? ($c['name'] ?? '') : (is_string($c) ? $c : ''); }, $updates['cast'] ?? $drama['cast'] ?? [])
             ]);
             $updates = array_merge($updates, $seoContent);
         }

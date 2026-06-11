@@ -209,7 +209,7 @@ class MovieController {
             'genres' => $data['keywords'] ?? [],
             'releaseDate' => $data['releaseDate'] ?? null,
             'director' => $data['director'] ?? '',
-            'cast' => array_map(function($c) { return $c['name'] ?? ''; }, $data['cast'] ?? [])
+            'cast' => array_map(function($c) { return is_array($c) ? ($c['name'] ?? '') : (is_string($c) ? $c : ''); }, $data['cast'] ?? [])
         ]);
 
         $finalMovieData = array_merge($data, $seoContent);
@@ -238,7 +238,7 @@ class MovieController {
                 'genres' => $updates['keywords'] ?? $movie['keywords'] ?? [],
                 'releaseDate' => $updates['releaseDate'] ?? $movie['releaseDate'] ?? null,
                 'director' => $updates['director'] ?? $movie['director'] ?? '',
-                'cast' => array_map(function($c) { return $c['name'] ?? ''; }, $updates['cast'] ?? $movie['cast'] ?? [])
+                'cast' => array_map(function($c) { return is_array($c) ? ($c['name'] ?? '') : (is_string($c) ? $c : ''); }, $updates['cast'] ?? $movie['cast'] ?? [])
             ]);
             $updates = array_merge($updates, $seoContent);
         }

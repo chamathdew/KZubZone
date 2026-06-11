@@ -30,6 +30,7 @@ Copy-Item -Path "$sourceDir\*" -Destination $tempDir -Recurse -Force
 $dbFile = Join-Path $tempDir "ksubzone.sqlite"
 $uploadsDir = Join-Path $tempDir "uploads"
 $configJson = Join-Path $tempDir "config\backup_config.json"
+$envFile = Join-Path $tempDir ".env"
 
 Write-Host "Stripping environment-specific database and configurations..."
 if (Test-Path $dbFile) {
@@ -43,6 +44,10 @@ if (Test-Path $uploadsDir) {
 if (Test-Path $configJson) {
     Remove-Item -Path $configJson -Force
     Write-Host " - Excluded: local backup config credentials"
+}
+if (Test-Path $envFile) {
+    Remove-Item -Path $envFile -Force
+    Write-Host " - Excluded: .env"
 }
 
 Write-Host "Waiting for file locks to settle..."
