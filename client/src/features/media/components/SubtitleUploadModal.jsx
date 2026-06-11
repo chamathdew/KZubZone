@@ -86,7 +86,13 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
         onClose();
       }, 2500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error uploading subtitle. Please try again.');
+      const serverMsg = err.response?.data?.message || '';
+      const diag = err.response?.data?.diagnostics;
+      let errorText = serverMsg || 'Error uploading subtitle. Please try again.';
+      if (diag) {
+        errorText += ` [uploads_exists:${diag.uploads_dir_exists}, writable:${diag.uploads_dir_writable}, supabase:${diag.supabase_configured}]`;
+      }
+      setError(errorText);
     } finally {
       setLoading(false);
     }
