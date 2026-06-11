@@ -2,6 +2,12 @@
   RewriteEngine On
   RewriteBase /
 
+  # Pass the Authorization header to PHP
+  CGIPassAuth On
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+
   # 1. Route API, upload, robots.txt, and sitemap requests to the PHP backend
   RewriteRule ^api/(.*)$ server-php/index.php [QSA,L]
   RewriteRule ^uploads/(.*)$ server-php/index.php [QSA,L]

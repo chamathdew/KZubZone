@@ -94,12 +94,41 @@ $routes = [
     // System health
     ['GET', '/api/health', function() {
         $db = \Config\Database::getInstance();
+        
+        $dbPath = dirname(__FILE__) . '/ksubzone.sqlite';
+        $dbDir = dirname($dbPath);
+        
+        $dbFileExists = file_exists($dbPath);
+        $dbFileWritable = $dbFileExists ? is_writable($dbPath) : false;
+        $dbDirWritable = is_writable($dbDir);
+        
+        $writeTestOk = false;
+        $writeTestError = null;
+        if ($db->getDriver() === 'sqlite') {
+            try {
+                // Try writing a temporary value to check if DB is locked/read-only
+                $db->updateOne('settings', ['key' => 'health_write_test'], ['value' => time()]);
+                $writeTestOk = true;
+            } catch (\Exception $e) {
+                $writeTestError = $e->getMessage();
+            }
+        }
+        
         header('Content-Type: application/json');
         echo json_encode([
-            'status' => 'ok',
+            'status' => ($db->getDriver() === 'sqlite' && !$writeTestOk) ? 'error' : 'ok',
             'serverTime' => date('Y-m-d H:i:s'),
             'databaseDriver' => $db->getDriver(),
-            'databaseFallbackWarning' => $db->getFallbackWarning()
+            'databaseFallbackWarning' => $db->getFallbackWarning(),
+            'diagnostics' => [
+                'dbFileExists' => $dbFileExists,
+                'dbFileWritable' => $dbFileWritable,
+                'dbDirWritable' => $dbDirWritable,
+                'dbPath' => basename($dbPath),
+                'dbDir' => basename($dbDir),
+                'writeTestOk' => $writeTestOk,
+                'writeTestError' => $writeTestError
+            ]
         ]);
     }],
     ['GET', '/api/site-content', function() {
