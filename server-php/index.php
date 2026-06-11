@@ -2,7 +2,9 @@
 // PHP KSubZone Backend Entry Point & Router
 // ============================================
 
-ini_set('display_errors', 1);
+// Never output PHP errors to browser — they corrupt JSON API responses
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 error_reporting(E_ALL);
 
 // Register manual class autoloader (zero external dependencies)

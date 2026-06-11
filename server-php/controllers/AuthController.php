@@ -196,6 +196,7 @@ class AuthController {
 
         if (empty($email) || empty($password)) {
             http_response_code(400);
+            header('Content-Type: application/json');
             echo json_encode(['message' => 'Email and Password are required']);
             return;
         }
@@ -203,8 +204,9 @@ class AuthController {
         $db = Database::getInstance();
         $admin = $db->findOne('admins', ['email' => $email]);
 
-        if (!$admin || !password_verify($password, $admin['password'])) {
+        if (!$admin || !password_verify($password, $admin['password'] ?? '')) {
             http_response_code(401);
+            header('Content-Type: application/json');
             echo json_encode(['message' => 'Invalid admin credentials']);
             return;
         }
@@ -218,14 +220,20 @@ class AuthController {
             }
             if ($code2fa !== '123456') {
                 http_response_code(400);
+                header('Content-Type: application/json');
                 echo json_encode(['message' => 'Invalid 2FA code']);
                 return;
             }
         }
 
-        $db->updateOne('admins', ['_id' => $admin['_id']], [
-            'lastLogin' => date('Y-m-d H:i:s')
-        ]);
+        // Update lastLogin - wrapped in try-catch so a read-only DB doesn't block login
+        try {
+            $db->updateOne('admins', ['_id' => $admin['_id']], [
+                'lastLogin' => date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            error_log('adminLogin: could not update lastLogin: ' . $e->getMessage());
+        }
 
         $roleName = 'Admin';
         if (isset($admin['role'])) {
