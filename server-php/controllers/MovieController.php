@@ -102,24 +102,36 @@ class MovieController {
         
         // 2. Latest dramas (status: Published, sort: releaseDate DESC, limit 12)
         $latestDramas = $db->find('dramas', $statusFilter, ['sort' => ['releaseDate' => -1], 'limit' => 12]);
+        foreach ($latestDramas as &$drama) {
+            $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
+        }
         
         // 3. Historical movies (status: Published, isHistorical: true, sort: imdbRating DESC, limit 12)
         $historicalMovies = $db->find('movies', array_merge($statusFilter, ['isHistorical' => true]), ['sort' => ['imdbRating' => -1], 'limit' => 12]);
         
         // 4. Historical dramas (status: Published, isHistorical: true, sort: imdbRating DESC, limit 12)
         $historicalDramas = $db->find('dramas', array_merge($statusFilter, ['isHistorical' => true]), ['sort' => ['imdbRating' => -1], 'limit' => 12]);
+        foreach ($historicalDramas as &$drama) {
+            $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
+        }
         
         // 5. Trending movies (status: Published, isTrending: true, sort: viewCount DESC, limit 12)
         $trendingMovies = $db->find('movies', array_merge($statusFilter, ['isTrending' => true]), ['sort' => ['viewCount' => -1], 'limit' => 12]);
         
         // 6. Trending dramas (status: Published, isTrending: true, sort: viewCount DESC, limit 12)
         $trendingDramas = $db->find('dramas', array_merge($statusFilter, ['isTrending' => true]), ['sort' => ['viewCount' => -1], 'limit' => 12]);
+        foreach ($trendingDramas as &$drama) {
+            $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
+        }
         
         // 7. Popular movies (status: Published, sort: viewCount DESC, limit 12)
         $popularMovies = $db->find('movies', $statusFilter, ['sort' => ['viewCount' => -1], 'limit' => 12]);
         
         // 8. Popular dramas (status: Published, sort: viewCount DESC, limit 12)
         $popularDramas = $db->find('dramas', $statusFilter, ['sort' => ['viewCount' => -1], 'limit' => 12]);
+        foreach ($popularDramas as &$drama) {
+            $drama['subtitleSummary'] = DramaController::getSubtitleSummaryForDrama($drama['_id']);
+        }
 
         header('Content-Type: application/json');
         echo json_encode([
