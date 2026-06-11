@@ -163,7 +163,8 @@ export default function DramaManager() {
     const payload = {
       title, description, poster, banner,
       slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || undefined,
-      releaseDate: releaseDate ? new Date(releaseDate) : null,
+      // Send as plain string, not a JS Date object (avoids PHP JSON decode issues)
+      releaseDate: releaseDate ? releaseDate : null,
       runtime: Number(runtime), country, language, director, trailer,
       tmdbRating: Number(tmdbRating), imdbRating: Number(imdbRating), isTrending, status, isHistorical
     };
@@ -177,7 +178,8 @@ export default function DramaManager() {
       setShowDramaModal(false);
       fetchDramas();
     } catch (err) {
-      alert('Error updating drama.');
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Error saving drama.';
+      alert('Error saving drama: ' + msg);
     } finally {
       setSavingDrama(false);
     }
@@ -238,7 +240,8 @@ export default function DramaManager() {
         handleExpandDrama(dramaObj);
       }
     } catch (err) {
-      alert('Season processing failed');
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Season processing failed.';
+      alert('Season error: ' + msg);
     } finally {
       setSavingSeason(false);
     }
