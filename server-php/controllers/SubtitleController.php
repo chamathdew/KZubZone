@@ -130,7 +130,8 @@ class SubtitleController {
 
         // Populate uploader
         foreach ($subtitles as &$sub) {
-            $uploader = $db->findOne('users', ['_id' => $sub['uploader']]);
+            $uploaderId = $sub['uploader'] ?? null;
+            $uploader = $uploaderId ? $db->findOne('users', ['_id' => $uploaderId]) : null;
             $sub['uploader'] = $uploader ? [
                 '_id' => $uploader['_id'],
                 'username' => $uploader['username'],
@@ -156,7 +157,8 @@ class SubtitleController {
 
         // Populate uploader and media info
         foreach ($subtitles as &$sub) {
-            $uploader = $db->findOne('users', ['_id' => $sub['uploader']]);
+            $uploaderId = $sub['uploader'] ?? null;
+            $uploader = $uploaderId ? $db->findOne('users', ['_id' => $uploaderId]) : null;
             $sub['uploader'] = $uploader ? [
                 '_id' => $uploader['_id'],
                 'username' => $uploader['username'],
@@ -277,7 +279,8 @@ class SubtitleController {
 
         // Populate uploader
         foreach ($subtitles as &$sub) {
-            $uploader = $db->findOne('users', ['_id' => $sub['uploader']]);
+            $uploaderId = $sub['uploader'] ?? null;
+            $uploader = $uploaderId ? $db->findOne('users', ['_id' => $uploaderId]) : null;
             $sub['uploader'] = $uploader ? [
                 '_id' => $uploader['_id'],
                 'username' => $uploader['username'],
@@ -315,7 +318,7 @@ class SubtitleController {
 
         // Notify uploader
         $db->insertOne('notifications', [
-            'recipient' => $subtitle['uploader'],
+            'recipient' => $subtitle['uploader'] ?? null,
             'title' => "Subtitle Upload {$status}",
             'message' => "Your subtitle upload for {$subtitle['language']} was " . strtolower($status) . "." . ($moderatorNotes ? ' Notes: ' . $moderatorNotes : ''),
             'type' => $status === 'Approved' ? 'subtitle_approved' : 'subtitle_rejected',
