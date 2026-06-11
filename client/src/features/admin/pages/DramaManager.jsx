@@ -477,9 +477,14 @@ export default function DramaManager() {
                                         seasonEpisodes.map((ep) => (
                                           <div key={ep._id} className="flex justify-between items-center text-xs p-2 rounded hover:bg-white/5 text-slate-300">
                                             <div className="flex items-center gap-2 overflow-hidden mr-4">
-                                              <Languages className="w-3 h-3 text-brand-primary flex-shrink-0" />
-                                              <span className="font-bold font-mono text-[10px]">EP {ep.episodeNumber}:</span>
-                                              <span className="truncate">{ep.episodeTitle}</span>
+                                              <Languages className={`w-3 h-3 flex-shrink-0 ${ep.subtitleCount > 0 ? 'text-emerald-400' : 'text-slate-600'}`} />
+                                              <span className={`font-bold font-mono text-[10px] ${ep.subtitleCount > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>EP {ep.episodeNumber}:</span>
+                                              <span className={`truncate ${ep.subtitleCount > 0 ? 'text-white' : 'text-slate-400'}`}>{ep.episodeTitle}</span>
+                                              {ep.subtitleCount > 0 && (
+                                                <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-bold uppercase tracking-wider">
+                                                  {ep.subtitleCount} Sub{ep.subtitleCount !== 1 ? 's' : ''}
+                                                </span>
+                                              )}
                                             </div>
                                             <div className="flex items-center gap-3 font-mono text-[10px] flex-shrink-0">
                                               <span className="text-slate-500">{ep.runtime}m</span>

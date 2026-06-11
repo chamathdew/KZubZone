@@ -126,6 +126,24 @@ class DramaController {
         // Fetch episodes
         $episodes = $db->find('episodes', ['dramaId' => $drama['_id']], ['sort' => ['seasonId' => 1, 'episodeNumber' => 1]]);
 
+        // Append subtitle count to each episode
+        $episodeIds = array_map(function($ep) { return (string)$ep['_id']; }, $episodes);
+        if (!empty($episodeIds)) {
+            $episodeSubtitles = $db->find('subtitles', [
+                'mediaId' => ['$in' => $episodeIds]
+            ]);
+            $subsCountByMediaId = [];
+            foreach($episodeSubtitles as $sub) {
+                 $mid = (string)$sub['mediaId'];
+                 if (!isset($subsCountByMediaId[$mid])) $subsCountByMediaId[$mid] = 0;
+                 $subsCountByMediaId[$mid]++;
+            }
+            foreach($episodes as &$ep) {
+                 $mid = (string)$ep['_id'];
+                 $ep['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
+            }
+        }
+
         // Fetch related dramas (excluding current, sharing keywords)
         $related = [];
         if (!empty($drama['keywords'])) {
