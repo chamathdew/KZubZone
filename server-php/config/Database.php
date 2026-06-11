@@ -453,12 +453,12 @@ class Database {
                         $params["{$paramName}_regex"] = $like;
                     } elseif ($op === '$ne') {
                         $clauses[] = "{$sqlField} != {$paramName}_ne";
-                        $params["{$paramName}_ne"] = $val;
+                        $params["{$paramName}_ne"] = is_bool($val) ? ($val ? 1 : 0) : $val;
                     }
                 }
             } else {
                 $clauses[] = "{$sqlField} = {$paramName}";
-                $params[$paramName] = $v;
+                $params[$paramName] = is_bool($v) ? ($v ? 1 : 0) : $v;
             }
         }
         return empty($clauses) ? "" : " WHERE " . implode(" AND ", $clauses);
@@ -504,7 +504,11 @@ class Database {
             }
 
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
+            foreach ($params as $key => $val) {
+                $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                $stmt->bindValue($key, $val, $type);
+            }
+            $stmt->execute();
             $rows = $stmt->fetchAll();
 
             $results = [];
@@ -645,7 +649,11 @@ class Database {
             $params = [];
             $where = $this->buildWhere($filter, $params);
             $stmt = $this->pdo->prepare("DELETE FROM {$collection}" . $where);
-            $stmt->execute($params);
+            foreach ($params as $key => $val) {
+                $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                $stmt->bindValue($key, $val, $type);
+            }
+            $stmt->execute();
             return $stmt->rowCount();
         }
     }
@@ -670,7 +678,11 @@ class Database {
             $where = $this->buildWhere($filter, $params);
             $sql = "SELECT COUNT(*) as cnt FROM {$collection}" . $where;
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
+            foreach ($params as $key => $val) {
+                $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                $stmt->bindValue($key, $val, $type);
+            }
+            $stmt->execute();
             $row = $stmt->fetch();
             return $row ? (int)$row['cnt'] : 0;
         }

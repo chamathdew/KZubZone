@@ -430,9 +430,13 @@ class DramaController {
         
         // 4. Languages list
         $languages = [];
+        $hasCompleteStatus = false;
         foreach ($allSubtitles as $sub) {
             if (!empty($sub['language']) && !in_array($sub['language'], $languages)) {
                 $languages[] = $sub['language'];
+            }
+            if (isset($sub['seasonStatus']) && $sub['seasonStatus'] === 'Complete') {
+                $hasCompleteStatus = true;
             }
         }
         usort($languages, function($a, $b) {
@@ -471,7 +475,7 @@ class DramaController {
         $seasonStatus = 'Ongoing';
         $progressLabel = '';
         
-        if ($totalEpisodesCount > 0 && $subbedCount >= $totalEpisodesCount) {
+        if ($hasCompleteStatus || ($totalEpisodesCount > 0 && $subbedCount >= $totalEpisodesCount)) {
             $seasonStatus = 'Complete';
             $progressLabel = 'Completed';
         } else {
