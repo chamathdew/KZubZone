@@ -1,0 +1,20 @@
+# KSubZone Live Server .env
+# Upload this file to: public_html/server-php/.env
+# !! KEEP THIS FILE PRIVATE - NEVER SHARE PUBLICLY !!
+# ================================================
+
+# ── Database ─────────────────────────────────────────────
+DB_DRIVER=mongodb
+DB_NAME=ksubzone
+MONGODB_URI=mongodb+srv://chamathdewcrypto_db_user:burnitdown@kdramauniverse.2sco96j.mongodb.net/?appName=kdramauniverse
+
+# ── Auth ─────────────────────────────────────────────────
+JWT_SECRET=ksubzone_super_secret_jwt_key_2024_change_in_production
+
+# ── Environment ──────────────────────────────────────────
+NODE_ENV=production
+
+# ── Supabase File Storage (subtitle uploads) ─────────────
+SUPABASE_URL=https://ejvczjiueysbiewzsuin.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqdmN6aml1ZXlzYmlld3pzdWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTA4NzM4MiwiZXhwIjoyMDk2NjYzMzgyfQ.cRqR7KIUYsV_nHgKdW5us_Ky3Tu_5gwJf9FYkYxIt8M
+SUPABASE_BUCKET=Ksubzone
