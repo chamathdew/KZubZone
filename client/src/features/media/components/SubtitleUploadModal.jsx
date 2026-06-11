@@ -12,7 +12,7 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
   const [file, setFile] = useState(null);
   const [language, setLanguage] = useState('Sinhala');
   const [version, setVersion] = useState('1.0');
-  const [seasonStatus, setSeasonStatus] = useState(targetMeta.seasonStatus || 'Ongoing');
+  const [seasonStatus] = useState('Ongoing'); // Always Ongoing; completion determined by backend episode count
   const [releaseNotes, setReleaseNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,13 +20,9 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
 
   // Adjust state inline during render when the modal opens or targets change
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-  const [prevSeasonStatusProp, setPrevSeasonStatusProp] = useState(targetMeta.seasonStatus);
-
-  if (isOpen !== prevIsOpen || targetMeta.seasonStatus !== prevSeasonStatusProp) {
+  if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
-    setPrevSeasonStatusProp(targetMeta.seasonStatus);
     if (isOpen) {
-      setSeasonStatus(targetMeta.seasonStatus || 'Ongoing');
       setError('');
     }
   }
@@ -196,7 +192,7 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
             </div>
 
             {mediaType === 'Episode' && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Season</label>
                   <div className="h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white flex items-center">
@@ -208,17 +204,6 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
                   <div className="h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white flex items-center">
                     E{targetMeta.episodeNumber || 1}
                   </div>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Status</label>
-                  <select
-                    value={seasonStatus}
-                    onChange={(e) => setSeasonStatus(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary"
-                  >
-                    <option value="Ongoing">Ongoing</option>
-                    <option value="Complete">Complete</option>
-                  </select>
                 </div>
               </div>
             )}
