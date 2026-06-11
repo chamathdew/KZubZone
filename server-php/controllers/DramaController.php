@@ -472,14 +472,22 @@ class DramaController {
         $maxEpisodeNumber = !empty($subbedEpisodes) ? max($subbedEpisodes) : 0;
         
         // Determine status
+        // If episodes exist in DB → use actual episode count to determine completion (ignore manual flag)
+        // If NO episodes in DB → fall back to manual seasonStatus flag on subtitle
         $seasonStatus = 'Ongoing';
         $progressLabel = '';
-        
-        if ($hasCompleteStatus || ($totalEpisodesCount > 0 && $subbedCount >= $totalEpisodesCount)) {
+
+        $isComplete = ($totalEpisodesCount > 0 && $subbedCount >= $totalEpisodesCount)
+                   || ($totalEpisodesCount === 0 && $hasCompleteStatus);
+
+        if ($isComplete) {
             $seasonStatus = 'Complete';
             $progressLabel = 'Completed';
         } else {
-            if ($maxEpisodeNumber > 0) {
+            if ($totalEpisodesCount > 0) {
+                // Show "X/Y EP" so users know exact progress
+                $progressLabel = $subbedCount . '/' . $totalEpisodesCount . ' EP';
+            } elseif ($maxEpisodeNumber > 0) {
                 $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
             } else {
                 $progressLabel = $totalSubtitles . ' subs';
