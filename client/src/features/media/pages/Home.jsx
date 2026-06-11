@@ -129,7 +129,7 @@ export default function Home() {
         description: 'Period pieces, royal court intrigue, and epic history.',
         icon: Star,
         link: '/search?category=all&isHistorical=true&sort=rating',
-        items: historicalTitles.length > 0 ? historicalTitles : latestDramas
+        items: historicalTitles
       }
     ];
   }, [homeCatalog, homeCatalogLoading]);
