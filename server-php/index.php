@@ -178,7 +178,7 @@ $routes = [
         header('Content-Type: text/plain');
         $file = __DIR__ . '/controllers/MovieController.php';
         if (file_exists($file)) {
-            echo file_get_contents($file);
+            echo base64_encode(file_get_contents($file));
         } else {
             echo "File not found";
         }
