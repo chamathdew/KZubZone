@@ -615,12 +615,12 @@ class Database {
                         $params["{$paramName}_regex"] = $like;
                     } elseif ($op === '$ne') {
                         $clauses[] = "{$sqlField} != {$paramName}_ne";
-                        $params["{$paramName}_ne"] = is_bool($val) ? ($val ? 1 : 0) : $val;
+                        $params["{$paramName}_ne"] = is_bool($val) ? ($this->driver === 'pgsql' ? ($val ? 'true' : 'false') : ($val ? 1 : 0)) : $val;
                     }
                 }
             } else {
                 $clauses[] = "{$sqlField} = {$paramName}";
-                $params[$paramName] = is_bool($v) ? ($v ? 1 : 0) : $v;
+                $params[$paramName] = is_bool($v) ? ($this->driver === 'pgsql' ? ($v ? 'true' : 'false') : ($v ? 1 : 0)) : $v;
             }
         }
         return empty($clauses) ? "" : " WHERE " . implode(" AND ", $clauses);
