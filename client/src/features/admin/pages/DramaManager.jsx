@@ -126,7 +126,6 @@ export default function DramaManager() {
     if (!expandedDramaId) return;
     const dramaObj = dramas.find(d => d._id === expandedDramaId);
     if (!dramaObj) return;
-    setLoadingExpansion(true);
     try {
       const res = await apiClient.get(`/api/media/dramas/${dramaObj.slug}?t=${Date.now()}`);
       setExpandedData({
@@ -135,8 +134,6 @@ export default function DramaManager() {
       });
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoadingExpansion(false);
     }
   };
 

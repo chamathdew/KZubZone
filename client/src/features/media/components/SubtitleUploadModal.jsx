@@ -84,7 +84,7 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
         setReleaseNotes('');
         onUploadSuccess?.();
         onClose();
-      }, 2500);
+      }, 1000);
     } catch (err) {
       const serverMsg = err.response?.data?.message || '';
       const diag = err.response?.data?.diagnostics;
