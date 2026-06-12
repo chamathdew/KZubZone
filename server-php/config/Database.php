@@ -3,7 +3,7 @@ namespace Config;
 
 class Database {
     private static $instance = null;
-    private $driver = 'sqlite'; // 'mongodb', 'sqlite', or 'mysql'
+    private $driver = 'sqlite'; // 'mongodb', 'sqlite', 'mysql', or 'pgsql'
     private $manager = null; // MongoDB Manager
     private $dbName = 'ksubzone';
     private $pdo = null; // SQLite/MySQL PDO connection
@@ -19,9 +19,23 @@ class Database {
         $isProduction = strtolower($nodeEnv) === 'production';
 
         $mysqlCircuitBreaker = dirname(__FILE__) . '/.mysql_failed';
-        $wantsMongo = $dbDriver === 'mongodb' || (!empty($mongoUri) && $dbDriver !== 'mysql') || ($isProduction && $dbDriver !== 'mysql');
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL') ?: '';
+        $wantsPgsql = $dbDriver === 'pgsql' || (!empty($databaseUrl) && strpos($databaseUrl, 'postgresql') === 0 && $dbDriver !== 'mongodb' && $dbDriver !== 'mysql');
+        $wantsMongo = !$wantsPgsql && ($dbDriver === 'mongodb' || (!empty($mongoUri) && $dbDriver !== 'mysql') || ($isProduction && $dbDriver !== 'mysql' && $dbDriver !== 'pgsql'));
 
-        if ($wantsMongo) {
+        if ($wantsPgsql) {
+            try {
+                $this->initPostgres($databaseUrl);
+            } catch (\Exception $e) {
+                if ($allowSqlFallback && !$isProduction) {
+                    $this->fallbackWarning = "PostgreSQL Connection Failed: " . $e->getMessage() . " (SQLite Fallback active)";
+                    error_log($this->fallbackWarning);
+                    $this->initSQLite();
+                } else {
+                    throw new \RuntimeException('PostgreSQL (Supabase) connection failed: ' . $e->getMessage(), 0, $e);
+                }
+            }
+        } elseif ($wantsMongo) {
             if (empty($mongoUri)) {
                 throw new \RuntimeException('MONGODB_URI is required when DB_DRIVER=mongodb or NODE_ENV=production.');
             }
@@ -61,7 +75,7 @@ class Database {
             if ($allowSqlFallback || !$isProduction) {
                 $this->initSQLite();
             } else {
-                throw new \RuntimeException('No database configured. Set MONGODB_URI for production.');
+                throw new \RuntimeException('No database configured. Set DB_DRIVER=mongodb/pgsql or DATABASE_URL for production.');
             }
         }
 
@@ -142,6 +156,78 @@ class Database {
         ]);
     }
 
+    private function initPostgres(string $databaseUrl = '') {
+        $this->driver = 'pgsql';
+
+        if (!empty($databaseUrl)) {
+            // Robustly parse DATABASE_URL to handle special characters (like @ or :) in password
+            $urlWithoutScheme = str_replace(['postgresql://', 'postgres://'], '', $databaseUrl);
+            $lastAtPos = strrpos($urlWithoutScheme, '@');
+            
+            if ($lastAtPos !== false) {
+                $credentials = substr($urlWithoutScheme, 0, $lastAtPos);
+                $connection = substr($urlWithoutScheme, $lastAtPos + 1);
+                
+                $credParts = explode(':', $credentials, 2);
+                $user = rawurldecode($credParts[0]);
+                $pass = isset($credParts[1]) ? rawurldecode($credParts[1]) : '';
+                
+                $connParts = explode('/', $connection, 2);
+                $hostPort = $connParts[0];
+                $dbAndParams = $connParts[1] ?? 'postgres';
+                
+                $hostParts = explode(':', $hostPort, 2);
+                $host = $hostParts[0];
+                $port = $hostParts[1] ?? 5432;
+                
+                $dbParts = explode('?', $dbAndParams, 2);
+                $dbName = $dbParts[0];
+            } else {
+                // Fallback to standard parse_url if no '@' found
+                $parts = parse_url($databaseUrl);
+                $host   = $parts['host'] ?? 'localhost';
+                $port   = $parts['port'] ?? 5432;
+                $dbName = ltrim($parts['path'] ?? '/postgres', '/');
+                $user   = rawurldecode($parts['user'] ?? 'postgres');
+                $pass   = rawurldecode($parts['pass'] ?? '');
+            }
+
+            // Auto-translate IPv6 host to IPv4 Session Pooler
+            if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
+                $host = 'aws-1-ap-south-1.pooler.supabase.com';
+                $port = 5432;
+                if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
+                    $user = $user . '.ejvczjiueysbiewzsuin';
+                }
+            }
+
+            $dsn = "pgsql:host={$host};port={$port};dbname={$dbName};sslmode=require";
+        } else {
+            $host   = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
+            $port   = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '5432';
+            $dbName = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'postgres';
+            $user   = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'postgres';
+            $pass   = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
+
+            if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
+                $host = 'aws-1-ap-south-1.pooler.supabase.com';
+                $port = 5432;
+                if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
+                    $user = $user . '.ejvczjiueysbiewzsuin';
+                }
+            }
+
+            $dsn    = "pgsql:host={$host};port={$port};dbname={$dbName}";
+        }
+
+        $this->pdo = new \PDO($dsn, $user, $pass, [
+            \PDO::ATTR_TIMEOUT            => 8,
+            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            \PDO::ATTR_EMULATE_PREPARES   => true, // required for named params in pgsql
+        ]);
+    }
+
     public function getDriver() {
         return $this->driver;
     }
@@ -151,7 +237,7 @@ class Database {
         $flagFile = dirname(__FILE__) . '/.db_initialized_' . $this->driver;
         
         $needsSetup = false;
-        if ($this->driver === 'sqlite' || $this->driver === 'mysql') {
+        if ($this->driver === 'sqlite' || $this->driver === 'mysql' || $this->driver === 'pgsql') {
             try {
                 // If count throws an exception, the notifications table is missing
                 $this->count('notifications');
@@ -165,8 +251,8 @@ class Database {
             return;
         }
 
-        if ($this->driver === 'sqlite' || $this->driver === 'mysql') {
-            // Ensure collections exist
+        if ($this->driver === 'sqlite' || $this->driver === 'mysql' || $this->driver === 'pgsql') {
+            // Ensure collections exist as tables
             $collections = [
                 'users', 'admins', 'roles', 'permissions', 'movies', 
                 'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
@@ -182,6 +268,14 @@ class Database {
                         updatedAt TEXT
                     )");
                     $this->pdo->exec("CREATE INDEX IF NOT EXISTS `idx_{$col}_createdAt` ON `{$col}` (createdAt DESC)");
+                } elseif ($this->driver === 'pgsql') {
+                    $this->pdo->exec("CREATE TABLE IF NOT EXISTS \"{$col}\" (
+                        \"_id\" TEXT PRIMARY KEY,
+                        \"data\" JSONB,
+                        \"createdAt\" TEXT,
+                        \"updatedAt\" TEXT
+                    )");
+                    $this->pdo->exec("CREATE INDEX IF NOT EXISTS \"idx_{$col}_createdAt\" ON \"{$col}\" (\"createdAt\" DESC)");
                 } else {
                     $this->pdo->exec("CREATE TABLE IF NOT EXISTS `{$col}` (
                         `_id` VARCHAR(255) PRIMARY KEY,
@@ -319,6 +413,66 @@ class Database {
                     }
                 }
             }
+        } elseif ($this->driver === 'pgsql') {
+            $pgsqlIndexes = [
+                'subtitles' => [
+                    'idx_subtitles_mediaId' => "(\"data\"->>'mediaId')",
+                    'idx_subtitles_approvalStatus' => "(\"data\"->>'approvalStatus')",
+                    'idx_subtitles_uploader' => "(\"data\"->>'uploader')",
+                    'idx_subtitles_media_approval' => "(\"data\"->>'mediaId'), (\"data\"->>'approvalStatus')"
+                ],
+                'users' => [
+                    'idx_users_username' => "(\"data\"->>'username')",
+                    'idx_users_email' => "(\"data\"->>'email')",
+                ],
+                'admins' => [
+                    'idx_admins_username' => "(\"data\"->>'username')",
+                    'idx_admins_email' => "(\"data\"->>'email')",
+                ],
+                'movies' => [
+                    'idx_movies_slug' => "(\"data\"->>'slug')",
+                    'idx_movies_status' => "(\"data\"->>'status')",
+                    'idx_movies_isTrending' => "(\"data\"->>'isTrending')",
+                    'idx_movies_isFeatured' => "(\"data\"->>'isFeatured')",
+                ],
+                'dramas' => [
+                    'idx_dramas_slug' => "(\"data\"->>'slug')",
+                    'idx_dramas_status' => "(\"data\"->>'status')",
+                    'idx_dramas_isTrending' => "(\"data\"->>'isTrending')",
+                    'idx_dramas_isFeatured' => "(\"data\"->>'isFeatured')",
+                ],
+                'seasons' => [
+                    'idx_seasons_dramaId' => "(\"data\"->>'dramaId')",
+                ],
+                'episodes' => [
+                    'idx_episodes_dramaId' => "(\"data\"->>'dramaId')",
+                    'idx_episodes_seasonId' => "(\"data\"->>'seasonId')",
+                ],
+                'comments' => [
+                    'idx_comments_mediaId' => "(\"data\"->>'mediaId')",
+                ],
+                'reviews' => [
+                    'idx_reviews_mediaId' => "(\"data\"->>'mediaId')",
+                ],
+                'articles' => [
+                    'idx_articles_slug' => "(\"data\"->>'slug')",
+                    'idx_articles_status' => "(\"data\"->>'status')",
+                ],
+                'notifications' => [
+                    'idx_notifications_recipient' => "(\"data\"->>'recipient')",
+                    'idx_notifications_recipientType' => "(\"data\"->>'recipientType')",
+                ]
+            ];
+
+            foreach ($pgsqlIndexes as $table => $tableIndexes) {
+                foreach ($tableIndexes as $indexName => $expr) {
+                    try {
+                        $this->pdo->exec("CREATE INDEX IF NOT EXISTS \"{$indexName}\" ON \"{$table}\" ({$expr})");
+                    } catch (\Exception $e) {
+                        error_log("Failed to create PostgreSQL index {$indexName}: " . $e->getMessage());
+                    }
+                }
+            }
         }
     }
 
@@ -367,12 +521,20 @@ class Database {
         return $doc;
     }
 
-    // Helper: SQLite SQL Field translation
+    // Helper: SQL field translation (JSON path by driver)
     private function sqlField($field) {
         if (in_array($field, ['_id', 'createdAt', 'updatedAt'])) {
-            return $field;
+            return $this->driver === 'pgsql' ? "\"{$field}\"" : $field;
         }
-        // Nested path helper
+        if ($this->driver === 'pgsql') {
+            // PostgreSQL: use ->> for text extraction from JSON/JSONB
+            $parts = explode('.', $field);
+            if (count($parts) === 1) {
+                return "\"data\"->>'{$field}'";
+            }
+            $jsonPath = '{' . implode(',', $parts) . '}';
+            return "\"data\" #>> '{$jsonPath}'";
+        }
         $path = '$.' . str_replace('.', '$.', $field);
         if ($this->driver === 'mysql') {
             return "JSON_UNQUOTE(JSON_EXTRACT(data, '{$path}'))";
@@ -493,7 +655,7 @@ class Database {
                     $sql .= " ORDER BY " . implode(", ", $sortParts);
                 }
             } else {
-                $sql .= " ORDER BY createdAt DESC";
+                $sql .= " ORDER BY " . $this->sqlField('createdAt') . " DESC";
             }
 
             if (isset($options['limit'])) {
@@ -563,7 +725,12 @@ class Database {
             $doc = $data;
             unset($doc['_id'], $doc['createdAt'], $doc['updatedAt']);
 
-            $stmt = $this->pdo->prepare("INSERT INTO {$collection} (_id, data, createdAt, updatedAt) VALUES (:id, :data, :created, :updated)");
+            if ($this->driver === 'pgsql') {
+                $q = "\"_id\", \"data\", \"createdAt\", \"updatedAt\"";
+                $stmt = $this->pdo->prepare("INSERT INTO \"{$collection}\" ({$q}) VALUES (:id, :data, :created, :updated) ON CONFLICT (\"_id\") DO NOTHING");
+            } else {
+                $stmt = $this->pdo->prepare("INSERT INTO {$collection} (_id, data, createdAt, updatedAt) VALUES (:id, :data, :created, :updated)");
+            }
             $stmt->execute([
                 'id' => $id,
                 'data' => json_encode($doc),
@@ -615,7 +782,11 @@ class Database {
             $merged['updatedAt'] = $now;
             unset($merged['_id'], $merged['createdAt'], $merged['updatedAt']);
 
-            $stmt = $this->pdo->prepare("UPDATE {$collection} SET data = :data, updatedAt = :updated WHERE _id = :id");
+            if ($this->driver === 'pgsql') {
+                $stmt = $this->pdo->prepare("UPDATE \"{$collection}\" SET \"data\" = :data, \"updatedAt\" = :updated WHERE \"_id\" = :id");
+            } else {
+                $stmt = $this->pdo->prepare("UPDATE {$collection} SET data = :data, updatedAt = :updated WHERE _id = :id");
+            }
             $stmt->execute([
                 'data' => json_encode($merged),
                 'updated' => $now,
@@ -636,7 +807,11 @@ class Database {
             $doc = $this->findOne($collection, $filter);
             if (!$doc) return 0;
 
-            $stmt = $this->pdo->prepare("DELETE FROM {$collection} WHERE _id = :id");
+            if ($this->driver === 'pgsql') {
+                $stmt = $this->pdo->prepare("DELETE FROM \"{$collection}\" WHERE \"_id\" = :id");
+            } else {
+                $stmt = $this->pdo->prepare("DELETE FROM {$collection} WHERE _id = :id");
+            }
             $stmt->execute(['id' => $doc['_id']]);
             return 1;
         }

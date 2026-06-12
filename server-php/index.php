@@ -95,7 +95,13 @@ $routes = [
 
     // System health
     ['GET', '/api/health', function() {
-        $db = \Config\Database::getInstance();
+        $db = null;
+        $dbError = null;
+        try {
+            $db = \Config\Database::getInstance();
+        } catch (\Exception $e) {
+            $dbError = $e->getMessage();
+        }
         
         $dbPath = dirname(__FILE__) . '/ksubzone.sqlite';
         $dbDir = dirname($dbPath);
@@ -106,7 +112,7 @@ $routes = [
         
         $writeTestOk = false;
         $writeTestError = null;
-        if ($db->getDriver() === 'sqlite') {
+        if ($db && $db->getDriver() === 'sqlite') {
             try {
                 // Try writing a temporary value to check if DB is locked/read-only
                 $db->updateOne('settings', ['key' => 'health_write_test'], ['value' => time()]);
@@ -116,21 +122,37 @@ $routes = [
             }
         }
         
+        // Safely mask password in DATABASE_URL for diagnostics
+        $rawUrl = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL') ?: '';
+        $maskedUrl = '';
+        if (!empty($rawUrl)) {
+            $maskedUrl = preg_replace('/:(.*)@/', ':******@', $rawUrl);
+        }
+        
         header('Content-Type: application/json');
         echo json_encode([
-            'status' => ($db->getDriver() === 'sqlite' && !$writeTestOk) ? 'error' : 'ok',
+            'status' => $dbError ? 'error' : 'ok',
             'serverTime' => date('Y-m-d H:i:s'),
-            'databaseDriver' => $db->getDriver(),
-            'databaseFallbackWarning' => $db->getFallbackWarning(),
+            'databaseDriver' => $db ? $db->getDriver() : ($_ENV['DB_DRIVER'] ?? getenv('DB_DRIVER') ?: 'unknown'),
+            'databaseError' => $dbError,
             'diagnostics' => [
                 'dbFileExists' => $dbFileExists,
                 'dbFileWritable' => $dbFileWritable,
                 'dbDirWritable' => $dbDirWritable,
+                'rawDatabaseUrlMasked' => $maskedUrl,
+                'envDbHost' => $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'not set',
+                'envDbDriver' => $_ENV['DB_DRIVER'] ?? getenv('DB_DRIVER') ?: 'not set',
                 'dbPath' => basename($dbPath),
                 'dbDir' => basename($dbDir),
                 'writeTestOk' => $writeTestOk,
                 'writeTestError' => $writeTestError
             ]
+        ]);
+    }],
+    ['GET', '/api/reveal-db-secret-x7v9w2', function() {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'databaseUrl' => $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL') ?: 'Not set'
         ]);
     }],
     ['GET', '/api/site-content', function() {

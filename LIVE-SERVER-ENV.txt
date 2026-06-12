@@ -4,8 +4,9 @@
 # ================================================
 
 # ── Database ─────────────────────────────────────────────
-DB_DRIVER=mongodb
-DB_NAME=ksubzone
+DB_DRIVER=pgsql
+DB_NAME=postgres
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.ejvczjiueysbiewzsuin.supabase.co:5432/postgres
 MONGODB_URI=mongodb+srv://chamathdewcrypto_db_user:burnitdown@kdramauniverse.2sco96j.mongodb.net/?appName=kdramauniverse
 
 # ── Auth ─────────────────────────────────────────────────
