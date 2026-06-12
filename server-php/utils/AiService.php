@@ -7,7 +7,7 @@ class AiService {
         if (!$apiKey || $apiKey === 'your_gemini_api_key_here') {
             try {
                 $db = \Config\Database::getInstance();
-                $setting = $db->findOne('settings', ['key' => ['$in' => ['GEMINI_API_KEY', 'gemini_api_key', 'gemini']]]);
+                $setting = $db->findOne('settings', ['key' => ['$in' => ['GEMINI_API_KEY', 'gemini_api_key', 'gemini_apikey', 'gemini']]]);
                 if ($setting && !empty($setting['value'])) {
                     $apiKey = trim($setting['value']);
                 }
