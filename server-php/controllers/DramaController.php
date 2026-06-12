@@ -83,9 +83,7 @@ class DramaController {
             'skip' => $skip
         ]);
 
-        foreach ($dramas as &$drama) {
-            $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id']);
-        }
+        self::appendSubtitleSummariesToDramas($dramas);
 
         header('Content-Type: application/json');
         echo json_encode([
@@ -532,5 +530,140 @@ class DramaController {
             'seasonStatus' => $seasonStatus,
             'latestUploaderRole' => $latestUploaderRole
         ];
+    }
+
+    public static function appendSubtitleSummariesToDramas(&$dramas) {
+        if (empty($dramas)) return;
+        $db = Database::getInstance();
+        $dramaIds = array_map(function($d) { return $d['_id']; }, $dramas);
+        
+        // 1. Get all episodes for all these dramas in a single query
+        $episodes = $db->find('episodes', ['dramaId' => ['$in' => $dramaIds]]);
+        $episodesByDrama = [];
+        $episodeIds = [];
+        foreach ($episodes as $ep) {
+            $episodesByDrama[$ep['dramaId']][] = $ep;
+            $episodeIds[] = $ep['_id'];
+        }
+        
+        // 2. Get all approved subtitles for all these dramas in a single query
+        $allSubtitles = $db->find('subtitles', [
+            'mediaId' => ['$in' => array_merge($dramaIds, $episodeIds)],
+            'approvalStatus' => 'Approved'
+        ]);
+        
+        // Group subtitles by mediaId
+        $subtitlesByMedia = [];
+        foreach ($allSubtitles as $sub) {
+            $subtitlesByMedia[$sub['mediaId']][] = $sub;
+        }
+        
+        // 3. For each drama, compute the summary using the pre-fetched data
+        foreach ($dramas as &$drama) {
+            $dId = $drama['_id'];
+            $dramaEps = $episodesByDrama[$dId] ?? [];
+            $totalEpisodesCount = count($dramaEps);
+            
+            $titleSubbed = $subtitlesByMedia[$dId] ?? [];
+            
+            $epSubbed = [];
+            $dramaEpIds = array_map(function($ep) { return $ep['_id']; }, $dramaEps);
+            foreach ($dramaEpIds as $epId) {
+                if (isset($subtitlesByMedia[$epId])) {
+                    $epSubbed = array_merge($epSubbed, $subtitlesByMedia[$epId]);
+                }
+            }
+            
+            $dramaSubs = array_merge($titleSubbed, $epSubbed);
+            $totalSubtitles = count($dramaSubs);
+            
+            if ($totalSubtitles === 0) {
+                $drama['subtitleSummary'] = [
+                    'totalSubtitles' => 0,
+                    'languages' => [],
+                    'progressLabel' => 'No subs',
+                    'seasonStatus' => 'Ongoing',
+                    'latestUploaderRole' => null
+                ];
+                continue;
+            }
+            
+            $languages = [];
+            $hasCompleteStatus = false;
+            foreach ($dramaSubs as $sub) {
+                if (!empty($sub['language']) && !in_array($sub['language'], $languages)) {
+                    $languages[] = $sub['language'];
+                }
+                if (isset($sub['seasonStatus']) && $sub['seasonStatus'] === 'Complete') {
+                    $hasCompleteStatus = true;
+                }
+            }
+            usort($languages, function($a, $b) {
+                if ($a === 'Sinhala') return -1;
+                if ($b === 'Sinhala') return 1;
+                return strcmp($a, $b);
+            });
+            
+            $subbedEpisodes = [];
+            foreach ($epSubbed as $sub) {
+                $epNum = isset($sub['episodeNumber']) ? (int)$sub['episodeNumber'] : null;
+                if ($epNum !== null && !in_array($epNum, $subbedEpisodes)) {
+                    $subbedEpisodes[] = $epNum;
+                }
+            }
+            
+            foreach ($epSubbed as $sub) {
+                if (!isset($sub['episodeNumber']) || $sub['episodeNumber'] === null) {
+                    foreach ($dramaEps as $ep) {
+                        if ($ep['_id'] === $sub['mediaId']) {
+                            $epNum = (int)$ep['episodeNumber'];
+                            if (!in_array($epNum, $subbedEpisodes)) {
+                                $subbedEpisodes[] = $epNum;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            $subbedCount = count($subbedEpisodes);
+            $maxEpisodeNumber = !empty($subbedEpisodes) ? max($subbedEpisodes) : 0;
+            
+            $seasonStatus = 'Ongoing';
+            $progressLabel = '';
+            $isComplete = ($totalEpisodesCount > 0 && $subbedCount >= $totalEpisodesCount)
+                       || ($totalEpisodesCount === 0 && $hasCompleteStatus);
+                       
+            if ($isComplete) {
+                $seasonStatus = 'Complete';
+                $progressLabel = 'Completed';
+            } else {
+                if ($totalEpisodesCount > 0) {
+                    $progressLabel = $subbedCount . '/' . $totalEpisodesCount . ' EP';
+                } elseif ($maxEpisodeNumber > 0) {
+                    $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
+                } else {
+                    $progressLabel = $totalSubtitles . ' subs';
+                }
+            }
+            
+            $latestUploaderRole = null;
+            if (!empty($dramaSubs)) {
+                usort($dramaSubs, function($a, $b) {
+                    $t1 = isset($a['createdAt']) ? strtotime($a['createdAt']) : 0;
+                    $t2 = isset($b['createdAt']) ? strtotime($b['createdAt']) : 0;
+                    return $t2 - $t1;
+                });
+                $latestUploaderRole = $dramaSubs[0]['uploaderRole'] ?? null;
+            }
+            
+            $drama['subtitleSummary'] = [
+                'totalSubtitles' => $totalSubtitles,
+                'languages' => $languages,
+                'progressLabel' => $progressLabel,
+                'seasonStatus' => $seasonStatus,
+                'latestUploaderRole' => $latestUploaderRole
+            ];
+        }
     }
 }
