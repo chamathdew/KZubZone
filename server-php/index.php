@@ -136,21 +136,12 @@ $routes = [
             $maskedUrl = preg_replace('/:(.*)@/', ':******@', $rawUrl);
         }
         
-        // Diagnostic: check if MovieController.php has been updated
-        $movieControllerFile = dirname(__FILE__) . '/controllers/MovieController.php';
-        $movieControllerHasCount = false;
-        if (file_exists($movieControllerFile)) {
-            $content = file_get_contents($movieControllerFile);
-            $movieControllerHasCount = (strpos($content, 'subtitleCount') !== false);
-        }
-
         header('Content-Type: application/json');
         echo json_encode([
             'status' => $dbError ? 'error' : 'ok',
             'serverTime' => date('Y-m-d H:i:s'),
             'databaseDriver' => $db ? $db->getDriver() : ($_ENV['DB_DRIVER'] ?? getenv('DB_DRIVER') ?: 'unknown'),
             'databaseError' => $dbError,
-            'movieControllerHasCount' => $movieControllerHasCount,
             'diagnostics' => [
                 'dbFileExists' => $dbFileExists,
                 'dbFileWritable' => $dbFileWritable,
@@ -181,15 +172,6 @@ $routes = [
             }
         } else {
             echo "OPcache is not enabled or opcache_reset is disabled.";
-        }
-    }],
-    ['GET', '/api/inspect-controller-code', function() {
-        header('Content-Type: text/plain');
-        $file = __DIR__ . '/controllers/MovieController.php';
-        if (file_exists($file)) {
-            echo base64_encode(file_get_contents($file));
-        } else {
-            echo "File not found";
         }
     }],
     ['GET', '/api/logs-xyz', function() {
