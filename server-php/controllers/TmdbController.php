@@ -65,6 +65,45 @@ class TmdbController {
         ],
         'dramas' => [
             [
+                'id' => 276161,
+                'name' => "Teach You a Lesson",
+                'original_name' => "참교육",
+                'overview' => "Set in a society where campus violence and the decline of faculty authority have become critical issues, Na Hwa-jin from the Educational Rights Protection Bureau (ERERP) uses unconventional methods to discipline delinquent students and reform the corrupt education system.",
+                'genres' => [['id' => 10759, 'name' => "Action & Adventure"], ['id' => 18, 'name' => "Drama"], ['id' => 35, 'name' => "Comedy"]],
+                'poster_path' => "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=500&auto=format&fit=crop",
+                'backdrop_path' => "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=1280&auto=format&fit=crop",
+                'first_air_date' => "2026-06-05",
+                'episode_run_time' => [50],
+                'origin_country' => ["KR"],
+                'original_language' => "ko",
+                'production_companies' => [['name' => "Netflix"], ['name' => "Studio N"]],
+                'vote_average' => 8.2,
+                'keywords' => ["school violence", "corporal punishment", "educational rights", "action"],
+                'trailer' => "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                'director' => "Hong Jong-chan",
+                'writers' => ["Lee Nam-kyu"],
+                'cast' => [
+                    ['name' => "Kim Mu-yeol", 'character' => "Na Hwa-jin", 'profilePath' => ""],
+                    ['name' => "Lee Sung-min", 'character' => "Lim Han-rim", 'profilePath' => ""],
+                    ['name' => "Jin Ki-joo", 'character' => "Lee Seok-woo", 'profilePath' => ""]
+                ],
+                'crew' => [['name' => "Hong Jong-chan", 'job' => "Director"]],
+                'images' => [],
+                'studio' => "Netflix",
+                'seasons' => [
+                    [
+                        'season_number' => 1,
+                        'overview' => "Season 1 follows the agents of the ERPB as they restore order to schools where discipline has failed.",
+                        'poster_path' => "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=500&auto=format&fit=crop",
+                        'air_date' => "2026-06-05",
+                        'episodes' => [
+                            ['episode_number' => 1, 'name' => "True Education", 'overview' => "Inspector Na Hwa-jin is dispatched to a high school to deal with a notorious gang of bullies.", 'air_date' => "2026-06-05", 'runtime' => 50],
+                            ['episode_number' => 2, 'name' => "The Authority", 'overview' => "Na Hwa-jin confronts administrative corruption and abusive parents trying to cover up school violence.", 'air_date' => "2026-06-05", 'runtime' => 52]
+                        ]
+                    ]
+                ]
+            ],
+            [
                 'id' => 999901,
                 'name' => "Moving",
                 'original_name' => "무빙",
