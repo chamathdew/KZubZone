@@ -155,6 +155,18 @@ $routes = [
             'databaseUrl' => $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL') ?: 'Not set'
         ]);
     }],
+    ['GET', '/api/clear-opcache-xyz', function() {
+        header('Content-Type: text/plain');
+        if (function_exists('opcache_reset')) {
+            if (opcache_reset()) {
+                echo "OPcache flushed successfully!";
+            } else {
+                echo "Failed to reset OPcache.";
+            }
+        } else {
+            echo "OPcache is not enabled or opcache_reset is disabled.";
+        }
+    }],
     ['GET', '/api/logs-xyz', function() {
         header('Content-Type: text/plain');
         $logPaths = [
@@ -224,6 +236,7 @@ $routes = [
     ['GET', '/api/subtitles/media/([a-f0-9,]+)', 'Controllers\SubtitleController::getSubtitlesForMedia'],
     ['POST', '/api/subtitles/([a-f0-9]+)/rate', ['Middleware\AuthMiddleware::protectUser', 'Controllers\SubtitleController::rateSubtitle']],
     ['POST', '/api/subtitles/([a-f0-9]+)/download', 'Controllers\SubtitleController::trackDownload'],
+    ['GET', '/api/subtitles/([a-f0-9]+)/download', 'Controllers\SubtitleController::downloadSubtitleFile'],
     ['GET', '/api/subtitles/translator/([a-f0-9]+)', 'Controllers\SubtitleController::getUploaderHistory'],
 
     // Analytics Search Logging

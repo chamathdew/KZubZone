@@ -237,6 +237,91 @@ class SubtitleController {
         echo json_encode(['message' => 'Download tracked', 'downloads' => $downloads]);
     }
 
+    public static function downloadSubtitleFile($id) {
+        $db = Database::getInstance();
+        $subtitle = $db->findOne('subtitles', ['_id' => $id]);
+        if (!$subtitle) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Subtitle not found']);
+            return;
+        }
+
+        // Increment download count
+        $downloads = ($subtitle['downloads'] ?? 0) + 1;
+        $db->updateOne('subtitles', ['_id' => $id], ['downloads' => $downloads]);
+
+        $fileUrl = $subtitle['fileUrl'] ?? '';
+        if (empty($fileUrl)) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Subtitle file URL not found']);
+            return;
+        }
+
+        // Determine filename
+        $customName = $_GET['name'] ?? '';
+        $ext = $subtitle['format'] ?? 'srt';
+        if (empty($customName)) {
+            $customName = 'subtitle-' . $id . '.' . $ext;
+        } else {
+            // Clean filename to prevent path traversal or invalid characters
+            $customName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $customName);
+            if (pathinfo($customName, PATHINFO_EXTENSION) !== $ext) {
+                $customName .= '.' . $ext;
+            }
+        }
+
+        // Retrieve file content
+        $fileContent = '';
+        if (strpos($fileUrl, 'http://') === 0 || strpos($fileUrl, 'https://') === 0) {
+            // Fetch remote file (e.g. from Supabase)
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $fileUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            $fileContent = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode !== 200 || $fileContent === false) {
+                // If remote fetch failed, redirect to the URL as fallback
+                header("Location: " . $fileUrl);
+                exit;
+            }
+        } else {
+            // Local file
+            $filePath = dirname(__DIR__) . $fileUrl;
+            if (!file_exists($filePath)) {
+                http_response_code(404);
+                echo json_encode(['message' => 'Subtitle file not found on server']);
+                return;
+            }
+            $fileContent = @file_get_contents($filePath);
+            if ($fileContent === false) {
+                http_response_code(500);
+                echo json_encode(['message' => 'Failed to read subtitle file']);
+                return;
+            }
+        }
+
+        // Clean headers to make sure no other output is sent
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Send headers for file download
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . $customName . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+        header('Content-Length: ' . strlen($fileContent));
+        
+        echo $fileContent;
+        exit;
+    }
+
     public static function rateSubtitle($id) {
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $score = (int)($body['score'] ?? 0);
@@ -289,7 +374,12 @@ class SubtitleController {
 
     public static function getModerationQueue() {
         $db = Database::getInstance();
-        $subtitles = $db->find('subtitles', [], ['sort' => ['createdAt' => -1]]);
+        $mediaId = $_GET['mediaId'] ?? null;
+        $query = [];
+        if (!empty($mediaId)) {
+            $query['mediaId'] = $mediaId;
+        }
+        $subtitles = $db->find('subtitles', $query, ['sort' => ['createdAt' => -1]]);
 
         // Populate uploader
         foreach ($subtitles as &$sub) {

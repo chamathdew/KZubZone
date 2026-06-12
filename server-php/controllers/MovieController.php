@@ -84,6 +84,24 @@ class MovieController {
             'skip' => $skip
         ]);
 
+        // Append subtitle count to each movie
+        $movieIds = array_map(function($m) { return $m['_id']; }, $movies);
+        if (!empty($movieIds)) {
+            $subtitles = $db->find('subtitles', [
+                'mediaId' => ['$in' => $movieIds]
+            ]);
+            $subsCountByMediaId = [];
+            foreach($subtitles as $sub) {
+                 $mid = (string)$sub['mediaId'];
+                 if (!isset($subsCountByMediaId[$mid])) $subsCountByMediaId[$mid] = 0;
+                 $subsCountByMediaId[$mid]++;
+            }
+            foreach($movies as &$m) {
+                 $mid = (string)$m['_id'];
+                 $m['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
+            }
+        }
+
         header('Content-Type: application/json');
         echo json_encode([
             'total' => $total,

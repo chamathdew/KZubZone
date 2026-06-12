@@ -276,6 +276,7 @@ class TmdbController {
     }
 
     public static function importFromTmdb() {
+        @set_time_limit(300); // 5 minutes execution time limit
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $id = $body['id'] ?? null;
         $type = $body['type'] ?? 'movie'; // movie or tv
@@ -480,7 +481,10 @@ class TmdbController {
 
         if ($existingMovie) {
             $db->updateOne('movies', ['_id' => $existingMovie['_id']], $finalDoc);
-            return $db->findOne('movies', ['_id' => $existingMovie['_id']]);
+            // Save query round-trip: return merged doc in memory
+            $mergedMovie = array_merge($existingMovie, $finalDoc);
+            $mergedMovie['updatedAt'] = date('Y-m-d H:i:s');
+            return $mergedMovie;
         } else {
             return $db->insertOne('movies', $finalDoc);
         }
@@ -585,7 +589,9 @@ class TmdbController {
 
         if ($existingDrama) {
             $db->updateOne('dramas', ['_id' => $existingDrama['_id']], $finalDoc);
-            $drama = $db->findOne('dramas', ['_id' => $existingDrama['_id']]);
+            // Save query round-trip: merge doc in memory
+            $drama = array_merge($existingDrama, $finalDoc);
+            $drama['updatedAt'] = date('Y-m-d H:i:s');
         } else {
             $drama = $db->insertOne('dramas', $finalDoc);
         }
@@ -608,7 +614,9 @@ class TmdbController {
 
                 if ($existingSeason) {
                     $db->updateOne('seasons', ['_id' => $existingSeason['_id']], $seasonDoc);
-                    $season = $db->findOne('seasons', ['_id' => $existingSeason['_id']]);
+                    // Save query round-trip: merge doc in memory
+                    $season = array_merge($existingSeason, $seasonDoc);
+                    $season['updatedAt'] = date('Y-m-d H:i:s');
                 } else {
                     $season = $db->insertOne('seasons', $seasonDoc);
                 }
@@ -788,6 +796,7 @@ class TmdbController {
     }
 
     public static function bulkImportFromTmdb() {
+        @set_time_limit(600); // 10 minutes execution time limit
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $ids = $body['ids'] ?? [];
         $type = $body['type'] ?? 'tv'; // movie or tv

@@ -9,6 +9,7 @@ import {
   Database, Trash2, Edit3, Plus, ShieldCheck, X, ChevronDown, ChevronRight, UploadCloud
 } from 'lucide-react';
 import SubtitleUploadModal from '@/features/media/components/SubtitleUploadModal';
+import SubtitleManageModal from '@/features/media/components/SubtitleManageModal';
 
 export default function DramaManager() {
   const { admin } = useAuth();
@@ -35,9 +36,17 @@ export default function DramaManager() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadTarget, setUploadTarget] = useState(null);
 
+  const [manageModalOpen, setManageModalOpen] = useState(false);
+  const [manageTarget, setManageTarget] = useState(null);
+
   const openSubtitleUpload = (target) => {
     setUploadTarget(target);
     setUploadModalOpen(true);
+  };
+
+  const openSubtitleManage = (mediaId, label) => {
+    setManageTarget({ mediaId, label });
+    setManageModalOpen(true);
   };
 
   // Drama Fields State
@@ -102,6 +111,24 @@ export default function DramaManager() {
     setLoadingExpansion(true);
     try {
       const res = await apiClient.get(`/api/media/dramas/${drama.slug}`);
+      setExpandedData({
+        seasons: res.data.seasons || [],
+        episodes: res.data.episodes || []
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingExpansion(false);
+    }
+  };
+
+  const refreshExpandedDrama = async () => {
+    if (!expandedDramaId) return;
+    const dramaObj = dramas.find(d => d._id === expandedDramaId);
+    if (!dramaObj) return;
+    setLoadingExpansion(true);
+    try {
+      const res = await apiClient.get(`/api/media/dramas/${dramaObj.slug}`);
       setExpandedData({
         seasons: res.data.seasons || [],
         episodes: res.data.episodes || []
@@ -484,9 +511,13 @@ export default function DramaManager() {
                                               <span className={`font-bold font-mono text-[10px] ${ep.subtitleCount > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>EP {ep.episodeNumber}:</span>
                                               <span className={`truncate ${ep.subtitleCount > 0 ? 'text-white' : 'text-slate-400'}`}>{ep.episodeTitle}</span>
                                               {ep.subtitleCount > 0 && (
-                                                <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-bold uppercase tracking-wider">
+                                                <button
+                                                  onClick={() => openSubtitleManage(ep._id, `S${season.seasonNumber} E${ep.episodeNumber}`)}
+                                                  className="ml-2 px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-[8px] font-bold uppercase tracking-wider transition cursor-pointer"
+                                                  title="Manage Episode Subtitles"
+                                                >
                                                   {ep.subtitleCount} Sub{ep.subtitleCount !== 1 ? 's' : ''}
-                                                </span>
+                                                </button>
                                               )}
                                             </div>
                                             <div className="flex items-center gap-3 font-mono text-[10px] flex-shrink-0">
@@ -725,9 +756,19 @@ export default function DramaManager() {
         mediaId={uploadTarget?.mediaId}
         mediaType={uploadTarget?.mediaType || 'Episode'}
         targetMeta={uploadTarget || { label: 'Episode' }}
-        onUploadSuccess={() => {
-          // Additional refresh logic could go here if needed
+        onUploadSuccess={refreshExpandedDrama}
+      />
+
+      {/* Subtitle Management Modal Box */}
+      <SubtitleManageModal
+        isOpen={manageModalOpen}
+        onClose={() => {
+          setManageModalOpen(false);
+          setManageTarget(null);
         }}
+        mediaId={manageTarget?.mediaId}
+        label={manageTarget?.label}
+        onDeleteSuccess={refreshExpandedDrama}
       />
 
     </div>

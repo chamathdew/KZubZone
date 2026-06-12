@@ -42,7 +42,7 @@ export default function Watch({ initialDramaData }) {
   );
 
   // 2. Fetch Approved Subtitles for this episode
-  const { data: subtitles = [] } = useQuery({
+  const { data: subtitles = [], refetch: refetchSubtitles } = useQuery({
     queryKey: ['episodeSubtitles', activeEpisodeDoc?._id],
     queryFn: async () => {
       const res = await apiClient.get(`/api/subtitles/media/${activeEpisodeDoc._id}`);
@@ -83,23 +83,22 @@ export default function Watch({ initialDramaData }) {
     ep => getId(ep.seasonId) === getId(activeSeasonDoc?._id) && ep.episodeNumber === episodeNumber + 1
   );
   const dramaPermalink = permalinkSlug(drama);
-  const handleDownloadSubtitle = async (subId, fileUrl, customFileName) => {
+  const handleDownloadSubtitle = (subId, fileUrl, customFileName) => {
     try {
-      await apiClient.post(`/api/subtitles/${subId}/download`);
-      // Force direct download using blob fetch
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = customFileName || 'subtitle.srt';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
+      const baseUrl = apiClient.defaults.baseURL === '/' ? '' : apiClient.defaults.baseURL;
+      const downloadUrl = `${baseUrl}/api/subtitles/${subId}/download?name=${encodeURIComponent(customFileName)}`;
+      window.location.href = downloadUrl;
+
+      // Refresh local subtitle lists after a brief delay to update download counts
+      setTimeout(() => {
+        refetchSubtitles?.();
+      }, 1500);
     } catch (err) {
       console.error(err);
-      window.open(fileUrl, '_blank');
+      const absoluteFileUrl = fileUrl.startsWith('/') && apiClient.defaults.baseURL !== '/'
+        ? `${apiClient.defaults.baseURL}${fileUrl}`
+        : fileUrl;
+      window.open(absoluteFileUrl, '_blank');
     }
   };
   const getUploaderLabel = (sub) => {

@@ -9,8 +9,27 @@ import {
   Database, Trash2, Edit3, Plus, ShieldCheck, X
 } from 'lucide-react';
 
+import SubtitleUploadModal from '@/features/media/components/SubtitleUploadModal';
+import SubtitleManageModal from '@/features/media/components/SubtitleManageModal';
+
 export default function MovieManager() {
   const { admin } = useAuth();
+  
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadTarget, setUploadTarget] = useState(null);
+
+  const [manageModalOpen, setManageModalOpen] = useState(false);
+  const [manageTarget, setManageTarget] = useState(null);
+
+  const openSubtitleUpload = (target) => {
+    setUploadTarget(target);
+    setUploadModalOpen(true);
+  };
+
+  const openSubtitleManage = (mediaId, label) => {
+    setManageTarget({ mediaId, label });
+    setManageModalOpen(true);
+  };
   
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -203,11 +222,26 @@ export default function MovieManager() {
                           <div>
                             <span className="font-extrabold text-slate-200 block text-sm">{movie.title}</span>
                             <span className="text-[10px] text-slate-500 font-mono mt-0.5">{movie.director || 'Unknown Director'}</span>
-                            {movie.isTrending && (
-                              <span className="inline-flex mt-1 px-1.5 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[9px] font-bold uppercase tracking-wider">
-                                Trending
-                              </span>
-                            )}
+                            <div className="flex gap-2 items-center mt-1">
+                              {movie.isTrending && (
+                                <span className="px-1.5 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[9px] font-bold uppercase tracking-wider">
+                                  Trending
+                                </span>
+                              )}
+                              {movie.subtitleCount > 0 ? (
+                                <button
+                                  onClick={() => openSubtitleManage(movie._id, movie.title)}
+                                  className="px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase tracking-wider transition cursor-pointer"
+                                  title="Manage Subtitles"
+                                >
+                                  {movie.subtitleCount} Sub{movie.subtitleCount !== 1 ? 's' : ''}
+                                </button>
+                              ) : (
+                                <span className="px-1.5 py-0.5 rounded bg-slate-500/10 border border-white/5 text-slate-400 text-[9px] font-bold uppercase tracking-wider font-mono">
+                                  0 Subs
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="p-4 font-mono">
@@ -233,6 +267,17 @@ export default function MovieManager() {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2.5">
+                            <button
+                              onClick={() => openSubtitleUpload({
+                                mediaId: movie._id,
+                                mediaType: 'Movie',
+                                label: movie.title
+                              })}
+                              className="p-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary rounded transition"
+                              title="Upload Subtitle"
+                            >
+                              <Languages className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => handleOpenEdit(movie)}
                               className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded transition"
@@ -461,6 +506,30 @@ export default function MovieManager() {
         </div>
       )}
 
+      {/* Subtitle Uploader Modal Box */}
+      <SubtitleUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => {
+          setUploadModalOpen(false);
+          setUploadTarget(null);
+        }}
+        mediaId={uploadTarget?.mediaId}
+        mediaType={uploadTarget?.mediaType || 'Movie'}
+        targetMeta={uploadTarget || { label: 'Movie' }}
+        onUploadSuccess={fetchMovies}
+      />
+
+      {/* Subtitle Management Modal Box */}
+      <SubtitleManageModal
+        isOpen={manageModalOpen}
+        onClose={() => {
+          setManageModalOpen(false);
+          setManageTarget(null);
+        }}
+        mediaId={manageTarget?.mediaId}
+        label={manageTarget?.label}
+        onDeleteSuccess={fetchMovies}
+      />
     </div>
   );
 }

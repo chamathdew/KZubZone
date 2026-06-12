@@ -211,7 +211,7 @@ class Database {
 
             if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
                 $host = 'aws-1-ap-south-1.pooler.supabase.com';
-                $port = 5432;
+                $port = 6543;
                 if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
                     $user = $user . '.ejvczjiueysbiewzsuin';
                 }
@@ -666,7 +666,18 @@ class Database {
 
             $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $val) {
-                $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                if ($this->driver === 'pgsql') {
+                    // In PostgreSQL, JSONB fields are queried using ->> which returns TEXT.
+                    // To prevent strict operator errors (text = integer), bind non-null parameters as PARAM_STR.
+                    $type = is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR;
+                    if (is_bool($val)) {
+                        $val = $val ? 'true' : 'false';
+                    } elseif ($val !== null) {
+                        $val = (string)$val;
+                    }
+                } else {
+                    $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                }
                 $stmt->bindValue($key, $val, $type);
             }
             $stmt->execute();
