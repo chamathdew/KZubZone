@@ -308,12 +308,14 @@ class Database {
                     'idx_movies_status' => "json_extract(data, '$.status')",
                     'idx_movies_isTrending' => "json_extract(data, '$.isTrending')",
                     'idx_movies_isFeatured' => "json_extract(data, '$.isFeatured')",
+                    'idx_movies_isHistorical' => "json_extract(data, '$.isHistorical')",
                 ],
                 'dramas' => [
                     'idx_dramas_slug' => "json_extract(data, '$.slug')",
                     'idx_dramas_status' => "json_extract(data, '$.status')",
                     'idx_dramas_isTrending' => "json_extract(data, '$.isTrending')",
                     'idx_dramas_isFeatured' => "json_extract(data, '$.isFeatured')",
+                    'idx_dramas_isHistorical' => "json_extract(data, '$.isHistorical')",
                 ],
                 'seasons' => [
                     'idx_seasons_dramaId' => "json_extract(data, '$.dramaId')",
@@ -365,10 +367,16 @@ class Database {
                 'movies' => [
                     'idx_movies_slug' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.slug'))",
                     'idx_movies_status' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.status'))",
+                    'idx_movies_isTrending' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.isTrending'))",
+                    'idx_movies_isFeatured' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.isFeatured'))",
+                    'idx_movies_isHistorical' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.isHistorical'))",
                 ],
                 'dramas' => [
                     'idx_dramas_slug' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.slug'))",
                     'idx_dramas_status' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.status'))",
+                    'idx_dramas_isTrending' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.isTrending'))",
+                    'idx_dramas_isFeatured' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.isFeatured'))",
+                    'idx_dramas_isHistorical' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.isHistorical'))",
                 ],
                 'seasons' => [
                     'idx_seasons_dramaId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.dramaId'))",
@@ -423,12 +431,14 @@ class Database {
                     'idx_movies_status' => "(\"data\"->>'status')",
                     'idx_movies_isTrending' => "(\"data\"->>'isTrending')",
                     'idx_movies_isFeatured' => "(\"data\"->>'isFeatured')",
+                    'idx_movies_isHistorical' => "(\"data\"->>'isHistorical')",
                 ],
                 'dramas' => [
                     'idx_dramas_slug' => "(\"data\"->>'slug')",
                     'idx_dramas_status' => "(\"data\"->>'status')",
                     'idx_dramas_isTrending' => "(\"data\"->>'isTrending')",
                     'idx_dramas_isFeatured' => "(\"data\"->>'isFeatured')",
+                    'idx_dramas_isHistorical' => "(\"data\"->>'isHistorical')",
                 ],
                 'seasons' => [
                     'idx_seasons_dramaId' => "(\"data\"->>'dramaId')",

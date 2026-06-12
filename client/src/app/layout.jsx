@@ -33,11 +33,22 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
+  let initialSiteContent = null;
+  try {
+    const res = await fetch(`${backendUrl}/api/site-content`, { next: { revalidate: 60 } });
+    if (res.ok) {
+      initialSiteContent = await res.json();
+    }
+  } catch (error) {
+    console.error("Error fetching site content on root layout:", error);
+  }
+
   return (
     <html lang="en" className={`dark ${inter.variable} ${outfit.variable}`}>
       <body className="bg-luxury-950 text-slate-100 font-sans selection:bg-brand-primary selection:text-white antialiased overflow-x-hidden">
-        <Providers>
+        <Providers initialSiteContent={initialSiteContent}>
           <div className="flex flex-col min-h-screen bg-transparent text-slate-100 selection:bg-brand-primary selection:text-white relative">
             <ParticleBackground />
             <div className="relative z-10 flex flex-col min-h-screen">

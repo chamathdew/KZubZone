@@ -41,6 +41,36 @@ export async function generateMetadata() {
   };
 }
 
-export default function HomePage() {
-  return <Home />;
+export default async function HomePage() {
+  const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
+  
+  let initialHomeCatalog = {};
+  let initialSubtitles = [];
+  let initialLibraryMovies = { movies: [], totalPages: 1 };
+  let initialLibraryDramas = { dramas: [], totalPages: 1 };
+  
+  try {
+    const [catalogRes, subsRes, moviesRes, dramasRes] = await Promise.all([
+      fetch(`${backendUrl}/api/media/home`, { next: { revalidate: 60 } }).then(r => r.ok ? r.json() : {}),
+      fetch(`${backendUrl}/api/subtitles/recent?limit=4`, { next: { revalidate: 60 } }).then(r => r.ok ? r.json() : []),
+      fetch(`${backendUrl}/api/media/movies?sort=popular&country=&limit=12`, { next: { revalidate: 60 } }).then(r => r.ok ? r.json() : { movies: [], totalPages: 1 }),
+      fetch(`${backendUrl}/api/media/dramas?sort=popular&country=&limit=12`, { next: { revalidate: 60 } }).then(r => r.ok ? r.json() : { dramas: [], totalPages: 1 })
+    ]);
+    
+    initialHomeCatalog = catalogRes;
+    initialSubtitles = subsRes;
+    initialLibraryMovies = moviesRes;
+    initialLibraryDramas = dramasRes;
+  } catch (error) {
+    console.error("Error fetching homepage initial data on server:", error);
+  }
+
+  return (
+    <Home 
+      initialHomeCatalog={initialHomeCatalog} 
+      initialSubtitles={initialSubtitles}
+      initialLibraryMovies={initialLibraryMovies}
+      initialLibraryDramas={initialLibraryDramas}
+    />
+  );
 }

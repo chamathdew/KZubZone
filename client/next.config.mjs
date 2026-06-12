@@ -15,6 +15,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'placehold.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'ejvczjiueysbiewzsuin.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.ksubzone.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'drive.google.com',
+      },
     ],
   },
   async rewrites() {

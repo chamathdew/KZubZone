@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Calendar, ChevronLeft, ChevronRight, Clock3, Download, Film, Globe2, Info, Star } from 'lucide-react';
 import { permalinkSlug } from '@/utils/slug';
-import { getMediaImage, handleImageFallback } from '@/utils/mediaImages';
+import { getMediaImage, imageFallbackFor } from '@/utils/mediaImages';
 
 const EMPTY_ITEMS = [];
 
@@ -27,6 +28,18 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
     }, 7000);
     return () => clearInterval(timer);
   }, [items]);
+
+  const currentItem = items[currentIndex] || items[0] || {};
+  const initialBackdrop = getMediaImage(currentItem, 'backdrop');
+  const initialPoster = getMediaImage(currentItem, 'poster');
+
+  const [backdropUrl, setBackdropUrl] = useState(initialBackdrop);
+  const [posterUrl, setPosterUrl] = useState(initialPoster);
+
+  useEffect(() => {
+    setBackdropUrl(initialBackdrop);
+    setPosterUrl(initialPoster);
+  }, [initialBackdrop, initialPoster]);
 
   if (loading || items.length === 0) {
     return (
@@ -127,11 +140,19 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
           transition={{ duration: 0.8 }}
           className="absolute inset-0 w-full h-full"
         >
-          <img
-            src={backdrop}
-            alt={current.title}
+          <Image
+            src={backdropUrl}
+            alt={current.title || 'Backdrop'}
+            fill
+            priority={currentIndex === 0}
+            sizes="100vw"
             className="w-full h-full object-cover object-center"
-            onError={(event) => handleImageFallback(event, current, 'backdrop')}
+            onError={() => {
+              const fallback = imageFallbackFor(current, 'backdrop');
+              if (backdropUrl !== fallback) {
+                setBackdropUrl(fallback);
+              }
+            }}
           />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_34%,rgba(124,58,237,0.18),transparent_34%),linear-gradient(90deg,#030008_0%,rgba(3,0,8,0.72)_34%,rgba(3,0,8,0.24)_68%,rgba(3,0,8,0.42)_100%)]" />
           <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/10 to-black/25" />
@@ -242,7 +263,20 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
                 <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.04] p-3 sm:p-4 shadow-2xl shadow-black/50 backdrop-blur-2xl max-w-[180px] sm:max-w-[260px] lg:max-w-none mx-auto w-full">
                   <div className="absolute -inset-1 rounded-[2.1rem] bg-gradient-to-br from-brand-primary/35 via-transparent to-brand-secondary/25 blur-xl opacity-80" />
                   <div className="relative overflow-hidden rounded-[1.5rem] aspect-[2/3] bg-luxury-900">
-                    <img src={poster} alt={current.title} className="h-full w-full object-cover" onError={(event) => handleImageFallback(event, current, 'poster')} />
+                    <Image
+                      src={posterUrl}
+                      alt={current.title || 'Poster'}
+                      fill
+                      priority={currentIndex === 0}
+                      sizes="(max-width: 640px) 180px, (max-width: 1024px) 260px, 320px"
+                      className="h-full w-full object-cover"
+                      onError={() => {
+                        const fallback = imageFallbackFor(current, 'poster');
+                        if (posterUrl !== fallback) {
+                          setPosterUrl(fallback);
+                        }
+                      }}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
                       <div className="hidden sm:flex items-center justify-between rounded-2xl border border-white/10 bg-black/55 p-3 backdrop-blur-xl">

@@ -15,12 +15,12 @@ const queryClient = new QueryClient({
   }
 });
 
-export default function Providers({ children }) {
+export default function Providers({ children, initialSiteContent }) {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <SiteContentProvider>
+          <SiteContentProvider initialContent={initialSiteContent}>
             {children}
           </SiteContentProvider>
         </AuthProvider>

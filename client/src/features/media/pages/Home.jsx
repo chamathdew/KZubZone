@@ -16,19 +16,26 @@ import {
   Layers, Filter, RefreshCw, ArrowRight
 } from 'lucide-react';
 
-export default function Home() {
+export default function Home({ 
+  initialHomeCatalog = {}, 
+  initialSubtitles = [], 
+  initialLibraryMovies = { movies: [] }, 
+  initialLibraryDramas = { dramas: [] } 
+}) {
   const { content } = useSiteContent();
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'dramas' | 'movies'
   const [sortBy, setSortBy] = useState('popular'); // 'popular' | 'rating' | 'newest'
   const [country, setCountry] = useState(''); // '' | 'KR' | 'JP'
 
   // Fetch combined Home Catalog data (single API request)
-  const { data: homeCatalog = {}, isLoading: homeCatalogLoading } = useQuery({
+  const { data: homeCatalog = initialHomeCatalog, isLoading: homeCatalogLoading } = useQuery({
     queryKey: ['homeCatalog'],
     queryFn: async () => {
       const res = await apiClient.get('/api/media/home');
       return res.data;
-    }
+    },
+    initialData: initialHomeCatalog,
+    staleTime: 1000 * 60 * 5 // 5 minutes
   });
 
   const featuredItems = React.useMemo(() => {
@@ -43,30 +50,36 @@ export default function Home() {
   const categoryRowsLoading = homeCatalogLoading;
 
   // Fetch Library Movies (reactive to sort and country)
-  const { data: moviesData, isLoading: moviesLoading } = useQuery({
+  const { data: moviesData = initialLibraryMovies, isLoading: moviesLoading } = useQuery({
     queryKey: ['libraryMovies', sortBy, country],
     queryFn: async () => {
       const res = await apiClient.get(`/api/media/movies?sort=${sortBy}&country=${country}&limit=12`);
       return res.data;
-    }
+    },
+    initialData: (sortBy === 'popular' && country === '') ? initialLibraryMovies : undefined,
+    staleTime: 1000 * 60 * 5 // 5 minutes
   });
 
   // Fetch Library Dramas (reactive to sort and country)
-  const { data: dramasData, isLoading: dramasLoading } = useQuery({
+  const { data: dramasData = initialLibraryDramas, isLoading: dramasLoading } = useQuery({
     queryKey: ['libraryDramas', sortBy, country],
     queryFn: async () => {
       const res = await apiClient.get(`/api/media/dramas?sort=${sortBy}&country=${country}&limit=12`);
       return res.data;
-    }
+    },
+    initialData: (sortBy === 'popular' && country === '') ? initialLibraryDramas : undefined,
+    staleTime: 1000 * 60 * 5 // 5 minutes
   });
 
   // Fetch Subtitles (Recent Updates)
-  const { data: subtitleQueue = [], isLoading: subsLoading } = useQuery({
+  const { data: subtitleQueue = initialSubtitles, isLoading: subsLoading } = useQuery({
     queryKey: ['homeSubtitles'],
     queryFn: async () => {
       const res = await apiClient.get('/api/subtitles/recent?limit=4');
       return res.data;
     },
+    initialData: initialSubtitles,
+    staleTime: 1000 * 60 * 2, // 2 minutes
     retry: false
   });
 

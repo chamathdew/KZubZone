@@ -10,24 +10,30 @@ export const SiteContentContext = createContext({
   refreshSiteContent: () => {}
 });
 
-export const SiteContentProvider = ({ children }) => {
-  const [content, setContent] = useState(defaultSiteContent);
-  const [loading, setLoading] = useState(true);
+export const SiteContentProvider = ({ children, initialContent }) => {
+  const [content, setContent] = useState(() => 
+    initialContent ? mergeSiteContent(defaultSiteContent, initialContent) : defaultSiteContent
+  );
+  const [loading, setLoading] = useState(!initialContent);
 
   const refreshSiteContent = async () => {
     try {
       const res = await apiClient.get('/api/site-content');
       setContent(mergeSiteContent(defaultSiteContent, res.data || {}));
     } catch (error) {
-      setContent(defaultSiteContent);
+      if (!initialContent) {
+        setContent(defaultSiteContent);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshSiteContent();
-  }, []);
+    if (!initialContent) {
+      refreshSiteContent();
+    }
+  }, [initialContent]);
 
   useEffect(() => {
     const faviconUrl = content?.brand?.faviconUrl || content?.brand?.logoUrl;

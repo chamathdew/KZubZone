@@ -1,17 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Star, Calendar, Globe, Download, Languages } from 'lucide-react';
 import { permalinkSlug } from '@/utils/slug';
-import { getMediaImage, handleImageFallback } from '@/utils/mediaImages';
+import { getMediaImage, imageFallbackFor } from '@/utils/mediaImages';
 
 export default function GlassCard({ item, type }) {
   const mediaType = type || (item.seasons ? 'drama' : 'movie');
   const detailsUrl = `/${mediaType}/${permalinkSlug(item)}`;
   const rating = item.imdbRating || item.tmdbRating || 0;
   const posterImage = getMediaImage(item, 'poster');
+  const [imgSrc, setImgSrc] = useState(posterImage);
+
+  useEffect(() => {
+    setImgSrc(posterImage);
+  }, [posterImage]);
+
   const subtitleSummary = item.subtitleSummary || {};
   const subtitleLanguages = subtitleSummary.languages || [];
   const progressLabel = subtitleSummary.progressLabel || (subtitleSummary.totalSubtitles ? `${subtitleSummary.totalSubtitles} subs` : 'No subs');
@@ -42,12 +49,19 @@ export default function GlassCard({ item, type }) {
           <div className="absolute inset-0 bg-brand-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
 
           {/* Poster Image */}
-          <img
-            src={posterImage}
-            alt={item.title}
+          <Image
+            src={imgSrc}
+            alt={item.title || 'Media Poster'}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
             className="w-full h-full object-cover object-center transform scale-100 group-hover:scale-105 transition-transform duration-700 ease-[0.25, 0.8, 0.25, 1]"
-            loading="lazy"
-            onError={(event) => handleImageFallback(event, item, 'poster')}
+            priority={false}
+            onError={() => {
+              const fallback = imageFallbackFor(item, 'poster');
+              if (imgSrc !== fallback) {
+                setImgSrc(fallback);
+              }
+            }}
           />
 
           {/* Top Badges — single balanced row: left=episode progress, right=IMDb rating */}

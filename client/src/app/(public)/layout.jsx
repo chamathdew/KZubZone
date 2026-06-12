@@ -13,7 +13,7 @@ export default function PublicLayout({ children }) {
   const { content, loading: contentLoading } = useSiteContent();
   const { admin, loading: authLoading } = useAuth();
 
-  if (contentLoading || authLoading) {
+  if (contentLoading) {
     return (
       <div className="min-h-screen bg-luxury-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-primary"></div>

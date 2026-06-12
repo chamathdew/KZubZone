@@ -26,6 +26,7 @@ export default function Detail({ type = 'Movie', initialData }) {
   const [commentError, setCommentError] = useState('');
   const [replyText, setReplyText] = useState({});
   const [activeReplyBox, setActiveReplyBox] = useState(null);
+  const [playTrailer, setPlayTrailer] = useState(false);
 
   const isAdmin = !!admin || !!(user && user.hasDashboardAccess);
 
@@ -523,14 +524,31 @@ export default function Detail({ type = 'Movie', initialData }) {
                 <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
                   <PlayCircle className="w-4 h-4 text-brand-primary" /> Official Trailer
                 </h3>
-                <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-white/5 bg-black shadow-2xl">
-                  <iframe
-                    src={getEmbedUrl(media.trailer)}
-                    title={`${media.title} Official Trailer`}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-white/5 bg-black shadow-2xl group cursor-pointer">
+                  {playTrailer ? (
+                    <iframe
+                      src={getEmbedUrl(media.trailer) + (getEmbedUrl(media.trailer).includes('?') ? '&autoplay=1' : '?autoplay=1')}
+                      title={`${media.title} Official Trailer`}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div 
+                      className="absolute inset-0 w-full h-full"
+                      onClick={() => setPlayTrailer(true)}
+                    >
+                      <img
+                        src={backdropImage}
+                        alt={`${media.title} Trailer Cover`}
+                        className="w-full h-full object-cover brightness-75 group-hover:scale-105 transition-transform duration-700 ease-out"
+                        onError={(event) => handleImageFallback(event, media, 'backdrop')}
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors duration-300 flex items-center justify-center">
+                        <PlayCircle className="w-16 h-16 text-white/90 group-hover:text-brand-primary group-hover:scale-110 transition-all duration-300 drop-shadow-[0_0_15px_rgba(124,58,237,0.6)]" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
