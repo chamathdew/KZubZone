@@ -26,6 +26,7 @@ export default function AdminSidebar() {
     { to: '/management/articles', label: 'Manage Articles', icon: BookOpenText, color: 'text-brand-primary' },
     {to: '/management/subtitles', label: 'Subtitles Moderation', icon: Languages, color: 'text-emerald-400' },
     { to: '/management/subtitle-tools', label: 'Subtitle Brand/Translate', icon: Languages, color: 'text-brand-accent' },
+    { to: '/management/srt-cleaner', label: 'SRT Cleaner Tool', icon: Wand2, color: 'text-brand-primary' },
     { to: '/management/comments', label: 'Comments & Reviews', icon: Star, color: 'text-yellow-400' },
     { to: '/management/users', label: 'Member Control', icon: Users, color: 'text-blue-400' },
     { to: '/management/settings', label: 'Site Builder', icon: Wand2, color: 'text-brand-accent' },
