@@ -174,7 +174,7 @@ $routes = [
             echo "OPcache is not enabled or opcache_reset is disabled.";
         }
     }],
-    ['GET', '/api/debug-file-xyz', function() {
+    ['GET', '/api/inspect-controller-code', function() {
         header('Content-Type: text/plain');
         $file = __DIR__ . '/controllers/MovieController.php';
         if (file_exists($file)) {
