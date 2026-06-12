@@ -150,9 +150,7 @@ class DramaController {
                 'keywords' => ['$in' => $drama['keywords']]
             ], ['limit' => 4]);
 
-            foreach ($related as &$r) {
-                $r['subtitleSummary'] = self::getSubtitleSummaryForDrama($r['_id']);
-            }
+            self::appendSubtitleSummariesToDramas($related);
         }
 
         header('Content-Type: application/json');

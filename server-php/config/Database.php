@@ -236,18 +236,7 @@ class Database {
         // Skip setup if database is already initialized
         $flagFile = dirname(__FILE__) . '/.db_initialized_' . $this->driver;
         
-        $needsSetup = false;
-        if ($this->driver === 'sqlite' || $this->driver === 'mysql' || $this->driver === 'pgsql') {
-            try {
-                // If count throws an exception, the notifications table is missing
-                $this->count('notifications');
-            } catch (\Exception $e) {
-                $needsSetup = true;
-            }
-        }
-
-        if (file_exists($flagFile) && !$needsSetup) {
-            $this->ensureIndexesExist();
+        if (file_exists($flagFile)) {
             return;
         }
 
