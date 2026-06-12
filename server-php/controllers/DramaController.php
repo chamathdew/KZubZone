@@ -130,6 +130,30 @@ class DramaController {
         // Fetch episodes
         $episodes = $db->find('episodes', ['dramaId' => $drama['_id']], ['sort' => ['seasonId' => 1, 'episodeNumber' => 1]]);
 
+        // Map seasonId to seasonNumber for proper ordering across seasons
+        $seasonNumberMap = [];
+        foreach ($seasons as $s) {
+            $seasonNumberMap[(string)$s['_id']] = (int)($s['seasonNumber'] ?? 1);
+        }
+
+        // Sort episodes numerically by seasonNumber, then by episodeNumber
+        usort($episodes, function($a, $b) use ($seasonNumberMap) {
+            $aSeasonId = (string)($a['seasonId'] ?? '');
+            $bSeasonId = (string)($b['seasonId'] ?? '');
+            
+            $aSeasonNum = $seasonNumberMap[$aSeasonId] ?? 0;
+            $bSeasonNum = $seasonNumberMap[$bSeasonId] ?? 0;
+            
+            if ($aSeasonNum !== $bSeasonNum) {
+                return $aSeasonNum <=> $bSeasonNum;
+            }
+            
+            $aEpNum = (int)($a['episodeNumber'] ?? 0);
+            $bEpNum = (int)($b['episodeNumber'] ?? 0);
+            
+            return $aEpNum <=> $bEpNum;
+        });
+
         // Append subtitle count to each episode
         $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
         if (!empty($episodeIds)) {
