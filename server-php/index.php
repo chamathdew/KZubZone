@@ -253,6 +253,7 @@ $routes = [
     ['POST', '/api/ai/chat', 'Controllers\AiController::chat'],
     ['POST', '/api/ai/search', 'Controllers\AiController::smartSearch'],
     ['POST', '/api/admin/ai/translate', ['Middleware\AuthMiddleware::protectAdmin', 'Controllers\AiController::translateSubtitle']],
+    ['POST', '/api/admin/ai/polish', ['Middleware\AuthMiddleware::protectAdmin', 'Controllers\AiController::polishSubtitle']],
 
     // Administrative Auth
     ['POST', '/api/admin/login', 'Controllers\AuthController::adminLogin'],

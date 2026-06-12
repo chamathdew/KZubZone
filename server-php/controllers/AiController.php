@@ -203,4 +203,54 @@ CRITICAL RULES:
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
+
+    // 4. AI Subtitle Polisher (Admin Only - Spoken to Formal Sinhala)
+    public static function polishSubtitle() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+            return;
+        }
+
+        // Check if enabled
+        $db = Database::getInstance();
+        $setting = $db->findOne('settings', ['key' => 'siteContent']);
+        $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
+        if (isset($siteContent['ai']['enableTranslation']) && !$siteContent['ai']['enableTranslation']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'AI Subtitle Polishing is disabled by the administrator.']);
+            return;
+        }
+
+        $body = json_decode(file_get_contents('php://input'), true);
+        $srtText = $body['srtContent'] ?? '';
+
+        if (empty($srtText)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'SRT content is required']);
+            return;
+        }
+
+        $systemPrompt = "You are a professional Sinhala language editor and subtitle polisher. 
+Your task is to convert the provided Sinhala SRT subtitle file from informal/spoken Sinhala into perfect, natural, grammatically correct written/formal Sinhala (ලෝකෝත්තර ලිඛිත සිංහල / සම්මත සිංහල).
+CRITICAL RULES:
+1. DO NOT change the numeric sequence.
+2. DO NOT change the timestamps.
+3. ONLY convert the spoken Sinhala phrasing/words into standard, formal written Sinhala (e.g. convert common spoken words like 'කරනවා' to 'කරයි' or 'කරනවා' / 'කරන්නෙ' to standard written/formal forms but keep dialogue readability. Do not make it excessively archaic, but grammatically perfect formal/written Sinhala).
+4. Keep the exact same formatting (empty lines between subtitle blocks).
+5. Output ONLY the valid SRT content, no explanations or markdown wrappers.";
+
+        try {
+            $polished = AiService::generateContent($systemPrompt, $srtText, 0.2);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'polishedSrt' => $polished
+            ]);
+
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
 }

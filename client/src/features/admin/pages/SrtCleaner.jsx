@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import {
   Wand2, Bot, Trash2, Settings, FileText, CheckCircle2,
@@ -114,6 +115,10 @@ export default function SrtCleaner() {
   const [filterProfanity, setFilterProfanity] = useState(false);
   const [splitLongLines, setSplitLongLines] = useState(false);
   const [convertToVtt, setConvertToVtt] = useState(false);
+  const [aiPolish, setAiPolish] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
+  const [polishProgress, setPolishProgress] = useState(0);
+  const [polishStatusMsg, setPolishStatusMsg] = useState('');
 
   // Input states
   const [timeShift, setTimeShift] = useState('');
@@ -182,6 +187,7 @@ export default function SrtCleaner() {
       filterProfanity,
       splitLongLines,
       convertToVtt,
+      aiPolish,
       timeShift,
       findReplaceText,
       specificWords,
@@ -193,7 +199,7 @@ export default function SrtCleaner() {
     };
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const rawText = e.target.result;
       let subs = parseSRT(rawText);
 
@@ -441,6 +447,55 @@ export default function SrtCleaner() {
       // Re-index
       subs = subs.map((sub, idx) => ({ ...sub, id: idx + 1 }));
 
+      // 8. AI Polish (Spoken to Formal Written Sinhala)
+      if (config.aiPolish) {
+        setIsPolishing(true);
+        setPolishProgress(0);
+        setPolishStatusMsg('Initializing AI Sinhala Polishing...');
+
+        const chunkSize = 40;
+        const totalSubs = subs.length;
+        const totalChunks = Math.ceil(totalSubs / chunkSize);
+        const updatedSubs = [...subs];
+
+        try {
+          for (let c = 0; c < totalChunks; c++) {
+            const startIndex = c * chunkSize;
+            const endIndex = Math.min(startIndex + chunkSize, totalSubs);
+            const chunk = updatedSubs.slice(startIndex, endIndex);
+
+            setPolishStatusMsg(`AI Polishing Sinhala blocks ${startIndex + 1} to ${endIndex} of ${totalSubs}...`);
+
+            const chunkSrtText = stringifySRT(chunk);
+
+            const response = await apiClient.post('/api/admin/ai/polish', {
+              srtContent: chunkSrtText
+            });
+
+            const polishedChunkText = response.data.polishedSrt;
+            const parsedPolishedChunk = parseSRT(polishedChunkText);
+
+            for (let j = 0; j < chunk.length; j++) {
+              const polishedItem = parsedPolishedChunk[j];
+              if (polishedItem) {
+                updatedSubs[startIndex + j].text = polishedItem.text;
+              }
+            }
+
+            const percentage = Math.round(((c + 1) / totalChunks) * 100);
+            setPolishProgress(percentage);
+          }
+
+          subs = updatedSubs;
+        } catch (err) {
+          console.error(err);
+          alert('AI Polishing failed: ' + (err.response?.data?.error || err.message || 'Error occurred during translation.'));
+          setIsPolishing(false);
+          return;
+        }
+        setIsPolishing(false);
+      }
+
       // Format output string
       let finalStr = '';
       if (config.convertToVtt) {
@@ -493,10 +548,12 @@ export default function SrtCleaner() {
       wrongTime1: '',
       correctTime1: '',
       wrongTime2: '',
-      correctTime2: ''
+      correctTime2: '',
+      aiPolish: false
     };
 
     // Sync switches in UI state
+    setAiPolish(false);
     setFixOverlaps(true);
     setRemoveInvalidTimes(true);
     setRemoveEmptyBrackets(true);
@@ -525,6 +582,7 @@ export default function SrtCleaner() {
     setCorrectTime1('');
     setWrongTime2('');
     setCorrectTime2('');
+    setAiPolish(false);
 
     runCleanerWithOptions(smartOptions);
   };
@@ -551,6 +609,7 @@ export default function SrtCleaner() {
     setFileSize(0);
     setCleanedText('');
     setIsCleaned(false);
+    setAiPolish(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -716,6 +775,7 @@ export default function SrtCleaner() {
                   <Switch checked={filterProfanity} onChange={setFilterProfanity} label="Filter Profanity" />
                   <Switch checked={splitLongLines} onChange={setSplitLongLines} label="Split Long Lines (> 45 chars)" />
                   <Switch checked={convertToVtt} onChange={setConvertToVtt} label="Convert to VTT Format (Web)" />
+                  <Switch checked={aiPolish} onChange={setAiPolish} label="AI Polish Spoken Sinhala to Formal" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
@@ -804,12 +864,37 @@ export default function SrtCleaner() {
                 </div>
               </div>
 
+              {/* AI Polishing Status Card */}
+              {isPolishing && (
+                <div className="bg-luxury-900 border border-brand-primary/20 rounded-3xl p-6 space-y-4 text-left">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-brand-primary animate-spin" /> {polishStatusMsg}
+                    </span>
+                    <span className="text-xs font-black text-brand-primary">{polishProgress}%</span>
+                  </div>
+                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-brand-primary h-full transition-all duration-300"
+                      style={{ width: `${polishProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* 6. Action Button */}
               <button 
+                disabled={isPolishing}
                 onClick={handleCleanSRT}
-                className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-2xl transition shadow-lg shadow-red-500/10 text-xs sm:text-sm"
+                className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black uppercase tracking-widest rounded-2xl transition shadow-lg shadow-red-500/10 text-xs sm:text-sm flex items-center justify-center gap-2"
               >
-                Clean Subtitles
+                {isPolishing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" /> Processing AI Polish...
+                  </>
+                ) : (
+                  'Clean Subtitles'
+                )}
               </button>
 
               {/* 7. Success Banner */}
