@@ -25,7 +25,7 @@ class AiService {
             throw new \Exception("Gemini API Key is not configured. Please add GEMINI_API_KEY to your .env file or settings under RAW CONFIG KEYS.");
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . $apiKey;
 
         $payload = [
             "contents" => [
