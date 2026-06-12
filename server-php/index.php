@@ -155,6 +155,25 @@ $routes = [
             'databaseUrl' => $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL') ?: 'Not set'
         ]);
     }],
+    ['GET', '/api/logs-xyz', function() {
+        header('Content-Type: text/plain');
+        $logPaths = [
+            dirname(__FILE__) . '/error_log',
+            dirname(dirname(__FILE__)) . '/error_log',
+            dirname(dirname(__FILE__)) . '/api/error_log',
+            dirname(__FILE__) . '/../error_log',
+        ];
+        foreach ($logPaths as $path) {
+            if (file_exists($path)) {
+                echo "=== LOG FILE: " . basename(dirname($path)) . "/" . basename($path) . " ===\n";
+                $lines = file($path);
+                $lastLines = array_slice($lines, -150);
+                echo implode("", $lastLines);
+                echo "\n\n";
+            }
+        }
+        echo "=== END OF LOGS ===\n";
+    }],
     ['GET', '/api/site-content', function() {
         $db = \Config\Database::getInstance();
         $setting = $db->findOne('settings', ['key' => 'siteContent']);
