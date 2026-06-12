@@ -6,7 +6,7 @@ import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import {
   Languages, Sparkles, UploadCloud, Download, AlertTriangle, Play,
-  CheckCircle, Plus, Trash2, Edit2, RefreshCw, Layers, ArrowRight, Check, Eye, Settings
+  CheckCircle, Plus, Trash2, Edit2, RefreshCw, Layers, ArrowRight, Check, Eye, Settings, FileText, Undo
 } from 'lucide-react';
 
 // Time Conversions
@@ -81,18 +81,19 @@ export default function SubtitleTools() {
   const { admin } = useAuth();
   const fileInputRef = useRef(null);
 
-  // Subtitle States
-  const [fileName, setFileName] = useState('');
-  const [originalText, setOriginalText] = useState('');
-  const [subtitles, setSubtitles] = useState([]);
-  const [processedSubs, setProcessedSubs] = useState([]);
-  const [previewMode, setPreviewMode] = useState('blocks'); // 'blocks' | 'raw'
-  const [editableSrtText, setEditableSrtText] = useState('');
+  // Batch Files State
+  const [files, setFiles] = useState([]);
+  const [selectedFileId, setSelectedFileId] = useState(null);
 
-  // Control Configs
+  // Editing Block State (for Visual Preview inline editor)
+  const [editingBlockId, setEditingBlockId] = useState(null);
+  const [editingText, setEditingText] = useState('');
+
+  // Global Configs
   const [activeTab, setActiveTab] = useState('upload'); // 'upload', 'brand', 'translate', 'export'
+  const [previewMode, setPreviewMode] = useState('blocks'); // 'blocks' | 'raw'
   const [brandingText, setBrandingText] = useState(
-    `<font color="#ffcc00">නවතම කොරියානු චිත්රපට සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font></b>`
+    `<font color="#ffcc00">නවතම කොරියානු චිත්රපට සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
   );
 
   // Ad Inject Configs
@@ -105,18 +106,13 @@ export default function SubtitleTools() {
 
   const [insertGaps, setInsertGaps] = useState(true);
   const [minGapSeconds, setMinGapSeconds] = useState(45); // minimum gap size to inject ad
-  const [detectedGaps, setDetectedGaps] = useState([]);
-  const [selectedGaps, setSelectedGaps] = useState([]); // indices of gaps to inject
 
-  // Competitor replacement list
-  const [detectedCompetitors, setDetectedCompetitors] = useState([]);
-  const [competitorActions, setCompetitorActions] = useState({}); // { subId: 'replace' | 'remove' | 'ignore' }
+  // Helper to update a specific file's state
+  const updateFileState = (fileId, updater) => {
+    setFiles(prev => prev.map(f => f.id === fileId ? { ...f, ...updater } : f));
+  };
 
-  // Translation States
-  const [translationProgress, setTranslationProgress] = useState(0);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translateStatusMsg, setTranslateStatusMsg] = useState('');
-  const [translationError, setTranslationError] = useState('');
+  const activeFile = files.find(f => f.id === selectedFileId);
 
   // Handle Drag & Drop
   const handleDragOver = (e) => {
@@ -125,34 +121,108 @@ export default function SubtitleTools() {
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) handleFile(file);
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+    }
   };
 
-  const handleFile = (file) => {
-    if (!file.name.endsWith('.srt')) {
+  const handleFiles = (fileList) => {
+    const srtFiles = Array.from(fileList).filter(f => f.name.endsWith('.srt'));
+    if (srtFiles.length === 0) {
       alert('Only .srt files are currently supported.');
       return;
     }
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      setOriginalText(text);
-      const parsed = parseSRT(text);
-      setSubtitles(parsed);
-      setProcessedSubs(JSON.parse(JSON.stringify(parsed))); // Deep copy
-      setEditableSrtText(text); // Initialize raw text
-      analyzeSubtitle(parsed);
 
-      // Auto-adjust start ad times based on first subtitle
-      if (parsed.length > 0) {
-        const firstStartMs = timeToMs(parsed[0].start);
+    const newFilesPromises = srtFiles.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          const parsed = parseSRT(text);
+          
+          // Detect Gaps
+          const gaps = [];
+          for (let i = 0; i < parsed.length - 1; i++) {
+            const endMs = timeToMs(parsed[i].end);
+            const nextStartMs = timeToMs(parsed[i + 1].start);
+            const gapMs = nextStartMs - endMs;
+
+            if (gapMs >= minGapSeconds * 1000) {
+              gaps.push({
+                index: i,
+                start: parsed[i].end,
+                end: parsed[i + 1].start,
+                durationSec: Math.floor(gapMs / 1000),
+                recommendedStart: msToTime(endMs + 3000),
+                recommendedEnd: msToTime(Math.min(endMs + 33000, nextStartMs - 3000))
+              });
+            }
+          }
+
+          // Detect Competitor Brandings
+          const competitorKeywords = [
+            'baiscope', 'cineru', 'zoom.lk', 'subz.lk', 'sinhalasub',
+            'subz.site', 'subzlk', 'baiscopelk', 'zoom', 'බයිස්කෝප්', 'සිනේරු',
+            'cinerulk', 'subz'
+          ];
+
+          const detected = [];
+          const initialActions = {};
+
+          parsed.forEach((sub) => {
+            const textLower = (sub.text || '').toLowerCase();
+            const matches = competitorKeywords.some(keyword => textLower.includes(keyword)) ||
+                            textLower.includes('.lk') || textLower.includes('.com') ||
+                            textLower.includes('පරිවර්තනය') || textLower.includes('උපසිරැසි');
+
+            if (matches) {
+              detected.push(sub);
+              initialActions[sub.id] = 'replace';
+            }
+          });
+
+          resolve({
+            id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+            name: file.name,
+            originalText: text,
+            subtitles: parsed,
+            processedSubs: JSON.parse(JSON.stringify(parsed)), // Deep copy
+            editableSrtText: text,
+            detectedCompetitors: detected,
+            competitorActions: initialActions,
+            detectedGaps: gaps,
+            selectedGaps: gaps.map((_, idx) => idx),
+            isProcessed: false,
+            isTranslated: false,
+            translationProgress: 0,
+            translateStatusMsg: '',
+            translationError: '',
+            isTranslating: false
+          });
+        };
+        reader.readAsText(file);
+      });
+    });
+
+    Promise.all(newFilesPromises).then(newFiles => {
+      setFiles(prev => {
+        const combined = [...prev, ...newFiles];
+        // Select first uploaded file if nothing was selected
+        if (!selectedFileId && combined.length > 0) {
+          setSelectedFileId(combined[0].id);
+        }
+        return combined;
+      });
+
+      // Auto-adjust start ad times based on the first subtitle of the first loaded file
+      if (newFiles.length > 0 && newFiles[0].subtitles.length > 0) {
+        const firstStartMs = timeToMs(newFiles[0].subtitles[0].start);
         if (firstStartMs > 5000) {
           setInsertStart(true);
           setStartTimeStart('00:00:01,000');
@@ -166,70 +236,46 @@ export default function SubtitleTools() {
       }
 
       setActiveTab('brand');
-    };
-    reader.readAsText(file);
-  };
-
-  // Analyze Subtitles for Gaps & Competitors
-  const analyzeSubtitle = (subs) => {
-    if (subs.length === 0) return;
-
-    // 1. Detect Gaps
-    const gaps = [];
-    for (let i = 0; i < subs.length - 1; i++) {
-      const endMs = timeToMs(subs[i].end);
-      const nextStartMs = timeToMs(subs[i + 1].start);
-      const gapMs = nextStartMs - endMs;
-
-      if (gapMs >= minGapSeconds * 1000) {
-        gaps.push({
-          index: i,
-          start: subs[i].end,
-          end: subs[i + 1].start,
-          durationSec: Math.floor(gapMs / 1000),
-          recommendedStart: msToTime(endMs + 3000),
-          recommendedEnd: msToTime(Math.min(endMs + 33000, nextStartMs - 3000))
-        });
-      }
-    }
-    setDetectedGaps(gaps);
-    setSelectedGaps(gaps.map((_, idx) => idx)); // Select all by default
-
-    // 2. Detect Competitor Brandings
-    const competitorKeywords = [
-      'baiscope', 'cineru', 'zoom.lk', 'subz.lk', 'sinhalasub',
-      'subz.site', 'subzlk', 'baiscopelk', 'zoom', 'බයිස්කෝප්', 'සිනේරු',
-      'cinerulk', 'subz'
-    ];
-
-    const detected = [];
-    const initialActions = {};
-
-    subs.forEach((sub) => {
-      const textLower = (sub.text || '').toLowerCase();
-      // Check if text matches competitor brandings
-      const matches = competitorKeywords.some(keyword => textLower.includes(keyword)) ||
-                      textLower.includes('.lk') || textLower.includes('.com') ||
-                      textLower.includes('පරිවර්තනය') || textLower.includes('උපසිරැසි');
-
-      if (matches) {
-        detected.push(sub);
-        // Default action: if it has website keywords, default to replace.
-        initialActions[sub.id] = 'replace';
-      }
     });
-
-    setDetectedCompetitors(detected);
-    setCompetitorActions(initialActions);
   };
 
-  // Run Subtitle Processing (Branding & Replacements)
-  const processBranding = () => {
-    let workingSubs = JSON.parse(JSON.stringify(subtitles));
+  // Re-scan gaps for a specific file when Min Gap Size is modified
+  const reanalyzeFileGaps = (fileId, limitSeconds) => {
+    setFiles(prev => prev.map(f => {
+      if (f.id !== fileId) return f;
+
+      const gaps = [];
+      for (let i = 0; i < f.subtitles.length - 1; i++) {
+        const endMs = timeToMs(f.subtitles[i].end);
+        const nextStartMs = timeToMs(f.subtitles[i + 1].start);
+        const gapMs = nextStartMs - endMs;
+
+        if (gapMs >= limitSeconds * 1000) {
+          gaps.push({
+            index: i,
+            start: f.subtitles[i].end,
+            end: f.subtitles[i + 1].start,
+            durationSec: Math.floor(gapMs / 1000),
+            recommendedStart: msToTime(endMs + 3000),
+            recommendedEnd: msToTime(Math.min(endMs + 33000, nextStartMs - 3000))
+          });
+        }
+      }
+      return {
+        ...f,
+        detectedGaps: gaps,
+        selectedGaps: gaps.map((_, idx) => idx)
+      };
+    }));
+  };
+
+  // Run Subtitle Processing (Branding & Replacements) for a single file
+  const processFileBranding = (file) => {
+    let workingSubs = JSON.parse(JSON.stringify(file.subtitles));
 
     // 1. Handle Competitor Replacements
     workingSubs = workingSubs.map((sub) => {
-      const action = competitorActions[sub.id];
+      const action = file.competitorActions[sub.id];
       if (action === 'replace') {
         return { ...sub, text: brandingText };
       } else if (action === 'remove') {
@@ -266,8 +312,8 @@ export default function SubtitleTools() {
 
     // Gap Ads
     if (insertGaps) {
-      selectedGaps.forEach((gapIdx) => {
-        const gap = detectedGaps[gapIdx];
+      file.selectedGaps.forEach((gapIdx) => {
+        const gap = file.detectedGaps[gapIdx];
         if (gap) {
           adsToInject.push({
             start: gap.recommendedStart,
@@ -294,26 +340,38 @@ export default function SubtitleTools() {
       id: idx + 1
     }));
 
-    setProcessedSubs(finalized);
-    setEditableSrtText(stringifySRT(finalized)); // Sync raw text
-    alert('Subtitles branded and updated successfully. You can preview changes or proceed to Translate/Export.');
+    return {
+      ...file,
+      processedSubs: finalized,
+      editableSrtText: stringifySRT(finalized), // Sync raw text
+      isProcessed: true
+    };
+  };
+
+  // Run Subtitle Processing for ALL uploaded files
+  const processBrandingBatch = () => {
+    if (files.length === 0) return;
+    setFiles(prev => prev.map(file => processFileBranding(file)));
+    alert('All subtitles branded and updated successfully. You can preview changes or proceed to Translate/Export.');
     setActiveTab('export');
   };
 
-  // Chunked AI Translation Logic
-  const startTranslation = async () => {
-    if (processedSubs.length === 0) {
-      alert('Please brand or upload subtitles first.');
-      return;
-    }
-    setIsTranslating(true);
-    setTranslationError('');
-    setTranslationProgress(0);
+  // AI Translate a Single File
+  const translateSingleFile = async (fileId) => {
+    const file = files.find(f => f.id === fileId);
+    if (!file) return;
 
-    const chunkSize = 40; // Optimal chunk size for Gemini API to not timeout and keep sequence
-    const totalSubs = processedSubs.length;
+    updateFileState(fileId, {
+      isTranslating: true,
+      translationError: '',
+      translationProgress: 0,
+      translateStatusMsg: 'Initializing AI translation...'
+    });
+
+    const chunkSize = 40; // Optimal chunk size for Gemini API to not timeout
+    const totalSubs = file.processedSubs.length;
     const totalChunks = Math.ceil(totalSubs / chunkSize);
-    const updatedSubs = [...processedSubs];
+    const updatedSubs = [...file.processedSubs];
 
     try {
       for (let c = 0; c < totalChunks; c++) {
@@ -321,11 +379,13 @@ export default function SubtitleTools() {
         const endIndex = Math.min(startIndex + chunkSize, totalSubs);
         const chunk = updatedSubs.slice(startIndex, endIndex);
 
-        setTranslateStatusMsg(`Translating subtitle block ${startIndex + 1} to ${endIndex} of ${totalSubs}...`);
+        updateFileState(fileId, {
+          translateStatusMsg: `Translating subtitle blocks ${startIndex + 1} to ${endIndex} of ${totalSubs}...`
+        });
 
         const chunkSrtText = stringifySRT(chunk);
         
-        // Post to existing translate API
+        // Post to backend translation API
         const response = await apiClient.post('/api/admin/ai/translate', {
           srtContent: chunkSrtText
         });
@@ -335,48 +395,141 @@ export default function SubtitleTools() {
 
         // Map translations back by index matching
         for (let j = 0; j < chunk.length; j++) {
-          const originalItem = chunk[j];
           const translatedItem = parsedTranslatedChunk[j];
-          
           if (translatedItem) {
-            // Keep original metadata, replace text
             updatedSubs[startIndex + j].text = translatedItem.text;
           }
         }
+        
         const percentage = Math.round(((c + 1) / totalChunks) * 100);
-        setTranslationProgress(percentage);
+        updateFileState(fileId, {
+          translationProgress: percentage
+        });
       }
 
-      setProcessedSubs(updatedSubs);
-      setEditableSrtText(stringifySRT(updatedSubs)); // Sync raw text
-      setTranslateStatusMsg('AI Subtitle Translation completed successfully!');
+      updateFileState(fileId, {
+        processedSubs: updatedSubs,
+        editableSrtText: stringifySRT(updatedSubs),
+        isTranslating: false,
+        isTranslated: true,
+        translateStatusMsg: 'AI Subtitle Translation completed successfully!'
+      });
     } catch (err) {
       console.error(err);
-      setTranslationError(
-        err.response?.data?.error || 
-        err.message || 
-        'An error occurred during translation. Please check that GEMINI_API_KEY is configured in your server-php/.env file.'
-      );
-    } finally {
-      setIsTranslating(false);
+      updateFileState(fileId, {
+        isTranslating: false,
+        translationError: err.response?.data?.error || err.message || 'An error occurred during translation. Please verify backend setup.'
+      });
+      throw err;
     }
   };
 
-  // Download Final File
-  const handleDownload = () => {
-    const srtText = editableSrtText || stringifySRT(processedSubs);
+  const handleTranslateSelected = async () => {
+    if (!selectedFileId) return;
+    try {
+      await translateSingleFile(selectedFileId);
+    } catch (e) {
+      // Handled inside
+    }
+  };
+
+  const handleTranslateAll = async () => {
+    if (files.length === 0) return;
+    for (const file of files) {
+      try {
+        await translateSingleFile(file.id);
+      } catch (e) {
+        console.error(`Failed to translate file: ${file.name}`);
+      }
+    }
+  };
+
+  // Download a single file
+  const triggerDownload = (file) => {
+    const srtText = file.editableSrtText || stringifySRT(file.processedSubs);
     const blob = new Blob([srtText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
-    // Formulate new file name
-    const baseName = fileName.replace('.srt', '');
+    const baseName = file.name.replace('.srt', '');
     link.href = url;
     link.download = `${baseName}_KSubZone_branded.srt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadSelected = () => {
+    if (activeFile) {
+      triggerDownload(activeFile);
+    }
+  };
+
+  const handleDownloadAll = () => {
+    if (files.length === 0) return;
+    files.forEach(file => {
+      triggerDownload(file);
+    });
+  };
+
+  // Reset tool state completely
+  const handleReset = () => {
+    if (window.confirm('Are you sure you want to clear all loaded files and start a new batch?')) {
+      setFiles([]);
+      setSelectedFileId(null);
+      setEditingBlockId(null);
+      setEditingText('');
+      setActiveTab('upload');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Inline Subtitle Block Editing
+  const startBlockEdit = (sub) => {
+    setEditingBlockId(sub.id);
+    setEditingText(sub.text || '');
+  };
+
+  const saveBlockEdit = (blockId) => {
+    if (!selectedFileId) return;
+    setFiles(prev => prev.map(f => {
+      if (f.id !== selectedFileId) return f;
+
+      const updatedSubs = f.processedSubs.map(sub => 
+        sub.id === blockId ? { ...sub, text: editingText } : sub
+      );
+
+      return {
+        ...f,
+        processedSubs: updatedSubs,
+        editableSrtText: stringifySRT(updatedSubs)
+      };
+    }));
+    setEditingBlockId(null);
+  };
+
+  const deleteBlock = (blockId) => {
+    if (!selectedFileId) return;
+    if (!window.confirm('Are you sure you want to delete this subtitle block?')) return;
+
+    setFiles(prev => prev.map(f => {
+      if (f.id !== selectedFileId) return f;
+
+      const filtered = f.processedSubs.filter(sub => sub.id !== blockId);
+      const updatedSubs = filtered.map((sub, idx) => ({
+        ...sub,
+        id: idx + 1
+      }));
+
+      return {
+        ...f,
+        processedSubs: updatedSubs,
+        editableSrtText: stringifySRT(updatedSubs)
+      };
+    }));
   };
 
   return (
@@ -397,7 +550,7 @@ export default function SubtitleTools() {
           </div>
 
           {/* Workflow Tabs */}
-          <div className="flex overflow-x-auto whitespace-nowrap border-b border-white/5 mb-8 scrollbar-none">
+          <div className="flex overflow-x-auto whitespace-nowrap border-b border-white/5 mb-6 scrollbar-none">
             <button
               onClick={() => setActiveTab('upload')}
               className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all ${
@@ -409,8 +562,8 @@ export default function SubtitleTools() {
               1. Upload
             </button>
             <button
-              onClick={() => { if (subtitles.length > 0) setActiveTab('brand'); }}
-              disabled={subtitles.length === 0}
+              onClick={() => { if (files.length > 0) setActiveTab('brand'); }}
+              disabled={files.length === 0}
               className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                 activeTab === 'brand'
                   ? 'border-brand-primary text-white'
@@ -420,8 +573,8 @@ export default function SubtitleTools() {
               2. Clean & Brand
             </button>
             <button
-              onClick={() => { if (subtitles.length > 0) setActiveTab('translate'); }}
-              disabled={subtitles.length === 0}
+              onClick={() => { if (files.length > 0) setActiveTab('translate'); }}
+              disabled={files.length === 0}
               className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                 activeTab === 'translate'
                   ? 'border-brand-primary text-white'
@@ -431,8 +584,8 @@ export default function SubtitleTools() {
               3. AI Translation
             </button>
             <button
-              onClick={() => { if (subtitles.length > 0) setActiveTab('export'); }}
-              disabled={subtitles.length === 0}
+              onClick={() => { if (files.length > 0) setActiveTab('export'); }}
+              disabled={files.length === 0}
               className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                 activeTab === 'export'
                   ? 'border-brand-primary text-white'
@@ -442,6 +595,53 @@ export default function SubtitleTools() {
               4. Export Preview
             </button>
           </div>
+
+          {/* Active Files Selector Bar */}
+          {files.length > 0 && activeTab !== 'upload' && (
+            <div className="bg-luxury-900 border border-white/5 p-4 rounded-2xl flex flex-col gap-3 mb-6">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-brand-primary" /> Active Batch Subtitles ({files.length})
+                </span>
+                <button
+                  onClick={handleReset}
+                  className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3 h-3" /> Clear & Reset
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2.5 overflow-x-auto pb-1 scrollbar-none">
+                {files.map((file) => {
+                  const isSelected = file.id === selectedFileId;
+                  return (
+                    <button
+                      key={file.id}
+                      onClick={() => {
+                        setSelectedFileId(file.id);
+                        setEditingBlockId(null);
+                      }}
+                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 ${
+                        isSelected
+                          ? 'bg-brand-primary/10 border-brand-primary text-white shadow-neon-accent'
+                          : 'bg-luxury-950 border-white/5 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="truncate max-w-[180px]">{file.name}</span>
+                      {file.isTranslated && (
+                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-black uppercase">Translated</span>
+                      )}
+                      {file.isProcessed && !file.isTranslated && (
+                        <span className="text-[9px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded font-black uppercase">Branded</span>
+                      )}
+                      {!file.isProcessed && (
+                        <span className="text-[9px] bg-white/5 text-slate-500 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Tab Content */}
           <div className="space-y-6">
@@ -459,14 +659,15 @@ export default function SubtitleTools() {
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
                   accept=".srt" 
+                  multiple
                   className="hidden" 
                 />
                 <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary border border-brand-primary/20">
                   <UploadCloud className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Drag & drop your subtitle file here</h3>
-                  <p className="text-slate-400 text-xs mt-1">Supports standard SubRip (.srt) subtitle files</p>
+                  <h3 className="text-lg font-bold text-white">Drag & drop your subtitle files here</h3>
+                  <p className="text-slate-400 text-xs mt-1">Supports uploading multiple standard SubRip (.srt) subtitle files at once</p>
                 </div>
                 <button className="px-5 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-wider transition">
                   Browse Files
@@ -475,7 +676,7 @@ export default function SubtitleTools() {
             )}
 
             {/* 2. CLEAN & BRAND TAB */}
-            {activeTab === 'brand' && subtitles.length > 0 && (
+            {activeTab === 'brand' && activeFile && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Configuration Left Panel */}
@@ -540,13 +741,13 @@ export default function SubtitleTools() {
                             </div>
                           </div>
                           
-                          {subtitles.length > 0 && (
+                          {activeFile.subtitles.length > 0 && (
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-white/5">
                               <span className="text-[10px] text-slate-400">
-                                First dialogue starts at: <span className="font-mono text-brand-primary font-bold">{subtitles[0].start}</span>
+                                First dialogue starts at: <span className="font-mono text-brand-primary font-bold">{activeFile.subtitles[0].start}</span>
                               </span>
                               
-                              {timeToMs(startTimeEnd) >= timeToMs(subtitles[0].start) ? (
+                              {timeToMs(startTimeEnd) >= timeToMs(activeFile.subtitles[0].start) ? (
                                 <div className="flex items-center gap-2">
                                   <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
                                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Overlaps dialogue!
@@ -554,7 +755,7 @@ export default function SubtitleTools() {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const firstStartMs = timeToMs(subtitles[0].start);
+                                      const firstStartMs = timeToMs(activeFile.subtitles[0].start);
                                       setStartTimeStart('00:00:01,000');
                                       const endMs = Math.max(2000, firstStartMs - 1500);
                                       setStartTimeEnd(msToTime(endMs));
@@ -630,14 +831,14 @@ export default function SubtitleTools() {
                               onChange={(e) => {
                                 const val = parseInt(e.target.value, 10) || 30;
                                 setMinGapSeconds(val);
-                                // Re-run gap analysis
-                                analyzeSubtitle(subtitles);
+                                // Re-run gap analysis for selected file
+                                reanalyzeFileGaps(activeFile.id, val);
                               }}
                               className="w-20 bg-luxury-950 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-center font-mono text-slate-300 outline-none"
                             />
                             <span className="text-[10px] text-slate-500">Seconds</span>
                             <button 
-                              onClick={() => analyzeSubtitle(subtitles)}
+                              onClick={() => reanalyzeFileGaps(activeFile.id, minGapSeconds)}
                               className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 text-slate-400 hover:text-white transition"
                               title="Rescan Gaps"
                             >
@@ -646,14 +847,14 @@ export default function SubtitleTools() {
                           </div>
 
                           {/* Gaps List */}
-                          {detectedGaps.length === 0 ? (
+                          {activeFile.detectedGaps.length === 0 ? (
                             <div className="p-4 bg-luxury-950 border border-white/5 rounded-xl text-center text-xs text-slate-500">
-                              No subtitle gaps longer than {minGapSeconds} seconds were found.
+                              No subtitle gaps longer than {minGapSeconds} seconds were found in {activeFile.name}.
                             </div>
                           ) : (
-                            <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                            <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 scrollbar-none">
                               <span className="text-[10px] text-slate-500 uppercase font-black">Select gaps to inject branding ad:</span>
-                              {detectedGaps.map((gap, idx) => (
+                              {activeFile.detectedGaps.map((gap, idx) => (
                                 <div 
                                   key={idx}
                                   className="flex items-center justify-between p-2.5 bg-luxury-950 border border-white/5 rounded-xl text-xs hover:border-white/10 transition"
@@ -661,13 +862,12 @@ export default function SubtitleTools() {
                                   <div className="flex items-center gap-3">
                                     <input 
                                       type="checkbox" 
-                                      checked={selectedGaps.includes(idx)}
+                                      checked={activeFile.selectedGaps.includes(idx)}
                                       onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setSelectedGaps(prev => [...prev, idx]);
-                                        } else {
-                                          setSelectedGaps(prev => prev.filter(v => v !== idx));
-                                        }
+                                        const updatedGaps = e.target.checked
+                                          ? [...activeFile.selectedGaps, idx]
+                                          : activeFile.selectedGaps.filter(v => v !== idx);
+                                        updateFileState(activeFile.id, { selectedGaps: updatedGaps });
                                       }}
                                       className="rounded accent-brand-primary"
                                     />
@@ -676,8 +876,8 @@ export default function SubtitleTools() {
                                       <span className="text-[10px] text-slate-500 ml-2">Duration: {gap.durationSec}s</span>
                                     </div>
                                   </div>
-                                  <div className="text-[10px] text-slate-400 font-mono">
-                                    {gap.start.split(',')[0]} <ArrowRight className="inline w-3 h-3 mx-1" /> {gap.end.split(',')[0]}
+                                  <div className="text-[10px] text-slate-400 font-mono flex items-center">
+                                    {gap.start.split(',')[0]} <ArrowRight className="inline w-3 h-3 mx-1 text-slate-500" /> {gap.end.split(',')[0]}
                                   </div>
                                 </div>
                               ))}
@@ -700,17 +900,17 @@ export default function SubtitleTools() {
                       <AlertTriangle className="w-4.5 h-4.5 text-amber-500" /> Competitor Ads Clean Up
                     </h2>
                     <p className="text-slate-400 text-xs">
-                      We automatically scanned the subtitle file and found these potential competitor branding lines.
+                      Scanned competitor branding lines for <b className="text-slate-300">{activeFile.name}</b>.
                     </p>
 
-                    {detectedCompetitors.length === 0 ? (
+                    {activeFile.detectedCompetitors.length === 0 ? (
                       <div className="p-8 bg-luxury-950 border border-white/5 rounded-2xl text-center text-xs text-emerald-400 flex flex-col items-center justify-center gap-2">
                         <CheckCircle className="w-8 h-8 text-emerald-500" />
                         No competitor brandings found in this subtitle!
                       </div>
                     ) : (
-                      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-                        {detectedCompetitors.map((sub) => (
+                      <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1 scrollbar-none">
+                        {activeFile.detectedCompetitors.map((sub) => (
                           <div 
                             key={sub.id}
                             className="bg-luxury-950 border border-white/10 rounded-xl p-3.5 space-y-2.5 text-xs"
@@ -719,9 +919,12 @@ export default function SubtitleTools() {
                               <span className="text-[10px] font-mono text-slate-500">Block #{sub.id} ({sub.start.split(',')[0]})</span>
                               <div className="flex gap-1.5">
                                 <button
-                                  onClick={() => setCompetitorActions(prev => ({ ...prev, [sub.id]: 'replace' }))}
+                                  onClick={() => {
+                                    const actions = { ...activeFile.competitorActions, [sub.id]: 'replace' };
+                                    updateFileState(activeFile.id, { competitorActions: actions });
+                                  }}
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    competitorActions[sub.id] === 'replace'
+                                    activeFile.competitorActions[sub.id] === 'replace'
                                       ? 'bg-brand-primary text-white font-black'
                                       : 'bg-white/5 text-slate-400 hover:text-slate-300'
                                   }`}
@@ -729,9 +932,12 @@ export default function SubtitleTools() {
                                   Replace
                                 </button>
                                 <button
-                                  onClick={() => setCompetitorActions(prev => ({ ...prev, [sub.id]: 'remove' }))}
+                                  onClick={() => {
+                                    const actions = { ...activeFile.competitorActions, [sub.id]: 'remove' };
+                                    updateFileState(activeFile.id, { competitorActions: actions });
+                                  }}
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    competitorActions[sub.id] === 'remove'
+                                    activeFile.competitorActions[sub.id] === 'remove'
                                       ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                                       : 'bg-white/5 text-slate-400 hover:text-slate-300'
                                   }`}
@@ -739,9 +945,12 @@ export default function SubtitleTools() {
                                   Remove
                                 </button>
                                 <button
-                                  onClick={() => setCompetitorActions(prev => ({ ...prev, [sub.id]: 'ignore' }))}
+                                  onClick={() => {
+                                    const actions = { ...activeFile.competitorActions, [sub.id]: 'ignore' };
+                                    updateFileState(activeFile.id, { competitorActions: actions });
+                                  }}
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    competitorActions[sub.id] === 'ignore'
+                                    activeFile.competitorActions[sub.id] === 'ignore'
                                       ? 'bg-white/10 text-white'
                                       : 'bg-white/5 text-slate-400 hover:text-slate-300'
                                   }`}
@@ -761,10 +970,10 @@ export default function SubtitleTools() {
 
                   {/* Process Action */}
                   <button
-                    onClick={processBranding}
+                    onClick={processBrandingBatch}
                     className="w-full py-4 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-95 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition shadow-lg flex items-center justify-center gap-2"
                   >
-                    <Plus className="w-4.5 h-4.5" /> Inject Branding & Clean
+                    <Plus className="w-4.5 h-4.5" /> Inject Branding & Clean All
                   </button>
 
                 </div>
@@ -773,11 +982,11 @@ export default function SubtitleTools() {
             )}
 
             {/* 3. AI TRANSLATION TAB */}
-            {activeTab === 'translate' && (
+            {activeTab === 'translate' && activeFile && (
               <div className="max-w-3xl mx-auto bg-luxury-900 border border-white/5 rounded-3xl p-8 space-y-6">
                 <div className="flex items-center gap-4 border-b border-white/5 pb-4">
                   <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent">
-                    <Sparkles className="w-6 h-6 animate-pulse" />
+                    <Sparkles className="w-6 h-6" />
                   </div>
                   <div>
                     <h2 className="text-lg font-black text-white uppercase tracking-wider">AI Subtitle Translator (Gemini)</h2>
@@ -787,62 +996,89 @@ export default function SubtitleTools() {
 
                 <div className="p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/10 text-xs text-slate-300 leading-relaxed space-y-2">
                   <p className="font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-brand-primary" /> How it works:
+                    <AlertTriangle className="w-4 h-4 text-brand-primary" /> Batch AI Translation:
                   </p>
                   <ul className="list-disc list-inside space-y-1 text-slate-400">
-                    <li>The subtitles will be split into batches of 40 blocks.</li>
-                    <li>We call Gemini 1.5 Flash to translate dialogue text.</li>
-                    <li>Exact timestamps, sequence numbers, and text colors are preserved.</li>
-                    <li>Requires <b className="text-white">GEMINI_API_KEY</b> configured in the server's backend configuration.</li>
+                    <li>Subtitles are split into batches of 40 blocks and translated sequentially.</li>
+                    <li>You can translate only the selected file, or trigger all files in a batch.</li>
+                    <li>Exact timestamps, sequence numbers, and formatting tags are preserved.</li>
                   </ul>
                 </div>
 
-                {/* Progress Indicators */}
-                {isTranslating && (
-                  <div className="space-y-3 p-6 bg-luxury-950 border border-white/5 rounded-2xl">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-400 uppercase">Translation Progress</span>
-                      <span className="font-black text-brand-accent font-mono">{translationProgress}%</span>
+                {/* Progress Indicators for All Files */}
+                <div className="space-y-4">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black block">Translation Queue & Status:</span>
+                  {files.map((file) => (
+                    <div 
+                      key={file.id}
+                      className={`p-4 rounded-xl border text-xs flex flex-col gap-2 transition ${
+                        file.id === selectedFileId 
+                          ? 'bg-luxury-950 border-brand-primary/30' 
+                          : 'bg-luxury-950/40 border-white/5'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-300 truncate max-w-[250px]">{file.name}</span>
+                        {file.isTranslating ? (
+                          <span className="text-[10px] text-brand-accent font-mono animate-pulse">Translating ({file.translationProgress}%)</span>
+                        ) : file.isTranslated ? (
+                          <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" /> Ready
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">Queued</span>
+                        )}
+                      </div>
+                      
+                      {file.isTranslating && (
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden border border-white/10">
+                          <div 
+                            className="bg-gradient-to-r from-brand-primary to-brand-accent h-full transition-all duration-300"
+                            style={{ width: `${file.translationProgress}%` }}
+                          />
+                        </div>
+                      )}
+
+                      {file.translateStatusMsg && file.isTranslating && (
+                        <p className="text-[9px] text-slate-500 font-mono">{file.translateStatusMsg}</p>
+                      )}
+
+                      {file.translationError && (
+                        <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-mono mt-1">
+                          {file.translationError}
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Progress Bar */}
-                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10">
-                      <div 
-                        className="bg-gradient-to-r from-brand-primary to-brand-accent h-full transition-all duration-300"
-                        style={{ width: `${translationProgress}%` }}
-                      />
-                    </div>
+                  ))}
+                </div>
 
-                    <p className="text-[10px] text-slate-500 font-mono animate-pulse">{translateStatusMsg}</p>
-                  </div>
-                )}
-
-                {translationError && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
-                    {translationError}
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-white/5">
                   <button
-                    disabled={isTranslating}
+                    disabled={files.some(f => f.isTranslating)}
                     onClick={() => setActiveTab('brand')}
                     className="px-5 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold border border-white/10 transition"
                   >
                     Go Back
                   </button>
                   <button
-                    onClick={startTranslation}
-                    disabled={isTranslating}
+                    onClick={handleTranslateSelected}
+                    disabled={files.some(f => f.isTranslating) || !activeFile}
+                    className="px-5 py-3 bg-brand-primary/10 border border-brand-primary/20 hover:bg-brand-primary/20 text-brand-primary rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Languages className="w-4 h-4" /> Translate Selected
+                  </button>
+                  <button
+                    onClick={handleTranslateAll}
+                    disabled={files.some(f => f.isTranslating)}
                     className="px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isTranslating ? (
+                    {files.some(f => f.isTranslating) ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin" /> Translating...
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Translating Batch...
                       </>
                     ) : (
                       <>
-                        <Languages className="w-4 h-4" /> Start AI Translation
+                        <Sparkles className="w-4 h-4" /> Translate All Files
                       </>
                     )}
                   </button>
@@ -851,29 +1087,44 @@ export default function SubtitleTools() {
             )}
 
             {/* 4. EXPORT TAB */}
-            {activeTab === 'export' && processedSubs.length > 0 && (
+            {activeTab === 'export' && activeFile && (
               <div className="space-y-6">
                 
                 {/* File summary and download */}
-                <div className="bg-luxury-900 border border-white/5 p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="bg-luxury-900 border border-white/5 p-6 rounded-2xl flex flex-col lg:flex-row justify-between items-center gap-4">
                   <div>
                     <h3 className="text-sm font-black text-white uppercase tracking-wider">Processed Subtitle Ready</h3>
                     <p className="text-slate-400 text-xs mt-1">
-                      File: <b className="text-slate-300">{fileName.replace('.srt', '')}_KSubZone_branded.srt</b> • Blocks: <b className="text-brand-primary font-mono">{processedSubs.length}</b>
+                      File: <b className="text-slate-300">{activeFile.name.replace('.srt', '')}_KSubZone_branded.srt</b> • Blocks: <b className="text-brand-primary font-mono">{activeFile.processedSubs.length}</b>
                     </p>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => setActiveTab('translate')}
                       className="px-5 py-3 bg-brand-accent/10 border border-brand-accent/25 hover:bg-brand-accent/20 text-brand-accent rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5"
                     >
-                      <Sparkles className="w-4 h-4" /> AI Translate Now
+                      <Sparkles className="w-4 h-4" /> AI Translate
                     </button>
+                    {files.length > 1 && (
+                      <button
+                        onClick={handleDownloadAll}
+                        className="px-5 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                      >
+                        <Download className="w-4 h-4" /> Download All ({files.length})
+                      </button>
+                    )}
                     <button
-                      onClick={handleDownload}
+                      onClick={handleDownloadSelected}
                       className="px-5 py-3 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5 shadow-lg"
                     >
-                      <Download className="w-4 h-4" /> Download Subtitle
+                      <Download className="w-4 h-4" /> Download Selected
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="px-5 py-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                      title="Clear and upload new subtitles"
+                    >
+                      <Undo className="w-4 h-4" /> Reset & Start New
                     </button>
                   </div>
                 </div>
@@ -884,13 +1135,13 @@ export default function SubtitleTools() {
                     <div className="flex items-center gap-2">
                       <Eye className="w-4 h-4 text-brand-primary" />
                       <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest">
-                        {previewMode === 'blocks' ? 'Live Subtitle Content Preview' : 'Raw SRT Text Editor (Full)'}
+                        {previewMode === 'blocks' ? 'Live Subtitle Content Preview & Edit' : 'Raw SRT Text Editor (Full)'}
                       </h4>
                     </div>
 
                     <div className="flex items-center gap-3">
                       {previewMode === 'blocks' && (
-                        <span className="text-[10px] text-slate-500">Previewing first 200 blocks</span>
+                        <span className="text-[10px] text-slate-500">Click Edit to modify or Trash to delete individual blocks</span>
                       )}
                       <div className="flex bg-luxury-950 p-1 rounded-xl border border-white/10">
                         <button
@@ -920,13 +1171,15 @@ export default function SubtitleTools() {
                   </div>
 
                   {previewMode === 'blocks' ? (
-                    <div className="flex-grow overflow-auto p-6 space-y-4 select-text">
-                      {processedSubs.slice(0, 200).map((sub) => {
+                    <div className="flex-grow overflow-auto p-6 space-y-4 select-text scrollbar-none">
+                      {activeFile.processedSubs.map((sub) => {
                         const isAd = String(sub.id).includes('ad-') || (sub.text || '').includes('ksubzone');
+                        const isEditingThis = editingBlockId === sub.id;
+
                         return (
                           <div 
                             key={sub.id}
-                            className={`p-4 border rounded-2xl flex flex-col sm:flex-row gap-4 items-start ${
+                            className={`p-4 border rounded-2xl flex flex-col sm:flex-row gap-4 items-start relative group transition-colors ${
                               isAd 
                                 ? 'bg-brand-primary/5 border-brand-primary/20' 
                                 : 'bg-luxury-950 border-white/5 hover:border-white/10'
@@ -945,14 +1198,61 @@ export default function SubtitleTools() {
                               </div>
                             </div>
 
-                            <div className="flex-grow">
+                            <div className="flex-grow w-full">
                               {isAd && (
                                 <span className="inline-block px-1.5 py-0.5 mb-1.5 text-[8px] font-black uppercase tracking-wider rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
                                   injected KSubZone ad
                                 </span>
                               )}
-                              <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed select-text" dangerouslySetInnerHTML={{ __html: sub.text || '' }} />
+
+                              {isEditingThis ? (
+                                <div className="space-y-2 mt-1">
+                                  <textarea
+                                    value={editingText}
+                                    onChange={(e) => setEditingText(e.target.value)}
+                                    className="w-full bg-luxury-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-slate-200 outline-none focus:border-brand-primary resize-y"
+                                    rows={Math.max(2, editingText.split('\n').length)}
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      onClick={() => setEditingBlockId(null)}
+                                      className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white rounded text-[10px] uppercase font-black transition"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => saveBlockEdit(sub.id)}
+                                      className="px-3 py-1 bg-brand-primary hover:bg-brand-primary/95 text-white rounded text-[10px] uppercase font-black transition"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed select-text" dangerouslySetInnerHTML={{ __html: sub.text || '' }} />
+                              )}
                             </div>
+
+                            {/* Block Actions (Hover overlay) */}
+                            {!isEditingThis && (
+                              <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-luxury-900 border border-white/10 rounded-xl p-1 shadow-lg">
+                                <button
+                                  onClick={() => startBlockEdit(sub)}
+                                  className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-white rounded transition"
+                                  title="Edit Block Content"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => deleteBlock(sub.id)}
+                                  className="p-1.5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded transition"
+                                  title="Delete Block"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -960,19 +1260,21 @@ export default function SubtitleTools() {
                   ) : (
                     <div className="flex-grow flex flex-col p-6 bg-luxury-950/40 relative">
                       <textarea
-                        value={editableSrtText}
+                        value={activeFile.editableSrtText}
                         onChange={(e) => {
                           const newText = e.target.value;
-                          setEditableSrtText(newText);
                           const parsed = parseSRT(newText);
-                          setProcessedSubs(parsed);
+                          updateFileState(activeFile.id, {
+                            editableSrtText: newText,
+                            processedSubs: parsed
+                          });
                         }}
                         placeholder="Paste or edit subtitle content here in standard SRT format..."
                         className="flex-grow w-full bg-luxury-950/80 border border-white/10 rounded-2xl p-4 text-xs font-mono text-slate-200 outline-none focus:border-brand-primary resize-none overflow-y-auto"
                       />
                       <div className="mt-3 flex justify-between items-center text-[10px] text-slate-500 font-mono px-2">
-                        <span>Characters: {editableSrtText.length}</span>
-                        <span>Subtitle Blocks: {processedSubs.length}</span>
+                        <span>Characters: {activeFile.editableSrtText.length}</span>
+                        <span>Subtitle Blocks: {activeFile.processedSubs.length}</span>
                       </div>
                     </div>
                   )}
