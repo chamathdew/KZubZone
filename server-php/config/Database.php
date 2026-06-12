@@ -509,7 +509,7 @@ class Database {
         if (!$doc) return null;
         $doc = (array)$doc;
         foreach ($doc as $k => $v) {
-            if ($k === '_id' && $v instanceof \MongoDB\BSON\ObjectId) {
+            if ($v instanceof \MongoDB\BSON\ObjectId) {
                 $doc[$k] = (string)$v;
             } elseif ($v instanceof \MongoDB\BSON\UTCDateTime) {
                 $doc[$k] = $v->toDateTime()->format('Y-m-d H:i:s');

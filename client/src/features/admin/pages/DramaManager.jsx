@@ -479,7 +479,9 @@ export default function DramaManager() {
                               <p className="text-xs text-slate-500 py-4 text-center">No seasons defined.</p>
                             ) : (
                               expandedData.seasons.map((season) => {
-                                const seasonEpisodes = expandedData.episodes.filter(ep => ep.seasonId === season._id);
+                                const seasonEpisodes = expandedData.episodes
+                                  .filter(ep => ep.seasonId === season._id)
+                                  .sort((a, b) => Number(a.episodeNumber) - Number(b.episodeNumber));
                                 return (
                                   <div key={season._id} className="border border-white/5 rounded-xl p-4 bg-luxury-900 bg-opacity-25 space-y-4">
                                     <div className="flex justify-between items-center">
