@@ -595,13 +595,28 @@ class Database {
                         $params["{$paramName}_lt"] = $val;
                     } elseif ($op === '$in') {
                         $subClauses = [];
-                        foreach ($val as $idx => $item) {
-                            $p = "{$paramName}_in_{$idx}";
-                            $subClauses[] = "{$sqlField} LIKE {$p}";
-                            $params[$p] = '%' . $item . '%';
-                        }
-                        if (!empty($subClauses)) {
-                            $clauses[] = "(" . implode(" OR ", $subClauses) . ")";
+                        $isArrayField = in_array($k, ['keywords', 'tags']);
+                        if (is_array($val)) {
+                            if (empty($val)) {
+                                $clauses[] = "1 = 0";
+                            } elseif ($isArrayField) {
+                                foreach ($val as $idx => $item) {
+                                    $p = "{$paramName}_in_{$idx}";
+                                    $subClauses[] = "{$sqlField} LIKE {$p}";
+                                    $params[$p] = '%' . $item . '%';
+                                }
+                                if (!empty($subClauses)) {
+                                    $clauses[] = "(" . implode(" OR ", $subClauses) . ")";
+                                }
+                            } else {
+                                $pNames = [];
+                                foreach ($val as $idx => $item) {
+                                    $p = "{$paramName}_in_{$idx}";
+                                    $pNames[] = $p;
+                                    $params[$p] = $item;
+                                }
+                                $clauses[] = "{$sqlField} IN (" . implode(", ", $pNames) . ")";
+                            }
                         }
                     } elseif ($op === '$regex') {
                         $pattern = (string)$val;

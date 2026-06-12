@@ -88,7 +88,7 @@ export default function DramaManager() {
   const fetchDramas = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/api/media/dramas?status=Published&limit=100');
+      const res = await apiClient.get(`/api/media/dramas?status=Published&limit=100&t=${Date.now()}`);
       setDramas(res.data.dramas);
     } catch (err) {
       setError('Failed to fetch dramas catalog');
@@ -110,7 +110,7 @@ export default function DramaManager() {
     setExpandedDramaId(drama._id);
     setLoadingExpansion(true);
     try {
-      const res = await apiClient.get(`/api/media/dramas/${drama.slug}`);
+      const res = await apiClient.get(`/api/media/dramas/${drama.slug}?t=${Date.now()}`);
       setExpandedData({
         seasons: res.data.seasons || [],
         episodes: res.data.episodes || []
@@ -128,7 +128,7 @@ export default function DramaManager() {
     if (!dramaObj) return;
     setLoadingExpansion(true);
     try {
-      const res = await apiClient.get(`/api/media/dramas/${dramaObj.slug}`);
+      const res = await apiClient.get(`/api/media/dramas/${dramaObj.slug}?t=${Date.now()}`);
       setExpandedData({
         seasons: res.data.seasons || [],
         episodes: res.data.episodes || []

@@ -60,7 +60,7 @@ export default function MovieManager() {
   const fetchMovies = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/api/media/movies?status=Published&limit=100');
+      const res = await apiClient.get(`/api/media/movies?status=Published&limit=100&t=${Date.now()}`);
       // Also get drafts if any (in this case, just fetch all)
       setMovies(res.data.movies);
     } catch (err) {

@@ -45,6 +45,13 @@ header("Referrer-Policy: no-referrer-when-downgrade");
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Prevent caching for API requests
+if (strpos($uri, '/api/') === 0) {
+    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+    header("Cache-Control: post-check=0, pre-check=0", false);
+    header("Pragma: no-cache");
+}
+
 // Static upload file serving fallback
 if (strpos($uri, '/uploads/') === 0) {
     $filePath = __DIR__ . $uri;
