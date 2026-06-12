@@ -62,6 +62,35 @@ export default function Detail({ type = 'Movie', initialData }) {
     }
   }, [seasons, type, selectedSeason]);
 
+  // Handle URL hash or query scroll for subtitles and clean the URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const checkAndScroll = () => {
+      const hasSubtitlesHash = window.location.hash === '#subtitles' || window.location.hash === '#subtitle';
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasSubtitlesQuery = urlParams.get('scrollTo') === 'subtitles';
+
+      if (hasSubtitlesHash || hasSubtitlesQuery) {
+        const element = document.getElementById('subtitles');
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }, 200);
+        }
+
+        // Clean URL by removing query param and hash
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState(null, '', cleanUrl);
+      }
+    };
+
+    // Run check on mount or when data loads
+    if (media?._id) {
+      checkAndScroll();
+    }
+  }, [media?._id]);
+
   const activeSeasonDoc = seasons.find(s => s.seasonNumber === selectedSeason);
   const activeEpisodes = episodes
     .filter(ep => getId(ep.seasonId) === getId(activeSeasonDoc?._id))
@@ -551,9 +580,11 @@ export default function Detail({ type = 'Movie', initialData }) {
               </div>
             )}
 
-            {/* Drama Episode Subtitle Center */}
-            {type === 'Drama' && seasons.length > 0 && (
-              <div className="flex flex-col gap-4 text-left" id="subtitles">
+            {/* Subtitles Section Wrapper */}
+            <div id="subtitles" className="flex flex-col gap-6 w-full">
+              {/* Drama Episode Subtitle Center */}
+              {type === 'Drama' && seasons.length > 0 && (
+                <div className="flex flex-col gap-4 text-left">
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Subtitle Center</p>
@@ -766,6 +797,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                 )}
               </div>
             )}
+            </div>
 
             {/* Discussion Comments */}
             <div className="flex flex-col gap-6 text-left" id="comments">

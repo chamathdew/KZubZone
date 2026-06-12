@@ -127,7 +127,7 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
   const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % items.length);
   const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
   const openDetails = () => router.push(`/${type}/${currentSlug}`);
-  const openDownloads = () => router.push(`/${type}/${currentSlug}#subtitles`);
+  const openDownloads = () => router.push(`/${type}/${currentSlug}?scrollTo=subtitles`);
 
   return (
     <section className="relative w-full min-h-[86vh] overflow-hidden group bg-luxury-950">
