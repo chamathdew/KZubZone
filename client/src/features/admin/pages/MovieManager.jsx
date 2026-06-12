@@ -58,15 +58,15 @@ export default function MovieManager() {
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
 
-  const fetchMovies = async (selectedStatus = filterStatus) => {
-    setLoading(true);
+  const fetchMovies = async (selectedStatus = filterStatus, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.get(`/api/media/movies?status=${selectedStatus}&limit=100&t=${Date.now()}`);
       setMovies(res.data.movies);
     } catch (err) {
       setError('Failed to fetch movies catalog');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -147,7 +147,7 @@ export default function MovieManager() {
         await apiClient.post('/api/admin/movies', payload);
       }
       setShowModal(false);
-      fetchMovies();
+      fetchMovies(filterStatus, true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to persist movie record.');
     } finally {
@@ -160,7 +160,7 @@ export default function MovieManager() {
     try {
 
       await apiClient.delete(`/api/admin/movies/${id}`);
-      fetchMovies();
+      fetchMovies(filterStatus, true);
     } catch (err) {
       alert('Delete operation failed.');
     }
@@ -534,7 +534,7 @@ export default function MovieManager() {
         mediaId={uploadTarget?.mediaId}
         mediaType={uploadTarget?.mediaType || 'Movie'}
         targetMeta={uploadTarget || { label: 'Movie' }}
-        onUploadSuccess={fetchMovies}
+        onUploadSuccess={() => fetchMovies(filterStatus, true)}
       />
 
       {/* Subtitle Management Modal Box */}
@@ -546,7 +546,7 @@ export default function MovieManager() {
         }}
         mediaId={manageTarget?.mediaId}
         label={manageTarget?.label}
-        onDeleteSuccess={fetchMovies}
+        onDeleteSuccess={() => fetchMovies(filterStatus, true)}
       />
     </div>
   );

@@ -86,15 +86,15 @@ export default function DramaManager() {
   const [videoUrl, setVideoUrl] = useState('https://www.w3schools.com/html/mov_bbb.mp4');
   const [savingEpisode, setSavingEpisode] = useState(false);
 
-  const fetchDramas = async (selectedStatus = filterStatus) => {
-    setLoading(true);
+  const fetchDramas = async (selectedStatus = filterStatus, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.get(`/api/media/dramas?status=${selectedStatus}&limit=100&t=${Date.now()}`);
       setDramas(res.data.dramas);
     } catch (err) {
       setError('Failed to fetch dramas catalog');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -201,7 +201,7 @@ export default function DramaManager() {
         await apiClient.post('/api/admin/dramas', payload);
       }
       setShowDramaModal(false);
-      fetchDramas();
+      fetchDramas(filterStatus, true);
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Error saving drama.';
       alert('Error saving drama: ' + msg);
@@ -216,7 +216,7 @@ export default function DramaManager() {
 
       await apiClient.delete(`/api/admin/dramas/${id}`);
       setExpandedDramaId(null);
-      fetchDramas();
+      fetchDramas(filterStatus, true);
     } catch (err) {
       alert('Delete failed');
     }
@@ -258,12 +258,8 @@ export default function DramaManager() {
       }
       setShowSeasonModal(false);
       
-      // Refresh current expanded drama
-      const dramaObj = dramas.find(d => d._id === expandedDramaId);
-      if (dramaObj) {
-        setExpandedDramaId(null);
-        handleExpandDrama(dramaObj);
-      }
+      // Refresh current expanded drama inline
+      refreshExpandedDrama();
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Season processing failed.';
       alert('Season error: ' + msg);
@@ -277,11 +273,7 @@ export default function DramaManager() {
     try {
 
       await apiClient.delete(`/api/admin/seasons/${seasonId}`);
-      const dramaObj = dramas.find(d => d._id === expandedDramaId);
-      if (dramaObj) {
-        setExpandedDramaId(null);
-        handleExpandDrama(dramaObj);
-      }
+      refreshExpandedDrama();
     } catch (err) {
       alert('Delete failed');
     }
@@ -337,11 +329,7 @@ export default function DramaManager() {
         await apiClient.post('/api/admin/episodes', payload);
       }
       setShowEpisodeModal(false);
-      const dramaObj = dramas.find(d => d._id === expandedDramaId);
-      if (dramaObj) {
-        setExpandedDramaId(null);
-        handleExpandDrama(dramaObj);
-      }
+      refreshExpandedDrama();
     } catch (err) {
       alert('Episode processing failed');
     } finally {
@@ -354,11 +342,7 @@ export default function DramaManager() {
     try {
 
       await apiClient.delete(`/api/admin/episodes/${epId}`);
-      const dramaObj = dramas.find(d => d._id === expandedDramaId);
-      if (dramaObj) {
-        setExpandedDramaId(null);
-        handleExpandDrama(dramaObj);
-      }
+      refreshExpandedDrama();
     } catch (err) {
       alert('Delete failed');
     }

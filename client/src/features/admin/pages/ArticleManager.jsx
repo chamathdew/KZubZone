@@ -41,15 +41,15 @@ export default function ArticleManager() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  const fetchArticles = async () => {
-    setLoading(true);
+  const fetchArticles = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.get('/api/admin/articles', tokenHeaders());
       setArticles(res.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load articles');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -100,7 +100,7 @@ export default function ArticleManager() {
         await apiClient.post('/api/admin/articles', form, tokenHeaders());
       }
       setShowModal(false);
-      fetchArticles();
+      fetchArticles(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save article');
     } finally {
@@ -112,7 +112,7 @@ export default function ArticleManager() {
     if (!window.confirm(`Delete article "${article.title}"?`)) return;
     try {
       await apiClient.delete(`/api/admin/articles/${article._id}`, tokenHeaders());
-      fetchArticles();
+      fetchArticles(true);
     } catch (err) {
       alert(err.response?.data?.message || 'Delete failed');
     }
