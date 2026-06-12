@@ -45,9 +45,13 @@ class Storage {
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 "Authorization: Bearer {$supabaseKey}",
                 "apikey: {$supabaseKey}",
-                "Content-Type: {$mimeType}"
+                "Content-Type: {$mimeType}",
+                "Expect:" // Disable 100-continue for faster uploads
             ]);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4); // Force IPv4 to prevent IPv6 DNS delays
 
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
