@@ -375,10 +375,10 @@ class TmdbController {
 
         if ($type === 'tv') {
             $media = self::processDramaData($data, $isHistorical);
-            echo json_encode(['message' => 'Drama imported successfully', 'media' => $media]);
+            echo json_encode(['message' => 'Drama imported successfully as Draft', 'media' => $media]);
         } else {
             $media = self::processMovieData($data, $isHistorical);
-            echo json_encode(['message' => 'Movie imported successfully', 'media' => $media]);
+            echo json_encode(['message' => 'Movie imported successfully as Draft', 'media' => $media]);
         }
     }
 
@@ -465,7 +465,7 @@ class TmdbController {
             'studio' => $data['studio'] ?? ($data['production_companies'][0]['name'] ?? 'Unknown Studio'),
             'cast' => $cast,
             'tmdbId' => $data['id'],
-            'status' => 'Published',
+            'status' => 'Draft',
             'isHistorical' => $isHistorical
         ];
 
@@ -573,7 +573,7 @@ class TmdbController {
             'studio' => $data['studio'] ?? ($data['production_companies'][0]['name'] ?? 'Unknown Studio'),
             'cast' => $cast,
             'tmdbId' => $data['id'],
-            'status' => 'Published',
+            'status' => 'Draft',
             'isHistorical' => $isHistorical
         ];
 
@@ -913,7 +913,7 @@ class TmdbController {
 
         header('Content-Type: application/json');
         echo json_encode([
-            'message' => "Bulk import complete: " . count($imported) . " imported, " . count($failed) . " failed",
+            'message' => "Bulk import complete: " . count($imported) . " imported as Draft, " . count($failed) . " failed",
             'imported' => $imported,
             'failed' => $failed
         ]);

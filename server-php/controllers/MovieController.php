@@ -21,9 +21,9 @@ class MovieController {
 
         $filter = [];
         
-        if ($status) {
+        if ($status && $status !== 'All') {
             $filter['status'] = $status;
-        } else {
+        } elseif (!$status) {
             $filter['status'] = 'Published';
         }
 
@@ -200,6 +200,12 @@ class MovieController {
         // Match exact slug and legacy links that stripped unique numeric suffixes.
         $movie = Slug::findByPermalinkSlug($db, 'movies', $slug);
         if (!$movie) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Movie not found']);
+            return;
+        }
+
+        if (($movie['status'] ?? 'Published') !== 'Published' && !\Middleware\AuthMiddleware::isAdmin()) {
             http_response_code(404);
             echo json_encode(['message' => 'Movie not found']);
             return;

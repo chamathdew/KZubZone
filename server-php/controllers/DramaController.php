@@ -20,9 +20,9 @@ class DramaController {
         $isHistorical = $_GET['isHistorical'] ?? null;
 
         $filter = [];
-        if ($status) {
+        if ($status && $status !== 'All') {
             $filter['status'] = $status;
-        } else {
+        } elseif (!$status) {
             $filter['status'] = 'Published';
         }
 
@@ -99,6 +99,12 @@ class DramaController {
 
         $drama = Slug::findByPermalinkSlug($db, 'dramas', $slug);
         if (!$drama) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Drama not found']);
+            return;
+        }
+
+        if (($drama['status'] ?? 'Published') !== 'Published' && !\Middleware\AuthMiddleware::isAdmin()) {
             http_response_code(404);
             echo json_encode(['message' => 'Drama not found']);
             return;

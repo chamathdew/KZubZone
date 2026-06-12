@@ -109,6 +109,24 @@ class AuthMiddleware {
         return $admin;
     }
 
+    public static function isAdmin() {
+        $token = self::getBearerToken();
+        if (!$token) {
+            return false;
+        }
+
+        $secret = $_ENV['JWT_SECRET'] ?? 'ksubzone_secret_key_2026';
+        $decoded = \Utils\JWT::verify($token, $secret);
+        if (!$decoded || ($decoded['role'] ?? '') !== 'admin') {
+            return false;
+        }
+
+        $db = Database::getInstance();
+        $admin = $db->findOne('admins', ['_id' => $decoded['id']]);
+        return (bool)$admin;
+    }
+
+
     public static function hasPermission($permissionName) {
         if (!self::$currentAdmin) {
             http_response_code(401);

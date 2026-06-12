@@ -107,6 +107,7 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
             }, $keywords));
             
             $dbQuery = [
+                'status' => 'Published',
                 '$or' => [
                     ['title' => ['$regex' => $regexPattern, '$options' => 'i']],
                     ['synopsis' => ['$regex' => $regexPattern, '$options' => 'i']],

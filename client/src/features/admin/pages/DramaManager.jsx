@@ -67,6 +67,7 @@ export default function DramaManager() {
   const [isHistorical, setIsHistorical] = useState(false);
   const [status, setStatus] = useState('Published');
   const [savingDrama, setSavingDrama] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('All');
 
   // Season Fields State
   const [seasonNumber, setSeasonNumber] = useState('');
@@ -85,10 +86,10 @@ export default function DramaManager() {
   const [videoUrl, setVideoUrl] = useState('https://www.w3schools.com/html/mov_bbb.mp4');
   const [savingEpisode, setSavingEpisode] = useState(false);
 
-  const fetchDramas = async () => {
+  const fetchDramas = async (selectedStatus = filterStatus) => {
     setLoading(true);
     try {
-      const res = await apiClient.get(`/api/media/dramas?status=Published&limit=100&t=${Date.now()}`);
+      const res = await apiClient.get(`/api/media/dramas?status=${selectedStatus}&limit=100&t=${Date.now()}`);
       setDramas(res.data.dramas);
     } catch (err) {
       setError('Failed to fetch dramas catalog');
@@ -98,8 +99,8 @@ export default function DramaManager() {
   };
 
   useEffect(() => {
-    fetchDramas();
-  }, []);
+    fetchDramas(filterStatus);
+  }, [filterStatus]);
 
   const handleExpandDrama = async (drama) => {
     if (expandedDramaId === drama._id) {
@@ -385,6 +386,24 @@ export default function DramaManager() {
             </button>
           </div>
 
+          {/* Status Filter Tabs */}
+          <div className="flex gap-2 mb-6 bg-luxury-900/50 p-1.5 rounded-xl border border-white/5 w-fit">
+            {['All', 'Published', 'Draft'].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setFilterStatus(s)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
+                  filterStatus === s
+                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-4">
             {loading ? (
               <div className="text-center py-12 text-slate-500">Loading catalog...</div>
@@ -424,6 +443,16 @@ export default function DramaManager() {
                         </div>
                         <div className="text-slate-400">
                           TMDB: <span className="text-slate-100 font-bold">{drama.tmdbRating || '0.0'}</span>
+                        </div>
+                        <div className="text-slate-400 flex items-center gap-1">
+                          STATUS: 
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                            drama.status === 'Published'
+                              ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                              : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {drama.status || 'Draft'}
+                          </span>
                         </div>
                         <div className="text-slate-400">
                           VIEWS: <span className="text-slate-100 font-bold">{drama.viewCount}</span>
@@ -631,6 +660,17 @@ export default function DramaManager() {
                   <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">IMDb Rating</label>
                   <input type="text" value={imdbRating} onChange={e => setImdbRating(e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Status</label>
+                <select
+                  value={status}
+                  onChange={e => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-xs outline-none text-slate-200 focus:border-brand-primary"
+                >
+                  <option value="Published">Published</option>
+                  <option value="Draft">Draft</option>
+                </select>
               </div>
               <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 text-xs font-bold text-slate-300">

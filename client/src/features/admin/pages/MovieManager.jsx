@@ -56,12 +56,12 @@ export default function MovieManager() {
   const [isHistorical, setIsHistorical] = useState(false);
   const [status, setStatus] = useState('Published');
   const [saving, setSaving] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('All');
 
-  const fetchMovies = async () => {
+  const fetchMovies = async (selectedStatus = filterStatus) => {
     setLoading(true);
     try {
-      const res = await apiClient.get(`/api/media/movies?status=Published&limit=100&t=${Date.now()}`);
-      // Also get drafts if any (in this case, just fetch all)
+      const res = await apiClient.get(`/api/media/movies?status=${selectedStatus}&limit=100&t=${Date.now()}`);
       setMovies(res.data.movies);
     } catch (err) {
       setError('Failed to fetch movies catalog');
@@ -71,8 +71,8 @@ export default function MovieManager() {
   };
 
   useEffect(() => {
-    fetchMovies();
-  }, []);
+    fetchMovies(filterStatus);
+  }, [filterStatus]);
 
   const handleOpenCreate = () => {
     setEditingMovie(null);
@@ -186,6 +186,24 @@ export default function MovieManager() {
             >
               <Plus className="w-4 h-4" /> Add Movie Manually
             </button>
+          </div>
+
+          {/* Status Filter Tabs */}
+          <div className="flex gap-2 mb-6 bg-luxury-900/50 p-1.5 rounded-xl border border-white/5 w-fit">
+            {['All', 'Published', 'Draft'].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setFilterStatus(s)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition ${
+                  filterStatus === s
+                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
           </div>
 
           {/* Table display */}

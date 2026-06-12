@@ -268,9 +268,21 @@ export default function TmdbImport() {
           )}
 
           {importSuccess && (
-            <div className="p-4 mb-6 rounded-xl bg-emerald-500 bg-opacity-10 border border-emerald-500 border-opacity-20 text-emerald-400 text-sm flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{importSuccess}</span>
+            <div className="p-4 mb-6 rounded-xl bg-emerald-500 bg-opacity-10 border border-emerald-500 border-opacity-20 text-emerald-400 text-sm flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{importSuccess}</span>
+              </div>
+              <div className="text-xs text-emerald-500/80 border-t border-emerald-500/10 pt-2 mt-1">
+                💡 Imported titles are saved as **Drafts**. You can view, edit and publish them in the{' '}
+                <a
+                  href={type === 'movie' ? '/management/movies' : '/management/dramas'}
+                  className="font-bold underline hover:text-white"
+                >
+                  {type === 'movie' ? 'Manage Movies' : 'Manage Dramas'}
+                </a>{' '}
+                section under the **Draft** filter tab.
+              </div>
             </div>
           )}
 
