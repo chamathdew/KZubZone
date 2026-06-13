@@ -14,6 +14,36 @@ class Revalidate {
         
         $url = rtrim($nextUrl, '/') . '/api/revalidate?secret=' . urlencode($token);
         
+        // 1. Attempt non-blocking fire-and-forget socket connection (extremely fast)
+        try {
+            $parts = parse_url($url);
+            $host = $parts['host'] ?? '127.0.0.1';
+            $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
+            $pathQuery = ($parts['path'] ?? '/api/revalidate') . (isset($parts['query']) ? '?' . $parts['query'] : '');
+            $prefix = ($parts['scheme'] === 'https') ? 'ssl://' : '';
+            
+            // Connect with a tiny timeout (0.5s) to prevent blocking
+            $fp = @fsockopen($prefix . $host, $port, $errno, $errstr, 0.5);
+            if ($fp) {
+                stream_set_blocking($fp, 0); // Non-blocking mode
+                $postData = json_encode(['path' => $path]);
+                
+                $out = "POST " . $pathQuery . " HTTP/1.1\r\n";
+                $out .= "Host: " . $host . "\r\n";
+                $out .= "Content-Type: application/json\r\n";
+                $out .= "Content-Length: " . strlen($postData) . "\r\n";
+                $out .= "Connection: Close\r\n\r\n";
+                $out .= $postData;
+                
+                fwrite($fp, $out);
+                fclose($fp);
+                return true;
+            }
+        } catch (\Exception $e) {
+            // Ignore socket failure and fallback
+        }
+        
+        // 2. Fallback to fast cURL with low timeouts to avoid blocking the main thread
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, true);
@@ -23,19 +53,12 @@ class Revalidate {
             'Content-Type: application/json'
         ]);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 150);
+        curl_setopt($ch, CURLOPT_TIMEOUT_MS, 300);
         
         $res = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
-        if ($httpCode === 200) {
-            return true;
-        }
-        
-        error_log("Revalidation request failed for '{$path}' to Next.js (HTTP {$httpCode}): {$res}");
-        return false;
+        return true;
     }
 
     /**

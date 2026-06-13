@@ -233,10 +233,11 @@ class Database {
     }
 
     private function initializeDatabase() {
-        // Skip setup if database is already initialized
+        // Skip setup if database is already initialized and matches current schema version
+        $schemaVersion = '2026_v2_indexing';
         $flagFile = dirname(__FILE__) . '/.db_initialized_' . $this->driver;
         
-        if (file_exists($flagFile)) {
+        if (file_exists($flagFile) && trim(@file_get_contents($flagFile)) === $schemaVersion) {
             return;
         }
 
@@ -283,7 +284,7 @@ class Database {
         $this->ensureIndexesExist();
 
         // Write the flag file to mark successful setup
-        @file_put_contents($flagFile, date('Y-m-d H:i:s'));
+        @file_put_contents($flagFile, $schemaVersion);
     }
 
     private function ensureIndexesExist() {

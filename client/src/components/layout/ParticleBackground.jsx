@@ -12,10 +12,17 @@ const initParticles = async (engine) => {
 
 export default function ParticleBackground() {
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
   const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const options = useMemo(
@@ -124,7 +131,7 @@ export default function ParticleBackground() {
     [],
   );
 
-  if (!mounted) return null;
+  if (!mounted || isMobile) return null;
 
   return (
     <ParticlesProvider init={initParticles}>
