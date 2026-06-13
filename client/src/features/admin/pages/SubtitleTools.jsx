@@ -77,6 +77,18 @@ const stringifySRT = (subs) => {
   }).join('\n\n') + '\n';
 };
 
+// Clean base name helper
+const cleanBaseName = (fileName) => {
+  let base = fileName.replace(/\.[a-zA-Z0-9]+$/i, '');
+  while (true) {
+    const prev = base;
+    base = base.replace(/_(KSubZone|KSubZone_branded|cleaned|www\.ksubzone\.com|branded|KSubZonesrt)/gi, '');
+    base = base.replace(/-(cleaned|branded)/gi, '');
+    if (base === prev) break;
+  }
+  return base.trim().replace(/\.+$/, '');
+};
+
 export default function SubtitleTools() {
   const { admin } = useAuth();
   const fileInputRef = useRef(null);
@@ -451,9 +463,9 @@ export default function SubtitleTools() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
-    const baseName = file.name.replace('.srt', '');
+    const baseName = cleanBaseName(file.name);
     link.href = url;
-    link.download = `${baseName}_KSubZone_branded.srt`;
+    link.download = `${baseName}_www.ksubzone.com.srt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1095,7 +1107,7 @@ export default function SubtitleTools() {
                   <div>
                     <h3 className="text-sm font-black text-white uppercase tracking-wider">Processed Subtitle Ready</h3>
                     <p className="text-slate-400 text-xs mt-1">
-                      File: <b className="text-slate-300">{activeFile.name.replace('.srt', '')}_KSubZone_branded.srt</b> • Blocks: <b className="text-brand-primary font-mono">{activeFile.processedSubs.length}</b>
+                      File: <b className="text-slate-300">{cleanBaseName(activeFile.name)}_www.ksubzone.com.srt</b> • Blocks: <b className="text-brand-primary font-mono">{activeFile.processedSubs.length}</b>
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">

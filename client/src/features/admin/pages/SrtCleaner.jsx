@@ -608,10 +608,21 @@ export default function SrtCleaner() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
-    const baseName = f.name.replace('.srt', '');
+    const cleanBaseName = (fileName) => {
+      let base = fileName.replace(/\.[a-zA-Z0-9]+$/i, '');
+      while (true) {
+        const prev = base;
+        base = base.replace(/_(KSubZone|KSubZone_branded|cleaned|www\.ksubzone\.com|branded|KSubZonesrt)/gi, '');
+        base = base.replace(/-(cleaned|branded)/gi, '');
+        if (base === prev) break;
+      }
+      return base.trim().replace(/\.+$/, '');
+    };
+
+    const baseName = cleanBaseName(f.name);
     const extension = f.options.convertToVtt ? 'vtt' : 'srt';
     link.href = url;
-    link.download = `${baseName}_cleaned.${extension}`;
+    link.download = `${baseName}_www.ksubzone.com.${extension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
