@@ -224,6 +224,48 @@ $routes = [
         }
         echo "=== END OF LOGS ===\n";
     }],
+    ['GET', '/api/db-diagnose-safe', function() {
+        header('Content-Type: text/plain');
+        try {
+            $db = \Config\Database::getInstance();
+            $driver = $db->getDriver();
+            $dramas = $db->find('dramas');
+            $seasons = $db->find('seasons');
+            $episodes = $db->find('episodes');
+            
+            $res = [
+                'driver' => $driver,
+                'dramas_count' => count($dramas),
+                'seasons_count' => count($seasons),
+                'episodes_count' => count($episodes),
+                'dramas' => array_map(function($d) {
+                    return [
+                        'id' => $d['_id'],
+                        'title' => $d['title'] ?? '?',
+                        'tmdbId' => $d['tmdbId'] ?? '?'
+                    ];
+                }, $dramas),
+                'seasons' => array_map(function($s) {
+                    return [
+                        'id' => $s['_id'],
+                        'dramaId' => $s['dramaId'] ?? '?',
+                        'seasonNumber' => $s['seasonNumber'] ?? '?'
+                    ];
+                }, $seasons),
+                'episodes' => array_map(function($e) {
+                    return [
+                        'id' => $e['_id'],
+                        'dramaId' => $e['dramaId'] ?? '?',
+                        'seasonId' => $e['seasonId'] ?? '?',
+                        'episodeNumber' => $e['episodeNumber'] ?? '?'
+                    ];
+                }, $episodes)
+            ];
+            echo base64_encode(json_encode($res));
+        } catch (\Exception $e) {
+            echo "ERR:" . base64_encode($e->getMessage() . "\n" . $e->getTraceAsString());
+        }
+    }],
     ['GET', '/api/check-postgres-xyz', function() {
         header('Content-Type: text/plain');
         try {
