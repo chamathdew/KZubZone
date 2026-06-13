@@ -25,7 +25,12 @@ use Utils\Dotenv;
 Dotenv::load(dirname(__DIR__) . '/.env');
 
 // Decode CLI arguments
-$argsJson = $argv[1] ?? '{}';
+$argsInput = $argv[1] ?? '{}';
+if (!empty($argsInput) && $argsInput[0] !== '{' && $argsInput[0] !== '[') {
+    $argsJson = base64_decode($argsInput) ?: '{}';
+} else {
+    $argsJson = $argsInput;
+}
 $params = json_decode($argsJson, true) ?: [];
 
 $action = $params['action'] ?? '';

@@ -105,7 +105,7 @@ export default function SubtitleTools() {
   const [activeTab, setActiveTab] = useState('upload'); // 'upload', 'brand', 'translate', 'export'
   const [previewMode, setPreviewMode] = useState('blocks'); // 'blocks' | 'raw'
   const [brandingText, setBrandingText] = useState(
-    `<font color="#ffcc00">නවතම කොරියානු චිත්රපට සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
+    `<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
   );
 
   // Ad Inject Configs

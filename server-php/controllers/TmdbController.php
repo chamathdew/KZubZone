@@ -301,17 +301,94 @@ class TmdbController {
         ]);
     }
 
+    private static function findPhpBinary() {
+        // 1. Try PHP_BINARY if it exists and is php or php.exe (not httpd or php-cgi)
+        $binary = PHP_BINARY;
+        if (!empty($binary) && (stripos($binary, 'php.exe') !== false || (stripos($binary, 'php') !== false && stripos($binary, 'php-cgi') === false && stripos($binary, 'httpd') === false))) {
+            return $binary;
+        }
+
+        // 2. Try the directory of PHP_BINARY and look for php.exe / php
+        if (!empty($binary)) {
+            $dir = dirname($binary);
+            $ext = (substr(php_uname(), 0, 7) === "Windows") ? '.exe' : '';
+            
+            // Check direct match
+            $candidate = $dir . DIRECTORY_SEPARATOR . 'php' . $ext;
+            if (file_exists($candidate)) {
+                return $candidate;
+            }
+            
+            // Check sibling path (e.g. C:\xampp\apache\bin -> C:\xampp\php\php.exe)
+            $parent = dirname($dir);
+            if (!empty($parent)) {
+                $grandparent = dirname($parent);
+                if (!empty($grandparent)) {
+                    $candidate2 = $grandparent . DIRECTORY_SEPARATOR . 'php' . DIRECTORY_SEPARATOR . 'php' . $ext;
+                    if (file_exists($candidate2)) {
+                        return $candidate2;
+                    }
+                }
+            }
+        }
+
+        // 3. Search common installation paths on Windows
+        if (substr(php_uname(), 0, 7) === "Windows") {
+            $commonPaths = [
+                'C:\\xampp\\php\\php.exe',
+                'D:\\xampp\\php\\php.exe',
+                'C:\\Program Files\\PHP\\php.exe',
+                'C:\\Program Files (x86)\\PHP\\php.exe',
+            ];
+            foreach ($commonPaths as $p) {
+                if (file_exists($p)) {
+                    return $p;
+                }
+            }
+            
+            // Laragon detection
+            $laragonDir = 'C:\\laragon\\bin\\php';
+            if (is_dir($laragonDir)) {
+                $subdirs = scandir($laragonDir);
+                foreach ($subdirs as $subdir) {
+                    if ($subdir === '.' || $subdir === '..') continue;
+                    $phpPath = $laragonDir . DIRECTORY_SEPARATOR . $subdir . DIRECTORY_SEPARATOR . 'php.exe';
+                    if (file_exists($phpPath)) {
+                        return $phpPath;
+                    }
+                }
+            }
+
+            // WampServer detection
+            $wampDir = 'C:\\wamp64\\bin\\php';
+            if (is_dir($wampDir)) {
+                $subdirs = scandir($wampDir);
+                foreach ($subdirs as $subdir) {
+                    if ($subdir === '.' || $subdir === '..') continue;
+                    $phpPath = $wampDir . DIRECTORY_SEPARATOR . $subdir . DIRECTORY_SEPARATOR . 'php.exe';
+                    if (file_exists($phpPath)) {
+                        return $phpPath;
+                    }
+                }
+            }
+        }
+
+        return 'php';
+    }
+
     private static function spawnBackgroundImport($params) {
         $scriptPath = dirname(__FILE__) . '/../scripts/background-import.php';
-        $args = json_encode($params);
+        $args = base64_encode(json_encode($params));
+        $phpBin = self::findPhpBinary();
         
         if (substr(php_uname(), 0, 7) === "Windows") {
             // Windows background execution using popen
-            $cmd = "start /B php " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > NUL 2>&1";
+            // Note: start /B requires a dummy title if the first argument (command) is quoted.
+            $cmd = "start /B \"\" " . escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > NUL 2>&1";
             pclose(popen($cmd, "r"));
         } else {
             // Linux/cPanel background execution
-            $cmd = "php " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > /dev/null 2>&1 &";
+            $cmd = escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > /dev/null 2>&1 &";
             exec($cmd);
         }
         error_log("Spawned background import: " . $cmd);
