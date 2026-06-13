@@ -233,9 +233,20 @@ $routes = [
             $seasons = $db->find('seasons');
             $episodes = $db->find('episodes');
             
+            $doctorDrama = \Utils\Slug::findByPermalinkSlug($db, 'dramas', 'doctor-on-the-edge');
+            $doctorSeasons = $doctorDrama ? $db->find('seasons', ['dramaId' => $doctorDrama['_id']]) : [];
+            $doctorEpisodes = $doctorDrama ? $db->find('episodes', ['dramaId' => $doctorDrama['_id']]) : [];
+
             $res = [
                 'driver' => $driver,
                 'fallbackWarning' => $db->getFallbackWarning(),
+                'doctorDrama' => $doctorDrama ? [
+                    'id' => $doctorDrama['_id'],
+                    'title' => $doctorDrama['title'],
+                    'slug' => $doctorDrama['slug']
+                ] : null,
+                'doctorSeasons' => $doctorSeasons,
+                'doctorEpisodes' => $doctorEpisodes,
                 'dramas_count' => count($dramas),
                 'seasons_count' => count($seasons),
                 'episodes_count' => count($episodes),
