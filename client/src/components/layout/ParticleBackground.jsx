@@ -26,112 +26,181 @@ export default function ParticleBackground() {
   }, []);
 
   const options = useMemo(
-    () => ({
-      fullScreen: {
-        enable: false,
-      },
-      background: {
-        color: {
-          value: "transparent",
-        },
-      },
-      fpsLimit: 60, // Capped at 60fps for battery/thermal savings in background
-      interactivity: {
-        detectsOn: "window",
-        events: {
-          onClick: {
-            enable: true,
-            mode: "push",
+    () => {
+      if (isMobile) {
+        return {
+          fullScreen: {
+            enable: false,
           },
-          onHover: {
-            enable: true,
-            mode: "grab",
-          },
-          resize: true,
-        },
-        modes: {
-          push: {
-            quantity: 3,
-          },
-          grab: {
-            distance: 140,
-            links: {
-              opacity: 0.4,
+          background: {
+            color: {
+              value: "transparent",
             },
           },
-        },
-      },
-      particles: {
-        color: {
-          value: ["#8b5cf6", "#ec4899", "#eab308"],
-        },
-        links: {
-          color: "#8b5cf6",
-          distance: 120,
-          enable: true,
-          opacity: 0.12, // Lower opacity for high transparency as requested
-          width: 1,
-        },
-        move: {
-          direction: "none",
-          enable: true,
-          outModes: {
-            default: "out",
+          fpsLimit: 40, // Lower fps limit on mobile for battery and CPU savings
+          interactivity: {
+            detectsOn: "window",
+            events: {
+              onClick: {
+                enable: false, // Disable click push on mobile to save CPU
+              },
+              onHover: {
+                enable: false, // Disable touch hover trigger calculations
+              },
+              resize: true,
+            },
           },
-          random: true,
-          speed: 0.8, // Slow speed for clean background motion
-          straight: false,
-        },
-        number: {
-          density: {
-            enable: true,
-            area: 800,
+          particles: {
+            color: {
+              value: ["#8b5cf6", "#ec4899", "#eab308"],
+            },
+            links: {
+              color: "#8b5cf6",
+              distance: 90, // Reduced link distance for fewer line computations
+              enable: true,
+              opacity: 0.1,
+              width: 1,
+            },
+            move: {
+              direction: "none",
+              enable: true,
+              outModes: {
+                default: "out",
+              },
+              random: true,
+              speed: 0.5, // Slower motion on mobile
+              straight: false,
+            },
+            number: {
+              density: {
+                enable: true,
+                area: 800,
+              },
+              value: 25, // Significantly reduced particle count on mobile
+            },
+            opacity: {
+              value: 0.35,
+              animation: {
+                enable: true,
+                speed: 0.8,
+                minimumValue: 0.1,
+              }
+            },
+            shape: {
+              type: "circle",
+            },
+            size: {
+              value: { min: 0.8, max: 2.8 },
+              animation: {
+                enable: true,
+                speed: 1,
+                minimumValue: 0.5,
+              }
+            },
+            shadow: {
+              enable: false, // Disabled resource-heavy CSS/canvas shadows on mobile
+            }
           },
-          value: 90,
+          detectRetina: false, // Disable retina scaling on mobile to avoid double resolution processing
+        };
+      }
+
+      // Desktop layout - Full premium details
+      return {
+        fullScreen: {
+          enable: false,
         },
-        opacity: {
-          value: 0.4,
-          animation: {
-            enable: true,
-            speed: 1,
-            minimumValue: 0.1,
-          }
+        background: {
+          color: {
+            value: "transparent",
+          },
         },
-        shape: {
-          type: "circle",
-        },
-        size: {
-          value: { min: 1, max: 3.5 },
-          animation: {
-            enable: true,
-            speed: 1.5,
-            minimumValue: 0.6,
-          }
-        },
-        shadow: {
-          enable: true,
-          color: "#8b5cf6",
-          blur: 4,
-        }
-      },
-      responsive: [
-        {
-          maxWidth: 768,
-          options: {
-            particles: {
-              number: {
-                value: 50, // Scale down particle count on mobile screens
+        fpsLimit: 60,
+        interactivity: {
+          detectsOn: "window",
+          events: {
+            onClick: {
+              enable: true,
+              mode: "push",
+            },
+            onHover: {
+              enable: true,
+              mode: "grab",
+            },
+            resize: true,
+          },
+          modes: {
+            push: {
+              quantity: 3,
+            },
+            grab: {
+              distance: 140,
+              links: {
+                opacity: 0.4,
               },
             },
           },
         },
-      ],
-      detectRetina: true,
-    }),
-    [],
+        particles: {
+          color: {
+            value: ["#8b5cf6", "#ec4899", "#eab308"],
+          },
+          links: {
+            color: "#8b5cf6",
+            distance: 120,
+            enable: true,
+            opacity: 0.12,
+            width: 1,
+          },
+          move: {
+            direction: "none",
+            enable: true,
+            outModes: {
+              default: "out",
+            },
+            random: true,
+            speed: 0.8,
+            straight: false,
+          },
+          number: {
+            density: {
+              enable: true,
+              area: 800,
+            },
+            value: 90,
+          },
+          opacity: {
+            value: 0.4,
+            animation: {
+              enable: true,
+              speed: 1,
+              minimumValue: 0.1,
+            }
+          },
+          shape: {
+            type: "circle",
+          },
+          size: {
+            value: { min: 1, max: 3.5 },
+            animation: {
+              enable: true,
+              speed: 1.5,
+              minimumValue: 0.6,
+              }
+            },
+            shadow: {
+              enable: true,
+              color: "#8b5cf6",
+              blur: 4,
+            }
+          },
+          detectRetina: true,
+        };
+    },
+    [isMobile],
   );
 
-  if (!mounted || isMobile) return null;
+  if (!mounted) return null;
 
   return (
     <ParticlesProvider init={initParticles}>

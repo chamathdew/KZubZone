@@ -25,8 +25,8 @@ if (Test-Path $tempDir) {
 Write-Host "Copying frontend files to build directory..."
 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
-# Copy files while excluding node_modules
-Get-ChildItem -Path $sourceDir -Exclude "node_modules" | ForEach-Object {
+# Copy files while excluding node_modules, .next build cache, and dist build outputs
+Get-ChildItem -Path $sourceDir | Where-Object { $_.Name -notin @("node_modules", ".next", "dist") -and $_.Extension -ne ".log" } | ForEach-Object {
     Copy-Item -Path $_.FullName -Destination $tempDir -Recurse -Force
 }
 
