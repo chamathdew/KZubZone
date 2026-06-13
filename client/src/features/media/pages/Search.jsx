@@ -173,7 +173,7 @@ export default function Search() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-left flex flex-col gap-8 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 lg:pt-28 pb-8 text-left flex flex-col gap-8 min-h-screen">
       
       <SeoTags
         title="Advanced Search - KSubZone Catalog"

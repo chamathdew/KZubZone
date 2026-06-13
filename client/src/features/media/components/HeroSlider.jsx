@@ -43,7 +43,7 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
 
   if (loading || items.length === 0) {
     return (
-      <section className="relative w-full min-h-[86vh] overflow-hidden bg-luxury-950 flex items-center pt-24 lg:pt-32 pb-12 sm:pb-20 -mt-20">
+      <section className="relative w-full min-h-screen overflow-hidden bg-luxury-950 flex items-center pt-24 lg:pt-32 pb-12 sm:pb-20 -mt-20">
         {/* Background placeholder animation */}
         <div className="absolute inset-0 bg-luxury-900/60 animate-pulse" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_34%,rgba(124,58,237,0.08),transparent_34%),linear-gradient(90deg,#030008_0%,rgba(3,0,8,0.72)_34%,rgba(3,0,8,0.24)_68%,rgba(3,0,8,0.42)_100%)]" />
@@ -130,7 +130,7 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
   const openDownloads = () => router.push(`/${type}/${currentSlug}?scrollTo=subtitles`);
 
   return (
-    <section className="relative w-full min-h-[86vh] overflow-hidden group bg-luxury-950 -mt-20">
+    <section className="relative w-full min-h-screen overflow-hidden group bg-luxury-950 -mt-20">
       <AnimatePresence mode="wait">
         <motion.div
           key={current._id}
@@ -160,7 +160,7 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 flex min-h-[86vh] items-center pt-24 lg:pt-32 pb-12 sm:pb-20">
+      <div className="relative z-10 flex min-h-screen items-center pt-24 lg:pt-32 pb-12 sm:pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-8 lg:gap-12 items-center">
             <AnimatePresence mode="wait">

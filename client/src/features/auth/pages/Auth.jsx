@@ -142,7 +142,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-[85vh] w-full flex items-center justify-center p-4 relative">
+    <div className="min-h-[85vh] w-full flex items-center justify-center pt-24 lg:pt-28 pb-16 px-4 relative">
       {/* Dynamic Background Glow elements */}
       <div className="absolute top-1/4 left-1/3 w-72 h-72 bg-brand-primary/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/3 w-72 h-72 bg-brand-secondary/5 rounded-full blur-3xl" />

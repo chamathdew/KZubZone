@@ -394,7 +394,7 @@ export default function Detail({ type = 'Movie', initialData }) {
       />
 
       {/* Cinematic Banner Backdrop Header */}
-      <div className="relative w-full h-[40vh] sm:h-[55vh] overflow-hidden">
+      <div className="relative w-full h-[50vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
         <img
           src={backdropImage}
           alt={media.title}
@@ -408,7 +408,7 @@ export default function Detail({ type = 'Movie', initialData }) {
       </div>
 
       {/* Media Metadata Layout */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full -mt-24 sm:-mt-48 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full -mt-32 sm:-mt-52 lg:-mt-64 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
           
           {/* LEFT: POSTER CARD */}

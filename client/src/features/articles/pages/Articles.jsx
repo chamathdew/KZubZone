@@ -118,7 +118,7 @@ export default function Articles({ initialData }) {
 
       <section className="relative overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_20%,rgba(124,58,237,0.22),transparent_34%),radial-gradient(circle_at_82%_10%,rgba(236,72,153,0.14),transparent_32%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-32 pb-16 sm:pb-20">
           <div className="max-w-3xl text-left">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-primary/30 bg-brand-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-brand-primary">
               <BookOpenText className="w-3.5 h-3.5" /> KSubZone Journal

@@ -107,7 +107,7 @@ export default function Watch({ initialDramaData }) {
   };
 
   return (
-    <div className="w-full bg-transparent min-h-screen text-left pb-16 flex flex-col gap-6">
+    <div className="w-full bg-transparent min-h-screen text-left pt-20 lg:pt-24 pb-16 flex flex-col gap-6">
       
       {/* Episode dynamic SEO tags & schema */}
       <SeoTags

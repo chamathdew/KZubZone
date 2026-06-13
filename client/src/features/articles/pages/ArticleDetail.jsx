@@ -55,10 +55,10 @@ export default function ArticleDetail({ initialData }) {
       />
 
       <article>
-        <section className="relative min-h-[58vh] overflow-hidden flex items-end border-b border-white/5">
+        <section className="relative min-h-[70vh] lg:min-h-[75vh] overflow-hidden flex items-end border-b border-white/5">
           <img src={article.coverImage || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1800&auto=format&fit=crop'} alt={article.title} className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/75 to-black/40" />
-          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-12 pt-28 text-left">
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-12 pt-32 text-left">
             <Link href="/articles" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white mb-6">
               <ArrowLeft className="w-4 h-4" /> Back to Articles
             </Link>
