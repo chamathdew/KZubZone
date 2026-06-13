@@ -136,7 +136,7 @@ export default function Navbar() {
               alt={brand.siteName || 'KSubZone'}
               className="h-9 w-auto object-contain"
             />
-            <span className="text-lg xl:text-2xl font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans">
+            <span className="text-lg xl:text-2xl font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans">
               {brand.logoText || brand.siteName || 'KSUBZONE'}
             </span>
           </Link>

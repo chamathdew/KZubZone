@@ -49,7 +49,7 @@ export default function AdminSidebar() {
               <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
             </span>
           )}
-          <span className="text-base font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
+          <span className="text-base font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
             {brand.logoText || brand.siteName || 'KSUBZONE'}
           </span>
         </Link>
@@ -96,7 +96,7 @@ export default function AdminSidebar() {
                 <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
               </span>
             )}
-            <span className="text-base font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
+            <span className="text-base font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
               {brand.logoText || brand.siteName || 'KSUBZONE'}
             </span>
           </Link>
