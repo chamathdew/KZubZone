@@ -224,7 +224,7 @@ $routes = [
         }
         echo "=== END OF LOGS ===\n";
     }],
-    ['GET', '/api/db-diagnose-safe', function() {
+    ['GET', '/api/stats-info', function() {
         header('Content-Type: text/plain');
         try {
             $db = \Config\Database::getInstance();
