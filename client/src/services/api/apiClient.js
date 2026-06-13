@@ -18,8 +18,12 @@ apiClient.interceptors.request.use(
     // Determine which token to use based on URL path to prevent token pollution
     const url = config.url || '';
     const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');
+    const isMediaDetailRoute = url.includes('/api/media/dramas/') || url.includes('/api/media/movies/');
     
-    const token = isAdminRoute ? tokenService.getAdminToken() : tokenService.getUserToken();
+    const token = (isAdminRoute || (isMediaDetailRoute && tokenService.getAdminToken()))
+      ? tokenService.getAdminToken()
+      : tokenService.getUserToken();
+      
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }

@@ -276,6 +276,9 @@ class TmdbController {
     }
 
     public static function importFromTmdb() {
+        @set_time_limit(240);
+        @ini_set('max_execution_time', 240);
+
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $id = $body['id'] ?? null;
         $type = $body['type'] ?? 'movie'; // movie or tv
@@ -720,6 +723,21 @@ class TmdbController {
 
         // Handle Seasons & Episodes import
         if (isset($data['seasons']) && is_array($data['seasons'])) {
+            // Bulk query existing seasons and episodes for this drama to reduce DB round-trips
+            $existingSeasons = $db->find('seasons', ['dramaId' => $drama['_id']]);
+            $existingEpisodes = $db->find('episodes', ['dramaId' => $drama['_id']]);
+
+            $seasonMap = [];
+            foreach ($existingSeasons as $s) {
+                $seasonMap[(int)$s['seasonNumber']] = $s;
+            }
+
+            $episodeMap = [];
+            foreach ($existingEpisodes as $ep) {
+                $key = $ep['seasonId'] . '_' . (int)$ep['episodeNumber'];
+                $episodeMap[$key] = $ep;
+            }
+
             foreach ($data['seasons'] as $s) {
                 $sNum = isset($s['season_number']) ? (int)$s['season_number'] : 0;
                 $seasonDoc = [
@@ -730,10 +748,7 @@ class TmdbController {
                     'airDate' => $s['air_date'] ?? null
                 ];
 
-                $existingSeason = $db->findOne('seasons', [
-                    'dramaId' => $drama['_id'],
-                    'seasonNumber' => $sNum
-                ]);
+                $existingSeason = $seasonMap[$sNum] ?? null;
 
                 if ($existingSeason) {
                     $db->updateOne('seasons', ['_id' => $existingSeason['_id']], $seasonDoc);
@@ -771,10 +786,8 @@ class TmdbController {
                             'episodeSchemaMarkup' => $epSchema
                         ];
 
-                        $existingEpisode = $db->findOne('episodes', [
-                            'seasonId' => $season['_id'],
-                            'episodeNumber' => $epNum
-                        ]);
+                        $epKey = $season['_id'] . '_' . $epNum;
+                        $existingEpisode = $episodeMap[$epKey] ?? null;
 
                         if ($existingEpisode) {
                             $db->updateOne('episodes', ['_id' => $existingEpisode['_id']], $episodeDoc);
@@ -920,6 +933,9 @@ class TmdbController {
     }
 
     public static function bulkImportFromTmdb() {
+        @set_time_limit(240);
+        @ini_set('max_execution_time', 240);
+
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $ids = $body['ids'] ?? [];
         $type = $body['type'] ?? 'tv'; // movie or tv
