@@ -90,6 +90,35 @@ if ($method === 'GET' && strpos($uri, '/api/') !== 0) {
     }
 }
 
+// Helper to sanitize and auto-update site content configuration references to KSubZone
+function getSanitizedSiteContent($db) {
+    $setting = $db->findOne('settings', ['key' => 'siteContent']);
+    $value = $setting['value'] ?? \Utils\SiteContentDefaults::get();
+    
+    // Check if the JSON contains old naming patterns (KDramaVerse, KDramaUniverse)
+    $valueJson = json_encode($value);
+    if (stripos($valueJson, 'kdramaverse') !== false || stripos($valueJson, 'kdramauniverse') !== false) {
+        $valueJson = str_ireplace(
+            ['kdramaverse', 'kdramauniverse'],
+            ['KSubZone', 'KSubZone'],
+            $valueJson
+        );
+        $value = json_decode($valueJson, true);
+        
+        // Write the sanitized value back to the database to update it permanently
+        try {
+            if ($setting && isset($setting['_id'])) {
+                $db->updateOne('settings', ['_id' => $setting['_id']], ['value' => $value]);
+            } else {
+                $db->insertOne('settings', ['key' => 'siteContent', 'value' => $value]);
+            }
+        } catch (\Exception $e) {
+            // Ignore database write failures during sanitation
+        }
+    }
+    return $value;
+}
+
 // Define routes layout (Method, URI regex pattern, Handler pipeline)
 $routes = [
     // SEO
@@ -239,9 +268,8 @@ $routes = [
     }],
     ['GET', '/api/site-content', function() {
         $db = \Config\Database::getInstance();
-        $setting = $db->findOne('settings', ['key' => 'siteContent']);
         header('Content-Type: application/json');
-        echo json_encode($setting['value'] ?? \Utils\SiteContentDefaults::get());
+        echo json_encode(getSanitizedSiteContent($db));
     }],
 
     // Public Auth
@@ -542,9 +570,8 @@ $routes = [
         function() { \Middleware\AuthMiddleware::hasPermission('manage_settings'); },
         function() {
             $db = \Config\Database::getInstance();
-            $setting = $db->findOne('settings', ['key' => 'siteContent']);
             header('Content-Type: application/json');
-            echo json_encode($setting['value'] ?? \Utils\SiteContentDefaults::get());
+            echo json_encode(getSanitizedSiteContent($db));
         }
     ]],
     ['PUT', '/api/admin/site-content', [

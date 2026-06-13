@@ -21,7 +21,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Times New Roman', 'Times', 'serif'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-outfit)', 'Outfit', 'system-ui', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',
