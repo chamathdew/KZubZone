@@ -181,6 +181,8 @@ $routes = [
             dirname(dirname(__FILE__)) . '/error_log',
             dirname(dirname(__FILE__)) . '/api/error_log',
             dirname(__FILE__) . '/../error_log',
+            dirname(__FILE__) . '/import_error.log',
+            dirname(__FILE__) . '/../import_error.log',
         ];
         foreach ($logPaths as $path) {
             if (file_exists($path)) {

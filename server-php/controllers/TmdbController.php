@@ -416,15 +416,16 @@ class TmdbController {
         $scriptPath = dirname(__FILE__) . '/../scripts/background-import.php';
         $args = base64_encode(json_encode($params));
         $phpBin = self::findPhpBinary();
+        $logPath = dirname(__FILE__) . '/../import_error.log';
         
         if (substr(php_uname(), 0, 7) === "Windows") {
             // Windows background execution using popen
             // Note: start /B requires a dummy title if the first argument (command) is quoted.
-            $cmd = "start /B \"\" " . escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > NUL 2>&1";
+            $cmd = "start /B \"\" " . escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > " . escapeshellarg($logPath) . " 2>&1";
             pclose(popen($cmd, "r"));
         } else {
             // Linux/cPanel background execution
-            $cmd = escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > /dev/null 2>&1 &";
+            $cmd = escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > " . escapeshellarg($logPath) . " 2>&1 &";
             exec($cmd);
         }
         error_log("Spawned background import: " . $cmd);
