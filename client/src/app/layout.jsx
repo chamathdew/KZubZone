@@ -24,12 +24,12 @@ export const metadata = {
   description: 'Watch the latest Korean dramas and movies with synchronized Sinhala and English subtitles. Discover, review, and enjoy premium K-entertainment.',
   icons: {
     icon: [
-      { url: '/main-logo.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/main-logo.svg', type: 'image/svg+xml' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
     ],
-    shortcut: '/main-logo.svg',
+    shortcut: '/favicon.svg',
   },
 };
 

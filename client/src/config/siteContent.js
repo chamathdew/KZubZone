@@ -5,7 +5,7 @@ export const defaultSiteContent = {
     tagline: 'K-Drama & Movie Subtitles',
     logoText: 'KSUBZONE',
     logoUrl: '/main-logo.svg',
-    faviconUrl: '/main-logo.svg',
+    faviconUrl: '/favicon.svg',
     primaryUrl: 'https://ksubzone.com'
   },
   seo: {
