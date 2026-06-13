@@ -21,7 +21,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Stardom', 'sans-serif'],
+        sans: ['Times New Roman', 'Times', 'serif'],
       },
       backdropBlur: {
         xs: '2px',
