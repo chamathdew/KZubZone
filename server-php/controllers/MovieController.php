@@ -84,23 +84,7 @@ class MovieController {
             'skip' => $skip
         ]);
 
-        // Append subtitle count to each movie
-        $movieIds = array_map(function($m) { return $m['_id']; }, $movies);
-        if (!empty($movieIds)) {
-            $subtitles = $db->find('subtitles', [
-                'mediaId' => ['$in' => $movieIds]
-            ]);
-            $subsCountByMediaId = [];
-            foreach($subtitles as $sub) {
-                 $mid = (string)$sub['mediaId'];
-                 if (!isset($subsCountByMediaId[$mid])) $subsCountByMediaId[$mid] = 0;
-                 $subsCountByMediaId[$mid]++;
-            }
-            foreach($movies as &$m) {
-                 $mid = (string)$m['_id'];
-                 $m['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
-            }
-        }
+        self::appendMetadataToMovies($movies);
 
         header('Content-Type: application/json');
         echo json_encode([
@@ -149,44 +133,86 @@ class MovieController {
 
         // Batch append subtitle summaries to all fetched drama lists
         $allDramas = [];
-        foreach ($latestDramas as $d) {
-            $allDramas[$d['_id']] = $d;
-        }
-        foreach ($historicalDramas as $d) {
-            $allDramas[$d['_id']] = $d;
-        }
-        foreach ($trendingDramas as $d) {
-            $allDramas[$d['_id']] = $d;
-        }
-        foreach ($popularDramas as $d) {
-            $allDramas[$d['_id']] = $d;
-        }
+        foreach ($latestDramas as $d) { $allDramas[$d['_id']] = $d; }
+        foreach ($historicalDramas as $d) { $allDramas[$d['_id']] = $d; }
+        foreach ($trendingDramas as $d) { $allDramas[$d['_id']] = $d; }
+        foreach ($popularDramas as $d) { $allDramas[$d['_id']] = $d; }
         
         $allDramasArray = array_values($allDramas);
         DramaController::appendSubtitleSummariesToDramas($allDramasArray);
         
-        // Map summaries back to the original lists
-        $summaries = [];
+        $dramaMetadata = [];
         foreach ($allDramasArray as $d) {
-            $summaries[$d['_id']] = $d['subtitleSummary'];
+            $dramaMetadata[$d['_id']] = [
+                'isNew' => $d['isNew'] ?? false,
+                'subtitleSummary' => $d['subtitleSummary']
+            ];
         }
         
         foreach ($latestDramas as &$d) {
-            $d['subtitleSummary'] = $summaries[$d['_id']];
+            $d['isNew'] = $dramaMetadata[$d['_id']]['isNew'];
+            $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
         }
         unset($d);
         foreach ($historicalDramas as &$d) {
-            $d['subtitleSummary'] = $summaries[$d['_id']];
+            $d['isNew'] = $dramaMetadata[$d['_id']]['isNew'];
+            $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
         }
         unset($d);
         foreach ($trendingDramas as &$d) {
-            $d['subtitleSummary'] = $summaries[$d['_id']];
+            $d['isNew'] = $dramaMetadata[$d['_id']]['isNew'];
+            $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
         }
         unset($d);
         foreach ($popularDramas as &$d) {
-            $d['subtitleSummary'] = $summaries[$d['_id']];
+            $d['isNew'] = $dramaMetadata[$d['_id']]['isNew'];
+            $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
         }
         unset($d);
+
+        // Batch append metadata to all fetched movie lists
+        $allMovies = [];
+        foreach ($latestMovies as $m) { $allMovies[$m['_id']] = $m; }
+        foreach ($historicalMovies as $m) { $allMovies[$m['_id']] = $m; }
+        foreach ($trendingMovies as $m) { $allMovies[$m['_id']] = $m; }
+        foreach ($popularMovies as $m) { $allMovies[$m['_id']] = $m; }
+        
+        $allMoviesArray = array_values($allMovies);
+        self::appendMetadataToMovies($allMoviesArray);
+        
+        $movieMetadata = [];
+        foreach ($allMoviesArray as $m) {
+            $movieMetadata[$m['_id']] = [
+                'isNew' => $m['isNew'],
+                'subtitleCount' => $m['subtitleCount'],
+                'subtitleSummary' => $m['subtitleSummary']
+            ];
+        }
+        
+        foreach ($latestMovies as &$m) {
+            $m['isNew'] = $movieMetadata[$m['_id']]['isNew'];
+            $m['subtitleCount'] = $movieMetadata[$m['_id']]['subtitleCount'];
+            $m['subtitleSummary'] = $movieMetadata[$m['_id']]['subtitleSummary'];
+        }
+        unset($m);
+        foreach ($historicalMovies as &$m) {
+            $m['isNew'] = $movieMetadata[$m['_id']]['isNew'];
+            $m['subtitleCount'] = $movieMetadata[$m['_id']]['subtitleCount'];
+            $m['subtitleSummary'] = $movieMetadata[$m['_id']]['subtitleSummary'];
+        }
+        unset($m);
+        foreach ($trendingMovies as &$m) {
+            $m['isNew'] = $movieMetadata[$m['_id']]['isNew'];
+            $m['subtitleCount'] = $movieMetadata[$m['_id']]['subtitleCount'];
+            $m['subtitleSummary'] = $movieMetadata[$m['_id']]['subtitleSummary'];
+        }
+        unset($m);
+        foreach ($popularMovies as &$m) {
+            $m['isNew'] = $movieMetadata[$m['_id']]['isNew'];
+            $m['subtitleCount'] = $movieMetadata[$m['_id']]['subtitleCount'];
+            $m['subtitleSummary'] = $movieMetadata[$m['_id']]['subtitleSummary'];
+        }
+        unset($m);
 
         $catalogData = [
             'latestMovies' => $latestMovies,
@@ -242,6 +268,13 @@ class MovieController {
                 '_id' => ['$ne' => $movie['_id']],
                 'keywords' => ['$in' => $movie['keywords']]
             ], ['limit' => 4]);
+        }
+
+        // Append metadata (isNew & subtitleCount) to main movie and related movies
+        $moviesArr = [&$movie];
+        self::appendMetadataToMovies($moviesArr);
+        if (!empty($related)) {
+            self::appendMetadataToMovies($related);
         }
 
         header('Content-Type: application/json');
@@ -351,6 +384,39 @@ class MovieController {
 
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Movie deleted successfully']);
+    }
+
+    public static function appendMetadataToMovies(&$movies) {
+        if (empty($movies)) return;
+        $db = Database::getInstance();
+        $latestMovies = $db->find('movies', [], ['sort' => ['createdAt' => -1], 'limit' => 8]);
+        $latestMovieIds = array_map(function($m) { return (string)$m['_id']; }, $latestMovies);
+        
+        $movieIds = array_map(function($m) { return $m['_id']; }, $movies);
+        $subtitles = $db->find('subtitles', [
+            'mediaId' => ['$in' => $movieIds],
+            'approvalStatus' => 'Approved'
+        ]);
+        
+        $subsCountByMediaId = [];
+        foreach($subtitles as $sub) {
+             $mid = (string)$sub['mediaId'];
+             if (!isset($subsCountByMediaId[$mid])) $subsCountByMediaId[$mid] = 0;
+             $subsCountByMediaId[$mid]++;
+        }
+        
+        foreach ($movies as &$m) {
+            $mid = (string)$m['_id'];
+            $m['isNew'] = in_array($mid, $latestMovieIds);
+            $m['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
+            $m['subtitleSummary'] = [
+                'totalSubtitles' => $m['subtitleCount'],
+                'languages' => $m['subtitleCount'] > 0 ? ['Sinhala'] : [],
+                'progressLabel' => $m['subtitleCount'] > 0 ? $m['subtitleCount'] . ' subs' : 'No subs',
+                'seasonStatus' => 'Complete',
+                'latestUploaderRole' => null
+            ];
+        }
     }
 }
 

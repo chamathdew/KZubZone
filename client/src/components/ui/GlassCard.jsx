@@ -64,10 +64,15 @@ export default function GlassCard({ item, type }) {
             }}
           />
 
-          {/* Top Badges — single balanced row: left=episode progress, right=IMDb rating */}
-          <div className="absolute top-2.5 left-2.5 right-2.5 flex flex-wrap items-center justify-between gap-1 z-20">
-            {/* Left: Episode progress (drama only, semi-transparent) */}
-            <div className="flex-shrink-0">
+          {/* Top Badges — single balanced row: left=episode progress / new tag, right=IMDb rating */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex flex-wrap items-center justify-between gap-1.5 z-20">
+            {/* Left: Episode progress or New tag */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {item.isNew && (
+                <span className="h-5 px-1.5 inline-flex items-center justify-center rounded-md bg-brand-primary text-white text-[9px] font-black uppercase tracking-wider shadow-md shadow-brand-primary/20">
+                  New
+                </span>
+              )}
               {mediaType === 'drama' && hasSubtitles ? (
                 <span className={`h-5 px-1.5 inline-flex items-center justify-center rounded-full border backdrop-blur-md text-[9px] font-black uppercase tracking-wider ${
                   subtitleSummary.seasonStatus === 'Complete'
@@ -77,8 +82,8 @@ export default function GlassCard({ item, type }) {
                   {progressLabel}
                 </span>
               ) : (
-                /* Empty placeholder to keep justify-between working */
-                <span />
+                /* Empty placeholder to keep justify-between working when no left badge is present */
+                (!item.isNew ? <span /> : null)
               )}
             </div>
 
