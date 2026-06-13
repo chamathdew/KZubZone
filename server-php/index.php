@@ -237,6 +237,30 @@ $routes = [
             $doctorSeasons = $doctorDrama ? $db->find('seasons', ['dramaId' => $doctorDrama['_id']]) : [];
             $doctorEpisodes = $doctorDrama ? $db->find('episodes', ['dramaId' => $doctorDrama['_id']]) : [];
 
+            $comparison = [];
+            if ($doctorDrama) {
+                $targetId = $doctorDrama['_id'];
+                foreach ($seasons as $s) {
+                    if (isset($s['dramaId'])) {
+                        $sDramaId = $s['dramaId'];
+                        $comparison[] = [
+                            'season_id' => $s['_id'],
+                            'season_dramaId' => $sDramaId,
+                            'target_dramaId' => $targetId,
+                            'season_dramaId_type' => gettype($sDramaId),
+                            'target_dramaId_type' => gettype($targetId),
+                            'season_dramaId_len' => strlen($sDramaId),
+                            'target_dramaId_len' => strlen($targetId),
+                            'season_dramaId_hex' => bin2hex($sDramaId),
+                            'target_dramaId_hex' => bin2hex($targetId),
+                            'strict_equal' => ($sDramaId === $targetId),
+                            'loose_equal' => ($sDramaId == $targetId),
+                            'cast_equal' => ((string)$sDramaId === (string)$targetId)
+                        ];
+                    }
+                }
+            }
+
             $res = [
                 'driver' => $driver,
                 'fallbackWarning' => $db->getFallbackWarning(),
@@ -247,6 +271,7 @@ $routes = [
                 ] : null,
                 'doctorSeasons' => $doctorSeasons,
                 'doctorEpisodes' => $doctorEpisodes,
+                'id_comparison' => $comparison,
                 'dramas_count' => count($dramas),
                 'seasons_count' => count($seasons),
                 'episodes_count' => count($episodes),
