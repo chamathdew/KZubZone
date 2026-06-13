@@ -338,9 +338,9 @@ class TmdbController {
     }
 
     private static function findPhpBinary() {
-        // 1. Try PHP_BINARY if it exists and is php or php.exe (not httpd or php-cgi)
+        // 1. Try PHP_BINARY if it exists and is php or php.exe (not httpd, php-cgi, or php-fpm)
         $binary = PHP_BINARY;
-        if (!empty($binary) && (stripos($binary, 'php.exe') !== false || (stripos($binary, 'php') !== false && stripos($binary, 'php-cgi') === false && stripos($binary, 'httpd') === false))) {
+        if (!empty($binary) && (stripos($binary, 'php.exe') !== false || (stripos($binary, 'php') !== false && stripos($binary, 'php-cgi') === false && stripos($binary, 'php-fpm') === false && stripos($binary, 'httpd') === false))) {
             return $binary;
         }
 
@@ -355,9 +355,15 @@ class TmdbController {
                 return $candidate;
             }
             
-            // Check sibling path (e.g. C:\xampp\apache\bin -> C:\xampp\php\php.exe)
+            // Check sibling bin folder if binary is in sbin (e.g., /usr/sbin/php-fpm -> /usr/bin/php)
             $parent = dirname($dir);
             if (!empty($parent)) {
+                $candidate3 = $parent . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'php' . $ext;
+                if (file_exists($candidate3)) {
+                    return $candidate3;
+                }
+                
+                // Check sibling path (e.g. C:\xampp\apache\bin -> C:\xampp\php\php.exe)
                 $grandparent = dirname($parent);
                 if (!empty($grandparent)) {
                     $candidate2 = $grandparent . DIRECTORY_SEPARATOR . 'php' . DIRECTORY_SEPARATOR . 'php' . $ext;
