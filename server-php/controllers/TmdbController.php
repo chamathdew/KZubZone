@@ -287,18 +287,54 @@ class TmdbController {
             return;
         }
 
-        self::spawnBackgroundImport([
-            'action' => 'import',
-            'id' => $id,
-            'type' => $type,
-            'isHistorical' => $isHistorical
-        ]);
+        // Check if background execution is possible
+        $canRunBackground = true;
+        if (substr(php_uname(), 0, 7) !== "Windows") {
+            // Linux/cPanel: check if exec is disabled
+            $disabledFunctions = explode(',', ini_get('disable_functions') ?: '');
+            $disabledFunctions = array_map('trim', $disabledFunctions);
+            if (in_array('exec', $disabledFunctions) || !function_exists('exec')) {
+                $canRunBackground = false;
+            }
+        } else {
+            // Windows: check if popen is disabled
+            $disabledFunctions = explode(',', ini_get('disable_functions') ?: '');
+            $disabledFunctions = array_map('trim', $disabledFunctions);
+            if (in_array('popen', $disabledFunctions) || !function_exists('popen')) {
+                $canRunBackground = false;
+            }
+        }
 
-        header('Content-Type: application/json');
-        echo json_encode([
-            'message' => 'Import task has been started in the background. Refresh your drafts in a few moments.',
-            'status' => 'Importing'
-        ]);
+        if ($canRunBackground) {
+            self::spawnBackgroundImport([
+                'action' => 'import',
+                'id' => $id,
+                'type' => $type,
+                'isHistorical' => $isHistorical
+            ]);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'message' => 'Import task has been started in the background. Refresh your drafts in a few moments.',
+                'status' => 'Importing'
+            ]);
+        } else {
+            // Run synchronously as fallback
+            try {
+                self::runBackgroundImport($id, $type, $isHistorical);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'message' => 'Import completed successfully (synchronous fallback).',
+                    'status' => 'Completed'
+                ]);
+            } catch (\Exception $e) {
+                http_response_code(500);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'message' => 'Import execution failed: ' . $e->getMessage()
+                ]);
+            }
+        }
     }
 
     private static function findPhpBinary() {
@@ -918,17 +954,55 @@ class TmdbController {
             return;
         }
 
-        self::spawnBackgroundImport([
-            'action' => 'bulk-import',
-            'ids' => $uniqueIds,
-            'type' => $type,
-            'isHistorical' => $isHistorical
-        ]);
+        // Check if background execution is possible
+        $canRunBackground = true;
+        if (substr(php_uname(), 0, 7) !== "Windows") {
+            $disabledFunctions = explode(',', ini_get('disable_functions') ?: '');
+            $disabledFunctions = array_map('trim', $disabledFunctions);
+            if (in_array('exec', $disabledFunctions) || !function_exists('exec')) {
+                $canRunBackground = false;
+            }
+        } else {
+            $disabledFunctions = explode(',', ini_get('disable_functions') ?: '');
+            $disabledFunctions = array_map('trim', $disabledFunctions);
+            if (in_array('popen', $disabledFunctions) || !function_exists('popen')) {
+                $canRunBackground = false;
+            }
+        }
 
-        header('Content-Type: application/json');
-        echo json_encode([
-            'message' => 'Bulk import task has been started in the background for ' . count($uniqueIds) . ' titles. Refresh drafts in a few moments.',
-            'status' => 'Importing'
-        ]);
+        if ($canRunBackground) {
+            self::spawnBackgroundImport([
+                'action' => 'bulk-import',
+                'ids' => $uniqueIds,
+                'type' => $type,
+                'isHistorical' => $isHistorical
+            ]);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'message' => 'Bulk import task has been started in the background for ' . count($uniqueIds) . ' titles. Refresh drafts in a few moments.',
+                'status' => 'Importing'
+            ]);
+        } else {
+            // Run synchronously as fallback (limit to 5 to avoid php timeout)
+            $limitedIds = array_slice($uniqueIds, 0, 5);
+            $successCount = 0;
+            $errors = [];
+            foreach ($limitedIds as $titleId) {
+                try {
+                    self::runBackgroundImport($titleId, $type, $isHistorical);
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "ID {$titleId}: " . $e->getMessage();
+                }
+            }
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'message' => "Bulk import completed. Successfully imported {$successCount} of " . count($limitedIds) . " titles (synchronous fallback).",
+                'errors' => $errors,
+                'status' => 'Completed'
+            ]);
+        }
     }
 }
