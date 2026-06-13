@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { Search, Bell, User, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { permalinkSlug } from '@/utils/slug';
@@ -96,7 +96,7 @@ export default function Navbar() {
     <header className="sticky top-4 z-50 w-full px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto glass-panel border border-white/10 rounded-full backdrop-blur-xl shadow-2xl h-16 px-6 flex items-center justify-between gap-4 bg-luxury-950/70 relative">
         
-        <div className="flex items-center gap-4 min-w-0 z-10">
+        <div className="flex items-center gap-4 flex-shrink-0 z-10">
           {/* LOGO */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <img
@@ -111,7 +111,7 @@ export default function Navbar() {
         </div>
 
         {/* CENTER NAV LINKS */}
-        <nav className="hidden lg:flex items-center justify-center gap-7 absolute left-1/2 -translate-x-1/2 z-10">
+        <nav className="hidden lg:flex items-center justify-center gap-5 xl:gap-7 flex-grow z-10">
           {catalogLinks.map((item) => (
             <Link key={`${item.label}-${item.url}`} href={item.url} className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">
               {item.label}
@@ -121,7 +121,7 @@ export default function Navbar() {
         </nav>
 
         {/* CONTROLS */}
-        <nav className="flex items-center justify-end gap-5 min-w-0 z-10">
+        <nav className="flex items-center justify-end gap-3 xl:gap-5 flex-shrink-0 z-10">
           {/* SEARCH BAR (AUTOCOMPLETE) */}
           <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-40 lg:w-44 flex-shrink-0" ref={searchRef}>
             <div className="relative">
@@ -296,12 +296,13 @@ export default function Navbar() {
 
           {/* ADMIN IS ALREADY AUTHENTICATED DIRECT BUTTON OR USER WITH DASHBOARD ACCESS */}
           {(admin || (user && user.hasDashboardAccess)) && (
-            <div className="hidden md:flex items-center gap-5 ml-4">
+            <div className="hidden md:flex items-center ml-2">
               <Link
                 href="/management/dashboard"
-                className="px-3 h-8 border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 rounded-full flex items-center text-[11px] font-bold transition"
+                className="w-8 h-8 border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 hover:text-white rounded-full flex items-center justify-center transition"
+                title="Admin Dashboard"
               >
-                Dashboard
+                <LayoutDashboard className="w-4 h-4" />
               </Link>
             </div>
           )}

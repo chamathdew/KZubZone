@@ -43,7 +43,7 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
 
   if (loading || items.length === 0) {
     return (
-      <section className="relative w-full min-h-[86vh] overflow-hidden bg-luxury-950 flex items-center pt-20 pb-12 sm:pt-24 sm:pb-20">
+      <section className="relative w-full min-h-[86vh] overflow-hidden bg-luxury-950 flex items-center pt-20 pb-12 sm:pt-24 sm:pb-20 -mt-20">
         {/* Background placeholder animation */}
         <div className="absolute inset-0 bg-luxury-900/60 animate-pulse" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_34%,rgba(124,58,237,0.08),transparent_34%),linear-gradient(90deg,#030008_0%,rgba(3,0,8,0.72)_34%,rgba(3,0,8,0.24)_68%,rgba(3,0,8,0.42)_100%)]" />
@@ -130,7 +130,7 @@ export default function HeroSlider({ items = EMPTY_ITEMS, loading = false }) {
   const openDownloads = () => router.push(`/${type}/${currentSlug}?scrollTo=subtitles`);
 
   return (
-    <section className="relative w-full min-h-[86vh] overflow-hidden group bg-luxury-950">
+    <section className="relative w-full min-h-[86vh] overflow-hidden group bg-luxury-950 -mt-20">
       <AnimatePresence mode="wait">
         <motion.div
           key={current._id}
