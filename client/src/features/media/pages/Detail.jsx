@@ -12,8 +12,7 @@ import SeoTags from '@/components/seo/SeoTags';
 
 import GlassCard from '@/components/ui/GlassCard';
 import { permalinkSlug } from '@/utils/slug';
-import Image from 'next/image';
-import { getMediaImage, imageFallbackFor, handleImageFallback } from '@/utils/mediaImages';
+import { getMediaImage, handleImageFallback } from '@/utils/mediaImages';
 
 export default function Detail({ type = 'Movie', initialData }) {
   const { slug } = useParams();
@@ -29,17 +28,6 @@ export default function Detail({ type = 'Movie', initialData }) {
   const [activeReplyBox, setActiveReplyBox] = useState(null);
   const [playTrailer, setPlayTrailer] = useState(false);
 
-  const initialMedia = type === 'Drama' ? initialData?.drama : initialData?.movie;
-  const [posterSrc, setPosterSrc] = useState(getMediaImage(initialMedia, 'poster'));
-  const [backdropSrc, setBackdropSrc] = useState(getMediaImage(initialMedia, 'backdrop'));
-
-  useEffect(() => {
-    const mediaObj = type === 'Drama' ? data?.drama : data?.movie;
-    if (mediaObj) {
-      setPosterSrc(getMediaImage(mediaObj, 'poster'));
-      setBackdropSrc(getMediaImage(mediaObj, 'backdrop'));
-    }
-  }, [data, type]);
 
   const isAdmin = !!admin || !!(user && user.hasDashboardAccess);
 
@@ -407,24 +395,16 @@ export default function Detail({ type = 'Movie', initialData }) {
 
       {/* Cinematic Banner Backdrop Header */}
       <div className="relative w-full h-[40vh] sm:h-[55vh] overflow-hidden">
-        {backdropSrc && (
-          <Image
-            src={backdropSrc}
-            alt={media.title}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-top"
-            onError={() => {
-              const fallback = imageFallbackFor(media, 'backdrop');
-              if (backdropSrc !== fallback) {
-                setBackdropSrc(fallback);
-              }
-            }}
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/20 to-transparent z-10" />
-        <div className="absolute inset-0 bg-black/10 z-10" />
+        <img
+          src={backdropImage}
+          alt={media.title}
+          fetchPriority="high"
+          decoding="async"
+          className="w-full h-full object-cover object-top"
+          onError={(event) => handleImageFallback(event, media, 'backdrop')}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/20 to-transparent" />
+        <div className="absolute inset-0 bg-black/10" />
       </div>
 
       {/* Media Metadata Layout */}
@@ -433,22 +413,15 @@ export default function Detail({ type = 'Movie', initialData }) {
           
           {/* LEFT: POSTER CARD */}
           <div className="flex flex-col gap-4 max-w-xs mx-auto md:max-w-none md:w-full w-full">
-            <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden shadow-2xl aspect-[2/3] w-full relative">
-              {posterSrc && (
-                <Image
-                  src={posterSrc}
-                  alt={media.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 25vw"
-                  className="object-cover"
-                  onError={() => {
-                    const fallback = imageFallbackFor(media, 'poster');
-                    if (posterSrc !== fallback) {
-                      setPosterSrc(fallback);
-                    }
-                  }}
-                />
-              )}
+            <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden shadow-2xl aspect-[2/3] w-full">
+              <img
+                src={posterImage}
+                alt={media.title}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+                onError={(event) => handleImageFallback(event, media, 'poster')}
+              />
             </div>
             
             {/* Watchlist & Favorites Toggles */}
@@ -559,13 +532,15 @@ export default function Detail({ type = 'Movie', initialData }) {
                 <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-white/10 select-none">
                   {media.cast.map((member, idx) => (
                     <div key={idx} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-2xl min-w-[200px] flex-shrink-0">
-                      <Image
+                      <img
                         src={member?.profilePath || `https://placehold.co/100x100/111/fff?text=${encodeURIComponent((member?.name || 'Cast').split(' ').map(n=>n[0]).join(''))}`}
                         alt={member?.name || 'Cast Member'}
-                        width={40}
-                        height={40}
-                        className="rounded-full object-cover border border-white/10"
-                        unoptimized={!member?.profilePath || !member.profilePath.includes('image.tmdb.org')}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-10 h-10 rounded-full object-cover border border-white/10"
+                        onError={(e) => {
+                          e.target.src = `https://placehold.co/100x100/111/fff?text=${encodeURIComponent((member?.name || 'Cast').split(' ').map(n=>n[0]).join(''))}`;
+                        }}
                       />
                       <div className="min-w-0 flex flex-col">
                         <span className="text-xs font-bold text-white truncate">{member?.name || 'Unknown'}</span>
@@ -597,21 +572,14 @@ export default function Detail({ type = 'Movie', initialData }) {
                       className="absolute inset-0 w-full h-full"
                       onClick={() => setPlayTrailer(true)}
                     >
-                      {backdropSrc && (
-                        <Image
-                          src={backdropSrc}
-                          alt={`${media.title} Trailer Cover`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                          className="object-cover brightness-75 group-hover:scale-105 transition-transform duration-700 ease-out"
-                          onError={() => {
-                            const fallback = imageFallbackFor(media, 'backdrop');
-                            if (backdropSrc !== fallback) {
-                              setBackdropSrc(fallback);
-                            }
-                          }}
-                        />
-                      )}
+                      <img
+                        src={backdropImage}
+                        alt={`${media.title} Trailer Cover`}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover brightness-75 group-hover:scale-105 transition-transform duration-700 ease-out"
+                        onError={(event) => handleImageFallback(event, media, 'backdrop')}
+                      />
                       <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors duration-300 flex items-center justify-center z-10">
                         <PlayCircle className="w-16 h-16 text-white/90 group-hover:text-brand-primary group-hover:scale-110 transition-all duration-300 drop-shadow-[0_0_15px_rgba(124,58,237,0.6)]" />
                       </div>
