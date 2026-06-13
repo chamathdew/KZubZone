@@ -69,7 +69,7 @@ export default function GlassCard({ item, type }) {
             {/* Left: Episode progress or New tag */}
             <div className="flex items-center gap-1 flex-shrink-0">
               {item.isNew && (
-                <span className="h-5 px-1.5 inline-flex items-center justify-center rounded-md bg-brand-primary text-white text-[9px] font-black uppercase tracking-wider shadow-md shadow-brand-primary/20">
+                <span className="h-5 px-1.5 inline-flex items-center justify-center rounded-full border border-purple-500/40 bg-purple-500/25 backdrop-blur-md text-purple-200 text-[9px] font-black uppercase tracking-wider">
                   New
                 </span>
               )}

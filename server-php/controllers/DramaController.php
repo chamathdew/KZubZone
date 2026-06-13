@@ -657,8 +657,13 @@ class DramaController {
         
         if (!empty($completedSeasons)) {
             $maxCompletedSeason = max($completedSeasons);
-            $progressLabel = 'S' . str_pad($maxCompletedSeason, 2, '0', STR_PAD_LEFT) . ' Completed';
-            if (count($completedSeasons) >= count($seasons) && count($seasons) > 0) {
+            $totalSeasons = count($seasons);
+            if ($totalSeasons <= 1) {
+                $progressLabel = 'Completed';
+            } else {
+                $progressLabel = 'S' . str_pad($maxCompletedSeason, 2, '0', STR_PAD_LEFT) . ' Completed';
+            }
+            if (count($completedSeasons) >= $totalSeasons && $totalSeasons > 0) {
                 $seasonStatus = 'Complete';
             }
         } else {
@@ -690,7 +695,7 @@ class DramaController {
 
             if ($totalEpisodesCount === 0 && $hasCompleteStatus) {
                 $seasonStatus = 'Complete';
-                $progressLabel = 'S01 Completed';
+                $progressLabel = 'Completed';
             } else {
                 if ($totalEpisodesCount > 0) {
                     $progressLabel = 'EPISODE ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
@@ -845,8 +850,13 @@ class DramaController {
             
             if (!empty($completedSeasons)) {
                 $maxCompletedSeason = max($completedSeasons);
-                $progressLabel = 'S' . str_pad($maxCompletedSeason, 2, '0', STR_PAD_LEFT) . ' Completed';
-                if (count($completedSeasons) >= count($dramaSeasons) && count($dramaSeasons) > 0) {
+                $totalSeasons = count($dramaSeasons);
+                if ($totalSeasons <= 1) {
+                    $progressLabel = 'Completed';
+                } else {
+                    $progressLabel = 'S' . str_pad($maxCompletedSeason, 2, '0', STR_PAD_LEFT) . ' Completed';
+                }
+                if (count($completedSeasons) >= $totalSeasons && $totalSeasons > 0) {
                     $seasonStatus = 'Complete';
                 }
             } else {
@@ -877,7 +887,7 @@ class DramaController {
                 
                 if ($totalEpisodesCount === 0 && $hasCompleteStatus) {
                     $seasonStatus = 'Complete';
-                    $progressLabel = 'S01 Completed';
+                    $progressLabel = 'Completed';
                 } else {
                     if ($totalEpisodesCount > 0) {
                         $progressLabel = 'EPISODE ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
