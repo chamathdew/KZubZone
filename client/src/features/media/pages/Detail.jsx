@@ -394,7 +394,7 @@ export default function Detail({ type = 'Movie', initialData }) {
       />
 
       {/* Cinematic Banner Backdrop Header */}
-      <div className="relative w-full h-[50vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
+      <div className="relative w-full h-[55vh] sm:h-[70vh] lg:h-[85vh] overflow-hidden -mt-20">
         <img
           src={backdropImage}
           alt={media.title}

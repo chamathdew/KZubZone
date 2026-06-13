@@ -107,7 +107,21 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-4 z-50 w-full px-4 sm:px-6 lg:px-8">
+    <>
+      {/* MOBILE BACKDROP OVERLAY */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <header className="sticky top-4 z-50 w-full px-4 sm:px-6 lg:px-8">
       <div className={`max-w-7xl mx-auto glass-panel border rounded-full backdrop-blur-xl shadow-2xl h-16 px-6 flex items-center justify-between gap-4 transition-all duration-300 relative ${
         isScrolled 
           ? 'bg-luxury-950/95 shadow-glass-neon border-white/15' 
@@ -314,7 +328,7 @@ export default function Navbar() {
 
           {/* ADMIN IS ALREADY AUTHENTICATED DIRECT BUTTON OR USER WITH DASHBOARD ACCESS */}
           {(admin || (user && user.hasDashboardAccess)) && (
-            <div className="hidden md:flex items-center ml-2">
+            <div className="flex items-center ml-1.5 sm:ml-2">
               <Link
                 href="/management/dashboard"
                 className="w-8 h-8 border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 hover:text-white rounded-full flex items-center justify-center transition"
@@ -329,7 +343,7 @@ export default function Navbar() {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle mobile menu"
-            className="p-1 rounded-md md:hidden text-slate-400 hover:text-white transition"
+            className="p-1 rounded-md lg:hidden text-slate-400 hover:text-white transition"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -343,7 +357,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="md:hidden mt-3 glass-panel border border-white/10 rounded-3xl p-5 flex flex-col gap-4 bg-luxury-950/90 shadow-2xl backdrop-blur-xl"
+            className="lg:hidden mt-3 glass-panel border border-white/10 rounded-3xl p-5 flex flex-col gap-4 bg-luxury-950/90 shadow-2xl backdrop-blur-xl relative z-50"
           >
             {/* Search Input for Mobile */}
             <form onSubmit={handleSearchSubmit} className="relative w-full">
@@ -369,7 +383,9 @@ export default function Navbar() {
               <>
                 <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">My Profile</Link>
                 {user.hasDashboardAccess && (
-                  <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Admin Dashboard</Link>
+                  <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5 flex items-center gap-1.5">
+                    <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
+                  </Link>
                 )}
                 <button
                   onClick={() => { setMobileMenuOpen(false); logoutUser(); }}
@@ -381,7 +397,9 @@ export default function Navbar() {
             )}
             {admin && (
               <>
-                <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Admin Dashboard</Link>
+                <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5 flex items-center gap-1.5">
+                  <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
+                </Link>
                 <button
                   onClick={() => { setMobileMenuOpen(false); logoutAdmin(); }}
                   className="text-left text-brand-secondary text-xs font-bold uppercase tracking-wider py-1 flex items-center gap-2"
@@ -397,5 +415,6 @@ export default function Navbar() {
         )}
       </AnimatePresence>
     </header>
+    </>
   );
 }

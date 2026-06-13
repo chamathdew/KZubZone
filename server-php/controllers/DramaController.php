@@ -628,8 +628,8 @@ class DramaController {
             $progressLabel = 'Completed';
         } else {
             if ($totalEpisodesCount > 0) {
-                // Show "X/Y EP" so users know exact progress
-                $progressLabel = $subbedCount . '/' . $totalEpisodesCount . ' EP';
+                // Show latest episode
+                $progressLabel = 'EP ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
             } elseif ($maxEpisodeNumber > 0) {
                 $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
             } else {
@@ -764,7 +764,8 @@ class DramaController {
                 $progressLabel = 'Completed';
             } else {
                 if ($totalEpisodesCount > 0) {
-                    $progressLabel = $subbedCount . '/' . $totalEpisodesCount . ' EP';
+                    // Show latest episode
+                    $progressLabel = 'EP ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
                 } elseif ($maxEpisodeNumber > 0) {
                     $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
                 } else {
