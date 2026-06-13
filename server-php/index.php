@@ -235,9 +235,13 @@ $routes = [
             
             $res = [
                 'driver' => $driver,
+                'fallbackWarning' => $db->getFallbackWarning(),
                 'dramas_count' => count($dramas),
                 'seasons_count' => count($seasons),
                 'episodes_count' => count($episodes),
+                'subtitles_count' => $db->count('subtitles'),
+                'users_count' => $db->count('users'),
+                'settings_count' => $db->count('settings'),
                 'dramas' => array_map(function($d) {
                     return [
                         'id' => $d['_id'],
