@@ -629,9 +629,9 @@ class DramaController {
         } else {
             if ($totalEpisodesCount > 0) {
                 // Show latest episode
-                $progressLabel = 'EP ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
+                $progressLabel = 'EPISODE ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
             } elseif ($maxEpisodeNumber > 0) {
-                $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
+                $progressLabel = 'EPISODE ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
             } else {
                 $progressLabel = $totalSubtitles . ' subs';
             }
@@ -765,9 +765,9 @@ class DramaController {
             } else {
                 if ($totalEpisodesCount > 0) {
                     // Show latest episode
-                    $progressLabel = 'EP ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
+                    $progressLabel = 'EPISODE ' . ($maxEpisodeNumber > 0 ? $maxEpisodeNumber : $subbedCount);
                 } elseif ($maxEpisodeNumber > 0) {
-                    $progressLabel = 'Ep ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
+                    $progressLabel = 'EPISODE ' . str_pad($maxEpisodeNumber, 2, '0', STR_PAD_LEFT);
                 } else {
                     $progressLabel = $totalSubtitles . ' subs';
                 }

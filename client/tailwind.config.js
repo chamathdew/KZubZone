@@ -21,7 +21,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'sans-serif'],
+        sans: ['Stardom', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',

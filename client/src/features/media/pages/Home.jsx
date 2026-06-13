@@ -480,7 +480,7 @@ export default function Home({
                         )}
                         {(sub.seasonNumber || sub.episodeNumber) && (
                           <span className="px-1.5 py-0.5 rounded bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[9px] font-black uppercase">
-                            {sub.seasonNumber ? `S${sub.seasonNumber}` : ''} {sub.episodeNumber ? `EP${sub.episodeNumber}` : ''}
+                            {sub.seasonNumber ? `S${sub.seasonNumber}` : ''} {sub.episodeNumber ? `EPISODE ${sub.episodeNumber}` : ''}
                           </span>
                         )}
                         <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300 text-[9px] font-bold uppercase">
