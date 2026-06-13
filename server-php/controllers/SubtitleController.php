@@ -120,6 +120,13 @@ class SubtitleController {
             ]);
         }
 
+        // Invalidate cache and trigger revalidation if immediately approved
+        if ($approvalStatus === 'Approved') {
+            \Utils\Cache::delete('home_catalog');
+            \Utils\Revalidate::path('/');
+            self::revalidateMediaForSubtitle($mediaId, $mediaType);
+        }
+
         http_response_code(201);
         echo json_encode([
             'message' => $uploaderRole === 'Admin'
@@ -420,6 +427,13 @@ class SubtitleController {
             'moderatorNotes' => $moderatorNotes
         ]);
 
+        // Invalidate cache and trigger revalidation
+        if ($status === 'Approved') {
+            \Utils\Cache::delete('home_catalog');
+            \Utils\Revalidate::path('/');
+            self::revalidateMediaForSubtitle($subtitle['mediaId'], $subtitle['mediaType']);
+        }
+
         // Notify uploader
         $db->insertOne('notifications', [
             'recipient' => $subtitle['uploader'] ?? null,
@@ -476,6 +490,11 @@ class SubtitleController {
         if (!empty($updates)) {
             $db->updateOne('subtitles', ['_id' => $id], $updates);
             $subtitle = $db->findOne('subtitles', ['_id' => $id]);
+
+            // Invalidate cache and trigger revalidation
+            \Utils\Cache::delete('home_catalog');
+            \Utils\Revalidate::path('/');
+            self::revalidateMediaForSubtitle($subtitle['mediaId'], $subtitle['mediaType']);
         }
 
         header('Content-Type: application/json');
@@ -496,7 +515,47 @@ class SubtitleController {
         }
 
         $db->deleteOne('subtitles', ['_id' => $id]);
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($subtitle) {
+            self::revalidateMediaForSubtitle($subtitle['mediaId'], $subtitle['mediaType']);
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Subtitle deleted successfully']);
+    }
+
+    /**
+     * Helper to lookup media details and revalidate corresponding detail page.
+     */
+    private static function revalidateMediaForSubtitle($mediaId, $mediaType) {
+        try {
+            $db = Database::getInstance();
+            $mediaTypeClean = strtolower($mediaType);
+            
+            if ($mediaTypeClean === 'episode') {
+                $episode = $db->findOne('episodes', ['_id' => $mediaId]);
+                if ($episode) {
+                    $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
+                    if ($drama && !empty($drama['slug'])) {
+                        \Utils\Revalidate::media('drama', $drama['slug']);
+                    }
+                }
+            } elseif ($mediaTypeClean === 'movie') {
+                $movie = $db->findOne('movies', ['_id' => $mediaId]);
+                if ($movie && !empty($movie['slug'])) {
+                    \Utils\Revalidate::media('movie', $movie['slug']);
+                }
+            } else { // 'drama' or fallback
+                $drama = $db->findOne('dramas', ['_id' => $mediaId]);
+                if ($drama && !empty($drama['slug'])) {
+                    \Utils\Revalidate::media('drama', $drama['slug']);
+                }
+            }
+        } catch (\Exception $e) {
+            error_log("Failed to revalidate media for subtitle: " . $e->getMessage());
+        }
     }
 }

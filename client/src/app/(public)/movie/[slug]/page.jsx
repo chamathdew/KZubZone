@@ -5,7 +5,7 @@ import Detail from '@/features/media/pages/Detail';
 const getMovie = cache(async (slug) => {
   const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
   try {
-    const res = await fetch(`${backendUrl}/api/media/movies/${slug}`, { next: { revalidate: 30 } });
+    const res = await fetch(`${backendUrl}/api/media/movies/${slug}`, { next: { revalidate: 86400 } });
     if (res.ok) {
       return res.json();
     }

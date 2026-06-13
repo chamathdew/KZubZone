@@ -276,7 +276,6 @@ class TmdbController {
     }
 
     public static function importFromTmdb() {
-        @set_time_limit(300); // 5 minutes execution time limit
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $id = $body['id'] ?? null;
         $type = $body['type'] ?? 'movie'; // movie or tv
@@ -288,6 +287,37 @@ class TmdbController {
             return;
         }
 
+        self::spawnBackgroundImport([
+            'action' => 'import',
+            'id' => $id,
+            'type' => $type,
+            'isHistorical' => $isHistorical
+        ]);
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'message' => 'Import task has been started in the background. Refresh your drafts in a few moments.',
+            'status' => 'Importing'
+        ]);
+    }
+
+    private static function spawnBackgroundImport($params) {
+        $scriptPath = dirname(__FILE__) . '/../scripts/background-import.php';
+        $args = json_encode($params);
+        
+        if (substr(php_uname(), 0, 7) === "Windows") {
+            // Windows background execution using popen
+            $cmd = "start /B php " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > NUL 2>&1";
+            pclose(popen($cmd, "r"));
+        } else {
+            // Linux/cPanel background execution
+            $cmd = "php " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > /dev/null 2>&1 &";
+            exec($cmd);
+        }
+        error_log("Spawned background import: " . $cmd);
+    }
+
+    public static function runBackgroundImport($id, $type, $isHistorical) {
         $apiKey = self::getTmdbApiKey();
         $data = null;
 
@@ -300,9 +330,7 @@ class TmdbController {
             ]);
 
             if (isset($data['success']) && $data['success'] === false) {
-                http_response_code(404);
-                echo json_encode(['message' => 'Media not found on TMDB']);
-                return;
+                throw new \Exception('Media not found on TMDB');
             }
 
             // Extract keywords
@@ -364,23 +392,27 @@ class TmdbController {
             }
 
             if (!$data) {
-                http_response_code(404);
-                echo json_encode(['message' => 'Mock title details not found in fallback database.']);
-                return;
+                throw new \Exception('Mock title details not found in fallback database.');
             }
         }
 
-        $db = Database::getInstance();
-        header('Content-Type: application/json');
-
         if ($type === 'tv') {
             $media = self::processDramaData($data, $isHistorical);
-            echo json_encode(['message' => 'Drama imported successfully as Draft', 'media' => $media]);
         } else {
             $media = self::processMovieData($data, $isHistorical);
-            echo json_encode(['message' => 'Movie imported successfully as Draft', 'media' => $media]);
         }
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($media && !empty($media['slug'])) {
+            \Utils\Revalidate::media($type === 'tv' ? 'drama' : 'movie', $media['slug']);
+        }
+
+        return $media;
     }
+
+
 
     private static function processMovieData($data, $isHistorical = false) {
         $db = Database::getInstance();
@@ -796,7 +828,6 @@ class TmdbController {
     }
 
     public static function bulkImportFromTmdb() {
-        @set_time_limit(600); // 10 minutes execution time limit
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $ids = $body['ids'] ?? [];
         $type = $body['type'] ?? 'tv'; // movie or tv
@@ -810,112 +841,17 @@ class TmdbController {
             return;
         }
 
-        $imported = [];
-        $failed = [];
-
-        foreach ($uniqueIds as $id) {
-            try {
-                $apiKey = self::getTmdbApiKey();
-                $data = null;
-
-                if (!empty($apiKey)) {
-                    $endpoint = ($type === 'tv') ? 'tv' : 'movie';
-                    $url = "https://api.themoviedb.org/3/{$endpoint}/{$id}";
-                    $data = self::httpGet($url, [
-                        'api_key' => $apiKey,
-                        'append_to_response' => 'credits,videos,images,keywords'
-                    ]);
-
-                    if (isset($data['success']) && $data['success'] === false) {
-                        throw new \Exception('Media not found on TMDB');
-                    }
-
-                    // Extract keywords, trailer, images, and seasons details
-                    $keywordsArr = [];
-                    if (isset($data['keywords']['keywords'])) {
-                        foreach ($data['keywords']['keywords'] as $k) {
-                            $keywordsArr[] = $k['name'];
-                        }
-                    } elseif (isset($data['keywords']['results'])) {
-                        foreach ($data['keywords']['results'] as $k) {
-                            $keywordsArr[] = $k['name'];
-                        }
-                    }
-                    $data['keywords'] = $keywordsArr;
-
-                    $trailerUrl = '';
-                    if (isset($data['videos']['results'])) {
-                        foreach ($data['videos']['results'] as $v) {
-                            if ($v['type'] === 'Trailer' && $v['site'] === 'YouTube') {
-                                $trailerUrl = "https://www.youtube.com/embed/{$v['key']}";
-                                break;
-                            }
-                        }
-                    }
-                    $data['trailer'] = $trailerUrl;
-
-                    $imgArr = [];
-                    if (isset($data['images']['backdrops'])) {
-                        $backdrops = array_slice($data['images']['backdrops'], 0, 5);
-                        foreach ($backdrops as $i) {
-                            $imgArr[] = "https://image.tmdb.org/t/p/original" . $i['file_path'];
-                        }
-                    }
-                    $data['images'] = $imgArr;
-
-                    if ($type === 'tv' && isset($data['seasons'])) {
-                        $seasonsFull = [];
-                        foreach ($data['seasons'] as $s) {
-                            if (($s['season_number'] ?? 0) === 0) continue;
-                            $sUrl = "https://api.themoviedb.org/3/tv/{$id}/season/{$s['season_number']}";
-                            $seasonDetails = self::httpGet($sUrl, ['api_key' => $apiKey]);
-                            if ($seasonDetails) {
-                                $seasonsFull[] = $seasonDetails;
-                            }
-                        }
-                        $data['seasons'] = $seasonsFull;
-                    }
-                } else {
-                    // Fallback to mock data store
-                    $store = ($type === 'tv') ? self::$mockData['dramas'] : self::$mockData['movies'];
-                    foreach ($store as $item) {
-                        if ((int)$item['id'] === (int)$id) {
-                            $data = $item;
-                            break;
-                        }
-                    }
-
-                    if (!$data) {
-                        throw new \Exception('Mock title details not found in fallback database.');
-                    }
-                }
-
-                if ($type === 'tv') {
-                    $media = self::processDramaData($data, $isHistorical);
-                    $title = $media['title'] ?? ($media['name'] ?? "TMDB {$id}");
-                } else {
-                    $media = self::processMovieData($data, $isHistorical);
-                    $title = $media['title'] ?? ($media['name'] ?? "TMDB {$id}");
-                }
-
-                $imported[] = [
-                    'id' => $id,
-                    'title' => $title,
-                    'message' => 'Imported successfully'
-                ];
-            } catch (\Exception $e) {
-                $failed[] = [
-                    'id' => $id,
-                    'message' => $e->getMessage()
-                ];
-            }
-        }
+        self::spawnBackgroundImport([
+            'action' => 'bulk-import',
+            'ids' => $uniqueIds,
+            'type' => $type,
+            'isHistorical' => $isHistorical
+        ]);
 
         header('Content-Type: application/json');
         echo json_encode([
-            'message' => "Bulk import complete: " . count($imported) . " imported as Draft, " . count($failed) . " failed",
-            'imported' => $imported,
-            'failed' => $failed
+            'message' => 'Bulk import task has been started in the background for ' . count($uniqueIds) . ' titles. Refresh drafts in a few moments.',
+            'status' => 'Importing'
         ]);
     }
 }

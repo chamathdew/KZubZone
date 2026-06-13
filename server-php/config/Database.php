@@ -555,7 +555,8 @@ class Database {
                     $titleField = $this->sqlField('title');
                     $origField = $this->sqlField('originalTitle');
                     $descField = $this->sqlField('description');
-                    $clauses[] = "({$titleField} LIKE {$p} OR {$origField} LIKE {$p} OR {$descField} LIKE {$p})";
+                    $likeOp = $this->driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+                    $clauses[] = "({$titleField} {$likeOp} {$p} OR {$origField} {$likeOp} {$p} OR {$descField} {$likeOp} {$p})";
                     $params[$p] = $searchVal;
                 }
                 continue;
@@ -602,7 +603,8 @@ class Database {
                             } elseif ($isArrayField) {
                                 foreach ($val as $idx => $item) {
                                     $p = "{$paramName}_in_{$idx}";
-                                    $subClauses[] = "{$sqlField} LIKE {$p}";
+                                    $likeOp = $this->driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+                                    $subClauses[] = "{$sqlField} {$likeOp} {$p}";
                                     $params[$p] = '%' . $item . '%';
                                 }
                                 if (!empty($subClauses)) {
@@ -625,7 +627,8 @@ class Database {
                         $like = preg_replace('/\$$/', '', $like);
                         $like = str_replace(['\-', '.*', '.+', '[0-9]+'], ['-', '%', '%', '%'], $like);
                         $like = str_replace('\\', '', $like);
-                        $clauses[] = "{$sqlField} LIKE {$paramName}_regex";
+                        $likeOp = $this->driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+                        $clauses[] = "{$sqlField} {$likeOp} {$paramName}_regex";
                         $params["{$paramName}_regex"] = $like;
                     } elseif ($op === '$ne') {
                         $clauses[] = "{$sqlField} != {$paramName}_ne";

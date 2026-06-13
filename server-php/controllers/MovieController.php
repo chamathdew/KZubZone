@@ -112,6 +112,14 @@ class MovieController {
     }
 
     public static function getHomeCatalog() {
+        // Cache layer
+        $cachedCatalog = \Utils\Cache::get('home_catalog');
+        if ($cachedCatalog !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($cachedCatalog);
+            return;
+        }
+
         $db = Database::getInstance();
         $statusFilter = ['status' => 'Published'];
 
@@ -180,8 +188,7 @@ class MovieController {
         }
         unset($d);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $catalogData = [
             'latestMovies' => $latestMovies,
             'latestDramas' => $latestDramas,
             'historicalMovies' => $historicalMovies,
@@ -190,7 +197,13 @@ class MovieController {
             'trendingDramas' => $trendingDramas,
             'popularMovies' => $popularMovies,
             'popularDramas' => $popularDramas
-        ]);
+        ];
+
+        // Cache for 2 hours (7200 seconds)
+        \Utils\Cache::set('home_catalog', $catalogData, 7200);
+
+        header('Content-Type: application/json');
+        echo json_encode($catalogData);
     }
 
 
@@ -264,6 +277,13 @@ class MovieController {
         $finalMovieData = array_merge($data, $seoContent);
         $inserted = $db->insertOne('movies', $finalMovieData);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($inserted && !empty($inserted['slug'])) {
+            \Utils\Revalidate::media('movie', $inserted['slug']);
+        }
+
         http_response_code(201);
         echo json_encode(['message' => 'Movie created successfully', 'movie' => $inserted]);
     }
@@ -292,10 +312,15 @@ class MovieController {
             $updates = array_merge($updates, $seoContent);
         }
 
-
-
         $db->updateOne('movies', ['_id' => $id], $updates);
         $updatedMovie = $db->findOne('movies', ['_id' => $id]);
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($updatedMovie && !empty($updatedMovie['slug'])) {
+            \Utils\Revalidate::media('movie', $updatedMovie['slug']);
+        }
 
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Movie updated successfully', 'movie' => $updatedMovie]);
@@ -303,13 +328,38 @@ class MovieController {
 
     public static function deleteMovie($id) {
         $db = Database::getInstance();
+        $movie = $db->findOne('movies', ['_id' => $id]);
+        if (!$movie) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Movie not found']);
+            return;
+        }
+
         $deleted = $db->deleteOne('movies', ['_id' => $id]);
         if (!$deleted) {
             http_response_code(404);
             echo json_encode(['message' => 'Movie not found']);
             return;
         }
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($movie && !empty($movie['slug'])) {
+            \Utils\Revalidate::media('movie', $movie['slug']);
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Movie deleted successfully']);
     }
 }
+
+
+
+
+
+
+
+
+
+

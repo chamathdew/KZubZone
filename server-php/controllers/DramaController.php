@@ -218,6 +218,13 @@ class DramaController {
         $finalDramaData = array_merge($data, $seoContent);
         $inserted = $db->insertOne('dramas', $finalDramaData);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($inserted && !empty($inserted['slug'])) {
+            \Utils\Revalidate::media('drama', $inserted['slug']);
+        }
+
         http_response_code(201);
         echo json_encode(['message' => 'Drama created successfully', 'drama' => $inserted]);
     }
@@ -263,12 +270,26 @@ class DramaController {
         $db->updateOne('dramas', ['_id' => $id], $updates);
         $updatedDrama = $db->findOne('dramas', ['_id' => $id]);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($updatedDrama && !empty($updatedDrama['slug'])) {
+            \Utils\Revalidate::media('drama', $updatedDrama['slug']);
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Drama updated successfully', 'drama' => $updatedDrama]);
     }
 
     public static function deleteDrama($id) {
         $db = Database::getInstance();
+        $drama = $db->findOne('dramas', ['_id' => $id]);
+        if (!$drama) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Drama not found']);
+            return;
+        }
+
         $deleted = $db->deleteOne('dramas', ['_id' => $id]);
         if (!$deleted) {
             http_response_code(404);
@@ -279,6 +300,13 @@ class DramaController {
         // Delete cascading seasons and episodes
         $db->deleteMany('seasons', ['dramaId' => $id]);
         $db->deleteMany('episodes', ['dramaId' => $id]);
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($drama && !empty($drama['slug'])) {
+            \Utils\Revalidate::media('drama', $drama['slug']);
+        }
 
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Drama and cascading seasons/episodes deleted']);
@@ -306,6 +334,14 @@ class DramaController {
             'airDate' => $data['airDate'] ?? null
         ]);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        $drama = $db->findOne('dramas', ['_id' => $dramaId]);
+        if ($drama && !empty($drama['slug'])) {
+            \Utils\Revalidate::media('drama', $drama['slug']);
+        }
+
         http_response_code(201);
         echo json_encode(['message' => 'Season added successfully', 'season' => $inserted]);
     }
@@ -324,12 +360,29 @@ class DramaController {
         $db->updateOne('seasons', ['_id' => $id], $updates);
         $updated = $db->findOne('seasons', ['_id' => $id]);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($season && !empty($season['dramaId'])) {
+            $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
+            if ($drama && !empty($drama['slug'])) {
+                \Utils\Revalidate::media('drama', $drama['slug']);
+            }
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Season updated successfully', 'season' => $updated]);
     }
 
     public static function deleteSeason($id) {
         $db = Database::getInstance();
+        $season = $db->findOne('seasons', ['_id' => $id]);
+        if (!$season) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Season not found']);
+            return;
+        }
+
         $deleted = $db->deleteOne('seasons', ['_id' => $id]);
         if (!$deleted) {
             http_response_code(404);
@@ -339,6 +392,16 @@ class DramaController {
 
         // Cascade delete episodes
         $db->deleteMany('episodes', ['seasonId' => $id]);
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($season && !empty($season['dramaId'])) {
+            $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
+            if ($drama && !empty($drama['slug'])) {
+                \Utils\Revalidate::media('drama', $drama['slug']);
+            }
+        }
 
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Season and episodes deleted successfully']);
@@ -403,6 +466,13 @@ class DramaController {
 
         $inserted = $db->insertOne('episodes', $episode);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($drama && !empty($drama['slug'])) {
+            \Utils\Revalidate::media('drama', $drama['slug']);
+        }
+
         http_response_code(201);
         echo json_encode(['message' => 'Episode created successfully', 'episode' => $inserted]);
     }
@@ -421,17 +491,44 @@ class DramaController {
         $db->updateOne('episodes', ['_id' => $id], $updates);
         $updated = $db->findOne('episodes', ['_id' => $id]);
 
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($episode && !empty($episode['dramaId'])) {
+            $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
+            if ($drama && !empty($drama['slug'])) {
+                \Utils\Revalidate::media('drama', $drama['slug']);
+            }
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Episode updated successfully', 'episode' => $updated]);
     }
 
     public static function deleteEpisode($id) {
         $db = Database::getInstance();
+        $episode = $db->findOne('episodes', ['_id' => $id]);
+        if (!$episode) {
+            http_response_code(404);
+            echo json_encode(['message' => 'Episode not found']);
+            return;
+        }
+
         $deleted = $db->deleteOne('episodes', ['_id' => $id]);
         if (!$deleted) {
             http_response_code(404);
             echo json_encode(['message' => 'Episode not found']);
             return;
+        }
+
+        // Invalidate cache and trigger revalidation
+        \Utils\Cache::delete('home_catalog');
+        \Utils\Revalidate::path('/');
+        if ($episode && !empty($episode['dramaId'])) {
+            $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
+            if ($drama && !empty($drama['slug'])) {
+                \Utils\Revalidate::media('drama', $drama['slug']);
+            }
         }
 
         header('Content-Type: application/json');

@@ -93,10 +93,10 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full glass-panel border-b border-white/5 backdrop-blur-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex md:grid md:grid-cols-[auto_1fr_auto] items-center justify-between gap-4">
+    <header className="sticky top-4 z-50 w-full px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto glass-panel border border-white/10 rounded-full backdrop-blur-xl shadow-2xl h-16 px-6 flex items-center justify-between gap-4 bg-luxury-950/70 relative">
         
-        <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-4 min-w-0 z-10">
           {/* LOGO */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <img
@@ -111,7 +111,7 @@ export default function Navbar() {
         </div>
 
         {/* CENTER NAV LINKS */}
-        <nav className="hidden xl:flex items-center justify-center gap-7">
+        <nav className="hidden lg:flex items-center justify-center gap-7 absolute left-1/2 -translate-x-1/2 z-10">
           {catalogLinks.map((item) => (
             <Link key={`${item.label}-${item.url}`} href={item.url} className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">
               {item.label}
@@ -121,7 +121,7 @@ export default function Navbar() {
         </nav>
 
         {/* CONTROLS */}
-        <nav className="flex items-center justify-end gap-5 min-w-0">
+        <nav className="flex items-center justify-end gap-5 min-w-0 z-10">
           {/* SEARCH BAR (AUTOCOMPLETE) */}
           <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-40 lg:w-44 flex-shrink-0" ref={searchRef}>
             <div className="relative">
@@ -287,12 +287,10 @@ export default function Navbar() {
           ) : (
             <Link
               href="/auth"
-              className="h-10 px-3 sm:pl-2 sm:pr-4 rounded-full bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-brand-primary/40 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-black/20"
+              className="h-10 px-5 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 transition shadow-lg shadow-brand-primary/25 border border-white/10"
             >
-              <span className="w-6 h-6 rounded-full bg-brand-primary/20 text-brand-primary flex items-center justify-center flex-shrink-0">
-                <User className="w-3.5 h-3.5" />
-              </span>
-              <span className="hidden sm:inline">{content?.navigation?.signInLabel || 'Sign In'}</span>
+              <User className="w-3.5 h-3.5 text-white" />
+              <span>{content?.navigation?.signInLabel || 'Sign In'}</span>
             </Link>
           )}
 
@@ -323,10 +321,10 @@ export default function Navbar() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-white/5 bg-luxury-950 px-4 py-4 flex flex-col gap-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="md:hidden mt-3 glass-panel border border-white/10 rounded-3xl p-5 flex flex-col gap-4 bg-luxury-950/90 shadow-2xl backdrop-blur-xl"
           >
             {/* Search Input for Mobile */}
             <form onSubmit={handleSearchSubmit} className="relative w-full">
@@ -341,22 +339,22 @@ export default function Navbar() {
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
             </form>
 
-            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">Home</Link>
-            <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">Browse Catalog</Link>
+            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Home</Link>
+            <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Browse Catalog</Link>
             {catalogLinks.map((item) => (
-              <Link key={`${item.label}-${item.url}`} href={item.url} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">
+              <Link key={`${item.label}-${item.url}`} href={item.url} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">
                 {item.label}
               </Link>
             ))}
             {user && (
               <>
-                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-sm font-medium py-1">My Profile</Link>
+                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">My Profile</Link>
                 {user.hasDashboardAccess && (
-                  <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
+                  <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Admin Dashboard</Link>
                 )}
                 <button
                   onClick={() => { setMobileMenuOpen(false); logoutUser(); }}
-                  className="text-left text-brand-secondary text-sm font-medium py-1 flex items-center gap-2"
+                  className="text-left text-brand-secondary text-xs font-bold uppercase tracking-wider py-1 flex items-center gap-2"
                 >
                   <LogOut className="w-4 h-4" /> Logout User
                 </button>
@@ -364,17 +362,17 @@ export default function Navbar() {
             )}
             {admin && (
               <>
-                <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-sm font-medium py-1">Admin Dashboard</Link>
+                <Link href="/management/dashboard" onClick={() => setMobileMenuOpen(false)} className="text-brand-accent text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Admin Dashboard</Link>
                 <button
                   onClick={() => { setMobileMenuOpen(false); logoutAdmin(); }}
-                  className="text-left text-brand-secondary text-sm font-medium py-1 flex items-center gap-2"
+                  className="text-left text-brand-secondary text-xs font-bold uppercase tracking-wider py-1 flex items-center gap-2"
                 >
                   <LogOut className="w-4 h-4" /> Logout Admin
                 </button>
               </>
             )}
             {!user && !admin && (
-              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-sm font-medium py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>
+              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-xs font-bold uppercase tracking-wider py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>
             )}
           </motion.div>
         )}
