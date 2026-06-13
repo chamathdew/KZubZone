@@ -195,6 +195,48 @@ $routes = [
         }
         echo "=== END OF LOGS ===\n";
     }],
+    ['GET', '/api/check-postgres-xyz', function() {
+        header('Content-Type: text/plain');
+        try {
+            $db = \Config\Database::getInstance();
+            echo "Database Driver: " . $db->getDriver() . "\n";
+            
+            // Access PDO connection using reflection
+            $ref = new ReflectionClass($db);
+            $prop = $ref->getProperty('pdo');
+            $prop->setAccessible(true);
+            $pdo = $prop->getValue($db);
+            
+            if ($pdo) {
+                echo "PDO Connection: OK\n\n";
+                
+                // List all tables
+                echo "=== TABLES ===\n";
+                $stmt = $pdo->query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'");
+                $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                foreach ($tables as $t) {
+                    $cnt = $pdo->query("SELECT COUNT(*) FROM \"{$t}\"")->fetchColumn();
+                    echo "- Table: {$t} (Rows: {$cnt})\n";
+                }
+                
+                echo "\n=== DRAMAS ===\n";
+                $dramas = $db->find('dramas');
+                foreach ($dramas as $d) {
+                    echo "- " . ($d['title'] ?? 'Unknown') . " (ID: " . ($d['tmdbId'] ?? 'N/A') . ", Status: " . ($d['status'] ?? 'N/A') . ", Slug: " . ($d['slug'] ?? 'N/A') . ")\n";
+                }
+                
+                echo "\n=== MOVIES ===\n";
+                $movies = $db->find('movies');
+                foreach ($movies as $m) {
+                    echo "- " . ($m['title'] ?? 'Unknown') . " (ID: " . ($m['tmdbId'] ?? 'N/A') . ", Status: " . ($m['status'] ?? 'N/A') . ", Slug: " . ($m['slug'] ?? 'N/A') . ")\n";
+                }
+            } else {
+                echo "PDO Connection is null\n";
+            }
+        } catch (\Exception $e) {
+            echo "ERROR: " . $e->getMessage() . "\n" . $e->getTraceAsString();
+        }
+    }],
     ['GET', '/api/site-content', function() {
         $db = \Config\Database::getInstance();
         $setting = $db->findOne('settings', ['key' => 'siteContent']);
