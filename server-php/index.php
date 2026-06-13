@@ -259,6 +259,14 @@ $routes = [
                 foreach ($movies as $m) {
                     echo "- " . ($m['title'] ?? 'Unknown') . " (ID: " . ($m['tmdbId'] ?? 'N/A') . ", Status: " . ($m['status'] ?? 'N/A') . ", Slug: " . ($m['slug'] ?? 'N/A') . ")\n";
                 }
+                
+                echo "\n=== SETTINGS (siteContent) ===\n";
+                $siteContentSetting = $db->findOne('settings', ['key' => 'siteContent']);
+                if ($siteContentSetting) {
+                    echo json_encode($siteContentSetting['value'], JSON_PRETTY_PRINT) . "\n";
+                } else {
+                    echo "siteContent setting is empty or does not exist in DB.\n";
+                }
             } else {
                 echo "PDO Connection is null\n";
             }
