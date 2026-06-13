@@ -237,6 +237,16 @@ $routes = [
             $doctorSeasons = $doctorDrama ? $db->find('seasons', ['dramaId' => $doctorDrama['_id']]) : [];
             $doctorEpisodes = $doctorDrama ? $db->find('episodes', ['dramaId' => $doctorDrama['_id']]) : [];
 
+            $controllerResponse = null;
+            try {
+                ob_start();
+                \Controllers\DramaController::getDramaBySlug('doctor-on-the-edge');
+                $rawResponse = ob_get_clean();
+                $controllerResponse = json_decode($rawResponse, true);
+            } catch (\Exception $ex) {
+                $controllerResponse = ['error' => $ex->getMessage()];
+            }
+
             $comparison = [];
             if ($doctorDrama) {
                 $targetId = $doctorDrama['_id'];
@@ -272,6 +282,7 @@ $routes = [
                 'doctorSeasons' => $doctorSeasons,
                 'doctorEpisodes' => $doctorEpisodes,
                 'id_comparison' => $comparison,
+                'controllerResponse' => $controllerResponse,
                 'dramas_count' => count($dramas),
                 'seasons_count' => count($seasons),
                 'episodes_count' => count($episodes),
