@@ -127,6 +127,7 @@ export default function Navbar() {
             <div className="relative">
               <input
                 type="text"
+                aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -177,6 +178,7 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => { setShowNotifications(!showNotifications); setShowUserDropdown(false); }}
+                    aria-label="Notifications"
                     className="p-2 rounded-full hover:bg-white/5 text-slate-300 hover:text-white transition"
                   >
                     <Bell className="w-5 h-5" />
@@ -309,6 +311,7 @@ export default function Navbar() {
           {/* MOBILE MENU BUTTON */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle mobile menu"
             className="p-1 rounded-md md:hidden text-slate-400 hover:text-white transition"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -329,6 +332,7 @@ export default function Navbar() {
             <form onSubmit={handleSearchSubmit} className="relative w-full">
               <input
                 type="text"
+                aria-label={searchPlaceholder}
                 placeholder={searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

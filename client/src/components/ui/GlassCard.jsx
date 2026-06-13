@@ -162,9 +162,9 @@ export default function GlassCard({ item, type }) {
 
         {/* Default Title & Meta shown below the poster */}
         <div className="mt-3 px-1 flex flex-col gap-1 text-left">
-          <h4 className="text-xs font-bold text-slate-100 group-hover:text-brand-primary transition-colors line-clamp-1 leading-tight">
+          <h3 className="text-xs font-bold text-slate-100 group-hover:text-brand-primary transition-colors line-clamp-1 leading-tight">
             {item.title}
-          </h4>
+          </h3>
           <div className="flex min-w-0 items-center justify-between gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-wider">
             <span className="flex-shrink-0">{releaseYear || 'TBA'}</span>
             <span className="truncate text-right">

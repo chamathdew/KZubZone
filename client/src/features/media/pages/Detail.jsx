@@ -12,7 +12,8 @@ import SeoTags from '@/components/seo/SeoTags';
 
 import GlassCard from '@/components/ui/GlassCard';
 import { permalinkSlug } from '@/utils/slug';
-import { getMediaImage, handleImageFallback } from '@/utils/mediaImages';
+import Image from 'next/image';
+import { getMediaImage, imageFallbackFor, handleImageFallback } from '@/utils/mediaImages';
 
 export default function Detail({ type = 'Movie', initialData }) {
   const { slug } = useParams();
@@ -27,6 +28,18 @@ export default function Detail({ type = 'Movie', initialData }) {
   const [replyText, setReplyText] = useState({});
   const [activeReplyBox, setActiveReplyBox] = useState(null);
   const [playTrailer, setPlayTrailer] = useState(false);
+
+  const initialMedia = type === 'Drama' ? initialData?.drama : initialData?.movie;
+  const [posterSrc, setPosterSrc] = useState(getMediaImage(initialMedia, 'poster'));
+  const [backdropSrc, setBackdropSrc] = useState(getMediaImage(initialMedia, 'backdrop'));
+
+  useEffect(() => {
+    const mediaObj = type === 'Drama' ? data?.drama : data?.movie;
+    if (mediaObj) {
+      setPosterSrc(getMediaImage(mediaObj, 'poster'));
+      setBackdropSrc(getMediaImage(mediaObj, 'backdrop'));
+    }
+  }, [data, type]);
 
   const isAdmin = !!admin || !!(user && user.hasDashboardAccess);
 
@@ -394,14 +407,24 @@ export default function Detail({ type = 'Movie', initialData }) {
 
       {/* Cinematic Banner Backdrop Header */}
       <div className="relative w-full h-[40vh] sm:h-[55vh] overflow-hidden">
-        <img
-          src={backdropImage}
-          alt={media.title}
-          className="w-full h-full object-cover object-top"
-          onError={(event) => handleImageFallback(event, media, 'backdrop')}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/20 to-transparent" />
-        <div className="absolute inset-0 bg-black/10" />
+        {backdropSrc && (
+          <Image
+            src={backdropSrc}
+            alt={media.title}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-top"
+            onError={() => {
+              const fallback = imageFallbackFor(media, 'backdrop');
+              if (backdropSrc !== fallback) {
+                setBackdropSrc(fallback);
+              }
+            }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/20 to-transparent z-10" />
+        <div className="absolute inset-0 bg-black/10 z-10" />
       </div>
 
       {/* Media Metadata Layout */}
@@ -410,13 +433,22 @@ export default function Detail({ type = 'Movie', initialData }) {
           
           {/* LEFT: POSTER CARD */}
           <div className="flex flex-col gap-4 max-w-xs mx-auto md:max-w-none md:w-full w-full">
-            <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden shadow-2xl aspect-[2/3] w-full">
-              <img
-                src={posterImage}
-                alt={media.title}
-                className="w-full h-full object-cover"
-                onError={(event) => handleImageFallback(event, media, 'poster')}
-              />
+            <div className="glass-panel border border-white/10 rounded-3xl overflow-hidden shadow-2xl aspect-[2/3] w-full relative">
+              {posterSrc && (
+                <Image
+                  src={posterSrc}
+                  alt={media.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 25vw"
+                  className="object-cover"
+                  onError={() => {
+                    const fallback = imageFallbackFor(media, 'poster');
+                    if (posterSrc !== fallback) {
+                      setPosterSrc(fallback);
+                    }
+                  }}
+                />
+              )}
             </div>
             
             {/* Watchlist & Favorites Toggles */}
@@ -498,12 +530,12 @@ export default function Detail({ type = 'Movie', initialData }) {
             {/* AI SEO Unique Rewrite Block */}
             <div className="glass-panel p-6 rounded-3xl border border-white/5 text-slate-300 flex flex-col gap-4 text-xs sm:text-sm">
               <div>
-                <h3 className="font-extrabold text-white text-sm sm:text-base uppercase tracking-wider mb-2">Synopsis</h3>
+                <h2 className="font-extrabold text-white text-sm sm:text-base uppercase tracking-wider mb-2">Synopsis</h2>
                 <p className="leading-relaxed">{media.synopsisRewrite || media.description}</p>
               </div>
               <hr className="border-white/5" />
               <div>
-                <h3 className="font-extrabold text-white text-sm uppercase tracking-wider mb-2">Story Deep-Dive</h3>
+                <h2 className="font-extrabold text-white text-sm uppercase tracking-wider mb-2">Story Deep-Dive</h2>
                 <p className="leading-relaxed text-slate-400">{media.storyOverview}</p>
               </div>
             </div>
@@ -523,17 +555,17 @@ export default function Detail({ type = 'Movie', initialData }) {
             {/* Cast details Section */}
             {media.cast && media.cast.length > 0 && (
               <div className="flex flex-col gap-4 text-left">
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider">Starring Cast</h3>
+                <h2 className="text-sm font-black text-slate-400 uppercase tracking-wider">Starring Cast</h2>
                 <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-white/10 select-none">
                   {media.cast.map((member, idx) => (
                     <div key={idx} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-2xl min-w-[200px] flex-shrink-0">
-                      <img
+                      <Image
                         src={member?.profilePath || `https://placehold.co/100x100/111/fff?text=${encodeURIComponent((member?.name || 'Cast').split(' ').map(n=>n[0]).join(''))}`}
                         alt={member?.name || 'Cast Member'}
-                        className="w-10 h-10 rounded-full object-cover border border-white/10"
-                        onError={(e) => {
-                          e.target.src = `https://placehold.co/100x100/111/fff?text=${encodeURIComponent((member?.name || 'Cast').split(' ').map(n=>n[0]).join(''))}`;
-                        }}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover border border-white/10"
+                        unoptimized={!member?.profilePath || !member.profilePath.includes('image.tmdb.org')}
                       />
                       <div className="min-w-0 flex flex-col">
                         <span className="text-xs font-bold text-white truncate">{member?.name || 'Unknown'}</span>
@@ -548,9 +580,9 @@ export default function Detail({ type = 'Movie', initialData }) {
             {/* YouTube Trailer Section */}
             {media.trailer && (
               <div className="flex flex-col gap-4 text-left">
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <h2 className="text-sm font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
                   <PlayCircle className="w-4 h-4 text-brand-primary" /> Official Trailer
-                </h3>
+                </h2>
                 <div className="relative aspect-video w-full rounded-3xl overflow-hidden border border-white/5 bg-black shadow-2xl group cursor-pointer">
                   {playTrailer ? (
                     <iframe
@@ -565,13 +597,22 @@ export default function Detail({ type = 'Movie', initialData }) {
                       className="absolute inset-0 w-full h-full"
                       onClick={() => setPlayTrailer(true)}
                     >
-                      <img
-                        src={backdropImage}
-                        alt={`${media.title} Trailer Cover`}
-                        className="w-full h-full object-cover brightness-75 group-hover:scale-105 transition-transform duration-700 ease-out"
-                        onError={(event) => handleImageFallback(event, media, 'backdrop')}
-                      />
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors duration-300 flex items-center justify-center">
+                      {backdropSrc && (
+                        <Image
+                          src={backdropSrc}
+                          alt={`${media.title} Trailer Cover`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          className="object-cover brightness-75 group-hover:scale-105 transition-transform duration-700 ease-out"
+                          onError={() => {
+                            const fallback = imageFallbackFor(media, 'backdrop');
+                            if (backdropSrc !== fallback) {
+                              setBackdropSrc(fallback);
+                            }
+                          }}
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors duration-300 flex items-center justify-center z-10">
                         <PlayCircle className="w-16 h-16 text-white/90 group-hover:text-brand-primary group-hover:scale-110 transition-all duration-300 drop-shadow-[0_0_15px_rgba(124,58,237,0.6)]" />
                       </div>
                     </div>
@@ -588,7 +629,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Subtitle Center</p>
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">Episodes & Downloads</h3>
+                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Episodes & Downloads</h2>
                   </div>
 
                 </div>
@@ -657,11 +698,11 @@ export default function Detail({ type = 'Movie', initialData }) {
                               </div>
                               <div className="min-w-0 flex flex-col justify-center">
                                 <div className="flex items-center gap-2">
-                                  <h4 className="text-sm font-bold text-white truncate">
+                                  <h3 className="text-sm font-bold text-white truncate">
                                     {ep.episodeTitle && typeof ep.episodeTitle === 'string' && ep.episodeTitle.toLowerCase() !== `episode ${ep.episodeNumber}`.toLowerCase() 
                                       ? `Episode ${ep.episodeNumber}: ${ep.episodeTitle}` 
                                       : `Episode ${ep.episodeNumber}`}
-                                  </h4>
+                                  </h3>
                                   {hasSubtitles ? (
                                     <span className="px-1.5 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-[8px] font-black uppercase tracking-wider">Ready</span>
                                   ) : (
@@ -738,9 +779,9 @@ export default function Detail({ type = 'Movie', initialData }) {
             {/* Subtitle Downloads list */}
             {!(type === 'Drama' && standaloneSubtitles.length === 0) && (
               <div className="flex flex-col gap-4 text-left">
-                <h3 className="text-lg font-bold text-white uppercase tracking-wider">
+                <h2 className="text-lg font-bold text-white uppercase tracking-wider">
                   {type === 'Drama' ? 'Full Title Subtitles' : 'Subtitles'}
-                </h3>
+                </h2>
                 {standaloneSubtitles.length === 0 ? (
                   <div className="p-6 bg-white/[0.01] border border-white/5 rounded-3xl text-center text-xs text-slate-500">
                     No Sinhala subtitles uploaded for this title yet. Be the first to upload one!
@@ -801,9 +842,9 @@ export default function Detail({ type = 'Movie', initialData }) {
 
             {/* Discussion Comments */}
             <div className="flex flex-col gap-6 text-left" id="comments">
-              <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2.5">
+              <h2 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2.5">
                 <MessageSquare className="w-5 h-5 text-brand-primary" /> Discussion ({comments.length})
-              </h3>
+              </h2>
               
               {/* Form upload comment */}
               <form onSubmit={handleSubmitComment} className="glass-panel p-4 rounded-3xl border border-white/5 flex flex-col gap-3">
@@ -852,6 +893,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
+                            aria-label="Like comment"
                             onClick={() => {
                               if (!user) router.push('/auth');
                               else likeCommentMutation.mutate(comment._id);
@@ -945,9 +987,9 @@ export default function Detail({ type = 'Movie', initialData }) {
             return (
               <section key={section.id} className="flex flex-col gap-4 border-t border-white/5 pt-8">
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
                     <Icon className="w-5 h-5 text-brand-primary" /> {section.title}
-                  </h3>
+                  </h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                   {section.items.map((item) => (
