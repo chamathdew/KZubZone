@@ -9,12 +9,13 @@ class Revalidate {
      * @return bool True if revalidation succeeded, false otherwise.
      */
     public static function path($path) {
-        $nextUrl = $_ENV['NEXT_JS_URL'] ?? getenv('NEXT_JS_URL') ?: 'http://127.0.0.1:3000';
+        $nextUrl = $_ENV['NEXT_JS_URL'] ?? getenv('NEXT_JS_URL') ?: 'http://127.0.0.1:5173';
         $token = $_ENV['REVALIDATION_TOKEN'] ?? getenv('REVALIDATION_TOKEN') ?: 'ksubzone_reval_secret_2026';
         
         $url = rtrim($nextUrl, '/') . '/api/revalidate?secret=' . urlencode($token);
         
         // 1. Attempt non-blocking fire-and-forget socket connection (extremely fast)
+        $socketSucceeded = false;
         try {
             $parts = parse_url($url);
             $host = $parts['host'] ?? '127.0.0.1';
@@ -37,10 +38,14 @@ class Revalidate {
                 
                 fwrite($fp, $out);
                 fclose($fp);
-                return true;
+                $socketSucceeded = true;
             }
         } catch (\Exception $e) {
             // Ignore socket failure and fallback
+        }
+        
+        if ($socketSucceeded) {
+            return true;
         }
         
         // 2. Fallback to fast cURL with low timeouts to avoid blocking the main thread
@@ -57,6 +62,14 @@ class Revalidate {
         curl_setopt($ch, CURLOPT_TIMEOUT_MS, 300);
         
         $res = curl_exec($ch);
+        if ($res === false) {
+            error_log("Revalidation failed for path {$path} via URL {$url}. cURL Error: " . curl_error($ch));
+        } else {
+            $info = curl_getinfo($ch);
+            if ($info['http_code'] !== 200) {
+                error_log("Revalidation failed for path {$path} via URL {$url}. HTTP Status: " . $info['http_code'] . ", Response: " . $res);
+            }
+        }
         curl_close($ch);
         return true;
     }
