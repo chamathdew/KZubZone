@@ -28,11 +28,22 @@ $sourceDir = Join-Path $workspaceRoot "server-php"
 Copy-Item -Path "$sourceDir\*" -Destination $tempDir -Recurse -Force
 Write-Host "Copied server-php/ contents directly to build directory."
 
-# Exclude SQLite Database
+# Exclude SQLite Database, .env, and local config
 $dbFile = Join-Path $tempDir "ksubzone.sqlite"
+$envFile = Join-Path $tempDir ".env"
+$configJson = Join-Path $tempDir "config\backup_config.json"
+
 if (Test-Path $dbFile) {
     Remove-Item -Path $dbFile -Force
     Write-Host " - Excluded: ksubzone.sqlite"
+}
+if (Test-Path $envFile) {
+    Remove-Item -Path $envFile -Force
+    Write-Host " - Excluded: .env"
+}
+if (Test-Path $configJson) {
+    Remove-Item -Path $configJson -Force
+    Write-Host " - Excluded: local backup config credentials"
 }
 
 # Clean uploads folder contents
