@@ -205,7 +205,7 @@ class TmdbController {
         }
         
         $db = Database::getInstance();
-        $setting = $db->findOne('settings', ['key' => ['$in' => ['TMDB_API_KEY', 'tmdb_api_key', 'tmdb'] ] ]);
+        $setting = $db->findOne('settings', ['key' => ['$in' => ['TMDB_API_KEY', 'tmdb_api_key', 'TMDB_API', 'tmdb_api', 'tmdb'] ] ]);
         if ($setting && !empty($setting['value'])) {
             return trim($setting['value']);
         }
@@ -287,53 +287,20 @@ class TmdbController {
             return;
         }
 
-        // Check if background execution is possible
-        $canRunBackground = true;
-        if (substr(php_uname(), 0, 7) !== "Windows") {
-            // Linux/cPanel: check if exec is disabled
-            $disabledFunctions = explode(',', ini_get('disable_functions') ?: '');
-            $disabledFunctions = array_map('trim', $disabledFunctions);
-            if (in_array('exec', $disabledFunctions) || !function_exists('exec')) {
-                $canRunBackground = false;
-            }
-        } else {
-            // Windows: check if popen is disabled
-            $disabledFunctions = explode(',', ini_get('disable_functions') ?: '');
-            $disabledFunctions = array_map('trim', $disabledFunctions);
-            if (in_array('popen', $disabledFunctions) || !function_exists('popen')) {
-                $canRunBackground = false;
-            }
-        }
-
-        if ($canRunBackground) {
-            self::spawnBackgroundImport([
-                'action' => 'import',
-                'id' => $id,
-                'type' => $type,
-                'isHistorical' => $isHistorical
-            ]);
-
+        // Run synchronously directly to ensure all seasons and episodes are imported reliably.
+        try {
+            self::runBackgroundImport($id, $type, $isHistorical);
             header('Content-Type: application/json');
             echo json_encode([
-                'message' => 'Import task has been started in the background. Refresh your drafts in a few moments.',
-                'status' => 'Importing'
+                'message' => 'Import completed successfully.',
+                'status' => 'Completed'
             ]);
-        } else {
-            // Run synchronously as fallback
-            try {
-                self::runBackgroundImport($id, $type, $isHistorical);
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'message' => 'Import completed successfully (synchronous fallback).',
-                    'status' => 'Completed'
-                ]);
-            } catch (\Exception $e) {
-                http_response_code(500);
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'message' => 'Import execution failed: ' . $e->getMessage()
-                ]);
-            }
+        } catch (\Exception $e) {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'message' => 'Import execution failed: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -430,8 +397,8 @@ class TmdbController {
             $cmd = "start /B \"\" " . escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > " . escapeshellarg($logPath) . " 2>&1";
             pclose(popen($cmd, "r"));
         } else {
-            // Linux/cPanel background execution
-            $cmd = escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " > " . escapeshellarg($logPath) . " 2>&1 &";
+            // Linux/cPanel background execution with nohup and redirected stdin to prevent termination
+            $cmd = "nohup " . escapeshellarg($phpBin) . " " . escapeshellarg($scriptPath) . " " . escapeshellarg($args) . " < /dev/null > " . escapeshellarg($logPath) . " 2>&1 &";
             exec($cmd);
         }
         error_log("Spawned background import: " . $cmd);
@@ -492,11 +459,14 @@ class TmdbController {
             if ($type === 'tv' && isset($data['seasons'])) {
                 $seasonsFull = [];
                 foreach ($data['seasons'] as $s) {
-                    if (($s['season_number'] ?? 0) === 0) continue; // Skip specials
-                    $sUrl = "https://api.themoviedb.org/3/tv/{$id}/season/{$s['season_number']}";
+                    $sNum = isset($s['season_number']) ? (int)$s['season_number'] : 0;
+                    if ($sNum === 0) continue; // Skip specials
+                    $sUrl = "https://api.themoviedb.org/3/tv/{$id}/season/{$sNum}";
                     $seasonDetails = self::httpGet($sUrl, ['api_key' => $apiKey]);
                     if ($seasonDetails) {
                         $seasonsFull[] = $seasonDetails;
+                    } else {
+                        error_log("Failed to fetch season details for show {$id} season {$sNum}");
                     }
                 }
                 $data['seasons'] = $seasonsFull;
@@ -751,17 +721,18 @@ class TmdbController {
         // Handle Seasons & Episodes import
         if (isset($data['seasons']) && is_array($data['seasons'])) {
             foreach ($data['seasons'] as $s) {
+                $sNum = isset($s['season_number']) ? (int)$s['season_number'] : 0;
                 $seasonDoc = [
                     'dramaId' => $drama['_id'],
-                    'seasonNumber' => $s['season_number'],
-                    'seasonDescription' => $s['overview'] ?? "Season {$s['season_number']} of {$drama['title']}",
+                    'seasonNumber' => $sNum,
+                    'seasonDescription' => $s['overview'] ?? "Season {$sNum} of {$drama['title']}",
                     'seasonPoster' => $s['poster_path'] ? "https://image.tmdb.org/t/p/w500" . $s['poster_path'] : $drama['poster'],
                     'airDate' => $s['air_date'] ?? null
                 ];
 
                 $existingSeason = $db->findOne('seasons', [
                     'dramaId' => $drama['_id'],
-                    'seasonNumber' => $s['season_number']
+                    'seasonNumber' => $sNum
                 ]);
 
                 if ($existingSeason) {
@@ -776,32 +747,33 @@ class TmdbController {
                 // Add episodes
                 if (isset($s['episodes']) && is_array($s['episodes'])) {
                     foreach ($s['episodes'] as $ep) {
+                        $epNum = isset($ep['episode_number']) ? (int)$ep['episode_number'] : 0;
                         $epSchema = [
                             "@context" => "https://schema.org",
                             "@type" => "TVEpisode",
                             "name" => $ep['name'],
-                            "episodeNumber" => $ep['episode_number'],
-                            "description" => $ep['overview'] ?? "Episode {$ep['episode_number']} of {$drama['title']} Season {$s['season_number']}",
+                            "episodeNumber" => $epNum,
+                            "description" => $ep['overview'] ?? "Episode {$epNum} of {$drama['title']} Season {$sNum}",
                             "datePublished" => $ep['air_date'] ?? null
                         ];
 
                         $episodeDoc = [
                             'dramaId' => $drama['_id'],
                             'seasonId' => $season['_id'],
-                            'episodeNumber' => $ep['episode_number'],
-                            'episodeTitle' => $ep['name'] ?? "Episode {$ep['episode_number']}",
-                            'episodeDescription' => $ep['overview'] ?? "Episode {$ep['episode_number']} of Season {$s['season_number']}",
+                            'episodeNumber' => $epNum,
+                            'episodeTitle' => $ep['name'] ?? "Episode {$epNum}",
+                            'episodeDescription' => $ep['overview'] ?? "Episode {$epNum} of Season {$sNum}",
                             'episodeThumbnail' => $drama['banner'],
                             'airDate' => $ep['air_date'] ?? null,
                             'runtime' => $ep['runtime'] ?? $drama['runtime'],
                             'videoUrl' => 'https://www.w3schools.com/html/mov_bbb.mp4',
-                            'aiEpisodeSummary' => "AI generated recap for {$drama['title']} Episode {$ep['episode_number']}: " . ($ep['overview'] ?? ''),
+                            'aiEpisodeSummary' => "AI generated recap for {$drama['title']} Episode {$epNum}: " . ($ep['overview'] ?? ''),
                             'episodeSchemaMarkup' => $epSchema
                         ];
 
                         $existingEpisode = $db->findOne('episodes', [
                             'seasonId' => $season['_id'],
-                            'episodeNumber' => $ep['episode_number']
+                            'episodeNumber' => $epNum
                         ]);
 
                         if ($existingEpisode) {
