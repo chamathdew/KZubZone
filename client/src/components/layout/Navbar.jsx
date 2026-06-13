@@ -23,6 +23,20 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const searchRef = useRef(null);
   const catalogLinks = (content?.navigation?.links || []).filter((item) => item.label && item.url);
@@ -94,7 +108,11 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-4 z-50 w-full px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto glass-panel border border-white/10 rounded-full backdrop-blur-xl shadow-2xl h-16 px-6 flex items-center justify-between gap-4 bg-luxury-950/70 relative">
+      <div className={`max-w-7xl mx-auto glass-panel border rounded-full backdrop-blur-xl shadow-2xl h-16 px-6 flex items-center justify-between gap-4 transition-all duration-300 relative ${
+        isScrolled 
+          ? 'bg-luxury-950/95 shadow-glass-neon border-white/15' 
+          : 'bg-luxury-950/75 border-white/10'
+      }`}>
         
         <div className="flex items-center gap-4 flex-shrink-0 z-10">
           {/* LOGO */}
@@ -104,26 +122,26 @@ export default function Navbar() {
               alt={brand.siteName || 'KSubZone'}
               className="h-9 w-auto object-contain"
             />
-            <span className="text-xl xl:text-2xl font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans">
+            <span className="text-lg xl:text-2xl font-extrabold tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans">
               {brand.logoText || brand.siteName || 'KSUBZONE'}
             </span>
           </Link>
         </div>
 
         {/* CENTER NAV LINKS */}
-        <nav className="hidden lg:flex items-center justify-center gap-5 xl:gap-7 flex-grow z-10">
+        <nav className="hidden lg:flex items-center justify-center gap-3 lg:gap-4 xl:gap-6 flex-grow z-10">
           {catalogLinks.map((item) => (
-            <Link key={`${item.label}-${item.url}`} href={item.url} className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+            <Link key={`${item.label}-${item.url}`} href={item.url} className="text-slate-300 hover:text-white transition text-[10px] xl:text-xs font-bold uppercase tracking-wider whitespace-nowrap">
               {item.label}
             </Link>
           ))}
-          <Link href="/search" className="text-slate-300 hover:text-white transition text-xs font-bold uppercase tracking-wider whitespace-nowrap">Explore</Link>
+          <Link href="/search" className="text-slate-300 hover:text-white transition text-[10px] xl:text-xs font-bold uppercase tracking-wider whitespace-nowrap">Explore</Link>
         </nav>
 
         {/* CONTROLS */}
         <nav className="flex items-center justify-end gap-3 xl:gap-5 flex-shrink-0 z-10">
           {/* SEARCH BAR (AUTOCOMPLETE) */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-40 lg:w-44 flex-shrink-0" ref={searchRef}>
+          <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-32 lg:w-36 xl:w-44 flex-shrink-0" ref={searchRef}>
             <div className="relative">
               <input
                 type="text"
