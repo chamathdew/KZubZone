@@ -95,3 +95,9 @@
   }
 }
 
+/* Ensure tsParticles canvas is always click-through */
+#tsparticles canvas,
+.tsparticles-canvas-el {
+  pointer-events: none !important;
+}
+

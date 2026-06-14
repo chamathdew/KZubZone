@@ -13,6 +13,7 @@ const initParticles = async (engine) => {
 export default function ParticleBackground() {
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(true);
+  const [shouldRender, setShouldRender] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -22,7 +23,16 @@ export default function ParticleBackground() {
     };
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    
+    // Delay particles initialization to prevent page load blocking
+    const timer = setTimeout(() => {
+      setShouldRender(true);
+    }, 1500);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+      clearTimeout(timer);
+    };
   }, []);
 
   const options = useMemo(
@@ -30,7 +40,8 @@ export default function ParticleBackground() {
       if (isMobile) {
         return {
           fullScreen: {
-            enable: false,
+            enable: true,
+            zIndex: 1,
           },
           background: {
             color: {
@@ -56,9 +67,9 @@ export default function ParticleBackground() {
             },
             links: {
               color: "#8b5cf6",
-              distance: 90, // Reduced link distance for fewer line computations
+              distance: 115, // Link distance for visible mobile particle connections
               enable: true,
-              opacity: 0.1,
+              opacity: 0.12,
               width: 1,
             },
             move: {
@@ -68,7 +79,7 @@ export default function ParticleBackground() {
                 default: "out",
               },
               random: true,
-              speed: 0.5, // Slower motion on mobile
+              speed: 0.7, // Visible but lightweight motion on mobile
               straight: false,
             },
             number: {
@@ -76,21 +87,21 @@ export default function ParticleBackground() {
                 enable: true,
                 area: 800,
               },
-              value: 25, // Significantly reduced particle count on mobile
+              value: 45, // Optimized particle count for mobile visibility and performance
             },
             opacity: {
-              value: 0.35,
+              value: 0.4,
               animation: {
                 enable: true,
                 speed: 0.8,
-                minimumValue: 0.1,
+                minimumValue: 0.15,
               }
             },
             shape: {
               type: "circle",
             },
             size: {
-              value: { min: 0.8, max: 2.8 },
+              value: { min: 1.0, max: 3.0 },
               animation: {
                 enable: true,
                 speed: 1,
@@ -101,14 +112,15 @@ export default function ParticleBackground() {
               enable: false, // Disabled resource-heavy CSS/canvas shadows on mobile
             }
           },
-          detectRetina: false, // Disable retina scaling on mobile to avoid double resolution processing
+          detectRetina: true, // Enable retina scaling on mobile for sharp rendering
         };
       }
 
       // Desktop layout - Full premium details
       return {
         fullScreen: {
-          enable: false,
+          enable: true,
+          zIndex: 1,
         },
         background: {
           color: {
@@ -186,26 +198,25 @@ export default function ParticleBackground() {
               enable: true,
               speed: 1.5,
               minimumValue: 0.6,
-              }
-            },
-            shadow: {
-              enable: true,
-              color: "#8b5cf6",
-              blur: 4,
             }
           },
-          detectRetina: true,
-        };
+          shadow: {
+            enable: true,
+            color: "#8b5cf6",
+            blur: 4,
+          }
+        },
+        detectRetina: true,
+      };
     },
     [isMobile],
   );
 
-  if (!mounted || isMobile) return null;
+  if (!mounted || !shouldRender) return null;
 
   return (
     <ParticlesProvider init={initParticles}>
       <Particles
-        key={pathname}
         id="tsparticles"
         options={options}
         className="fixed inset-0 pointer-events-none"
