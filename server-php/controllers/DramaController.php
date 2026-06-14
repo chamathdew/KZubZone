@@ -140,8 +140,10 @@ class DramaController {
             // Ignore view count write-lock errors to keep page load stable
         }
 
-        // Calculate "New" tag based on creation date (within 14 days) instead of table-wide query
-        $drama['isNew'] = (time() - strtotime($drama['createdAt'] ?? 'now')) < (86400 * 14);
+        // Calculate "New" tag based on whether it is in the latest 5 dramas globally
+        $latestDramas = $db->find('dramas', ['status' => 'Published'], ['sort' => ['createdAt' => -1], 'limit' => 5]);
+        $latestIds = array_map(function($ld) { return (string)$ld['_id']; }, $latestDramas);
+        $drama['isNew'] = in_array((string)$drama['_id'], $latestIds);
 
         // Fetch seasons & episodes first so they can be reused for the subtitle summary
         $seasons = $db->find('seasons', ['dramaId' => $drama['_id']], ['sort' => ['seasonNumber' => 1]]);
@@ -849,10 +851,14 @@ class DramaController {
             $subtitlesByMedia[$sub['mediaId']][] = $sub;
         }
         
+        // Find latest 5 published dramas
+        $latestDramas = $db->find('dramas', ['status' => 'Published'], ['sort' => ['createdAt' => -1], 'limit' => 5]);
+        $latestIds = array_map(function($ld) { return (string)$ld['_id']; }, $latestDramas);
+        
         // 3. For each drama, compute the summary using the pre-fetched data
         foreach ($dramas as &$drama) {
             $dId = $drama['_id'];
-            $drama['isNew'] = (time() - strtotime($drama['createdAt'] ?? 'now')) < (86400 * 14);
+            $drama['isNew'] = in_array((string)$dId, $latestIds);
             
             $dramaEps = $episodesByDrama[$dId] ?? [];
             $totalEpisodesCount = count($dramaEps);

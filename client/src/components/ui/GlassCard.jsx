@@ -64,16 +64,11 @@ export default function GlassCard({ item, type }) {
             }}
           />
 
-          {/* Top Badges — single balanced row: left=episode progress / new tag, right=IMDb rating */}
-          <div className="absolute top-2.5 left-2.5 right-2.5 flex flex-wrap items-center justify-between gap-1.5 z-20">
-            {/* Left: Episode progress or New tag */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {item.isNew && (
-                <span className="h-5 px-1.5 inline-flex items-center justify-center rounded-full border border-purple-500/40 bg-purple-500/25 backdrop-blur-md text-purple-200 text-[9px] font-black uppercase tracking-wider">
-                  New
-                </span>
-              )}
-              {mediaType === 'drama' && hasSubtitles ? (
+          {/* Top Badges — layout: left=stacked status & new tag, right=IMDb rating */}
+          <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-20">
+            {/* Left: Episode progress and/or New tag stacked vertically */}
+            <div className="flex flex-col items-start gap-1 flex-shrink-0">
+              {mediaType === 'drama' && hasSubtitles && (
                 <span className={`h-5 px-1.5 inline-flex items-center justify-center rounded-full border backdrop-blur-md text-[9px] font-black uppercase tracking-wider ${
                   subtitleSummary.seasonStatus === 'Complete'
                     ? 'bg-rose-500/25 border-rose-500/40 text-rose-200'
@@ -81,9 +76,11 @@ export default function GlassCard({ item, type }) {
                 }`}>
                   {progressLabel}
                 </span>
-              ) : (
-                /* Empty placeholder to keep justify-between working when no left badge is present */
-                (!item.isNew ? <span /> : null)
+              )}
+              {item.isNew && (
+                <span className="h-5 px-1.5 inline-flex items-center justify-center rounded-full border border-purple-500/40 bg-purple-500/25 backdrop-blur-md text-purple-200 text-[9px] font-black uppercase tracking-wider">
+                  New
+                </span>
               )}
             </div>
 
@@ -93,6 +90,15 @@ export default function GlassCard({ item, type }) {
               <span>{rating > 0 ? rating.toFixed(1) : 'NR'}</span>
             </div>
           </div>
+
+          {/* Ongoing label — bottom-left floating pill, fades out on hover */}
+          {mediaType === 'drama' && subtitleSummary.seasonStatus === 'Ongoing' && (
+            <div className="absolute bottom-3 left-3 z-20 transition-opacity duration-200 group-hover:opacity-0">
+              <span className="px-2 py-0.5 bg-emerald-600/80 border border-emerald-500/50 backdrop-blur-md rounded-md text-white text-[9px] font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20">
+                Ongoing
+              </span>
+            </div>
+          )}
 
           {/* Drama / Movie label — bottom-right floating pill, fades out on hover */}
           <div className="absolute bottom-3 right-3 z-20 transition-opacity duration-200 group-hover:opacity-0">

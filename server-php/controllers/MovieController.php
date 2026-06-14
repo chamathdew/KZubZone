@@ -437,9 +437,13 @@ class MovieController {
              $subsCountByMediaId[$mid]++;
         }
         
+        // Find latest 5 published movies
+        $latestMovies = $db->find('movies', ['status' => 'Published'], ['sort' => ['createdAt' => -1], 'limit' => 5]);
+        $latestIds = array_map(function($lm) { return (string)$lm['_id']; }, $latestMovies);
+        
         foreach ($movies as &$m) {
             $mid = (string)$m['_id'];
-            $m['isNew'] = (time() - strtotime($m['createdAt'] ?? 'now')) < (86400 * 14);
+            $m['isNew'] = in_array($mid, $latestIds);
             $m['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
             $m['subtitleSummary'] = [
                 'totalSubtitles' => $m['subtitleCount'],
