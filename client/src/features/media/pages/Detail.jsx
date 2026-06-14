@@ -28,6 +28,15 @@ export default function Detail({ type = 'Movie', initialData }) {
   const [activeReplyBox, setActiveReplyBox] = useState(null);
   const [playTrailer, setPlayTrailer] = useState(false);
 
+  const [loadRecommendations, setLoadRecommendations] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadRecommendations(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
 
   const isAdmin = !!admin || !!(user && user.hasDashboardAccess);
 
@@ -199,7 +208,7 @@ export default function Detail({ type = 'Movie', initialData }) {
         }
       ];
     },
-    enabled: !!media?._id,
+    enabled: !!media?._id && loadRecommendations,
     staleTime: 1000 * 60 * 10 // 10 minutes
   });
 

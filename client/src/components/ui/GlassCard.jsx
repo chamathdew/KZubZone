@@ -35,7 +35,7 @@ export default function GlassCard({ item, type }) {
   };
 
   return (
-    <Link href={detailsUrl} className="block relative group w-full min-w-0">
+    <Link href={detailsUrl} prefetch={false} className="block relative group w-full min-w-0">
       <motion.div
         whileHover={{ y: -6, scale: 1.02 }}
         transition={{ duration: 0.4, ease: [0.25, 0.8, 0.25, 1] }}

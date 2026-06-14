@@ -180,6 +180,7 @@ export default function Navbar() {
                     <Link
                       key={item._id}
                       href={`/${item.type}/${permalinkSlug(item)}`}
+                      prefetch={false}
                       onClick={() => { setSearchQuery(''); setShowSuggestions(false); }}
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                     >
@@ -203,7 +204,7 @@ export default function Navbar() {
           
           {/* USER SECTION */}
           {user || admin ? (
-            <div className="flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
               
               {/* NOTIFICATION ICON */}
               {user && (
@@ -319,7 +320,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/auth"
-              className="h-10 px-5 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 transition shadow-lg shadow-brand-primary/25 border border-white/10"
+              className="hidden lg:flex h-10 px-5 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:opacity-90 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 transition shadow-lg shadow-brand-primary/25 border border-white/10"
             >
               <User className="w-3.5 h-3.5 text-white" />
               <span>{content?.navigation?.signInLabel || 'Sign In'}</span>
@@ -328,7 +329,7 @@ export default function Navbar() {
 
           {/* ADMIN IS ALREADY AUTHENTICATED DIRECT BUTTON OR USER WITH DASHBOARD ACCESS */}
           {(admin || (user && user.hasDashboardAccess)) && (
-            <div className="flex items-center ml-1.5 sm:ml-2">
+            <div className="hidden lg:flex items-center ml-1.5 sm:ml-2">
               <Link
                 href="/management/dashboard"
                 className="w-8 h-8 border border-brand-accent/40 text-brand-accent hover:bg-brand-accent/10 hover:text-white rounded-full flex items-center justify-center transition"
@@ -372,6 +373,22 @@ export default function Navbar() {
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
             </form>
 
+            {(user || admin) && (
+              <div className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/10 rounded-2xl mb-1">
+                <div className="w-10 h-10 rounded-full bg-brand-primary flex items-center justify-center text-white overflow-hidden flex-shrink-0">
+                  {user?.avatar || admin?.avatar ? (
+                    <img src={user?.avatar || admin?.avatar} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-5 h-5 text-white" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-grow text-left">
+                  <p className="text-xs font-black text-white truncate">{user?.username || admin?.username || 'Admin'}</p>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">{user?.email || admin?.email || 'Administrator'}</p>
+                </div>
+              </div>
+            )}
+
             <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Home</Link>
             <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider py-1 border-b border-white/5">Browse Catalog</Link>
             {catalogLinks.map((item) => (
@@ -409,7 +426,14 @@ export default function Navbar() {
               </>
             )}
             {!user && !admin && (
-              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="text-brand-primary hover:text-white text-xs font-bold uppercase tracking-wider py-1">{content?.navigation?.signInLabel || 'Sign In'}</Link>
+              <Link
+                href="/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full h-10 px-5 rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-lg shadow-brand-primary/25 border border-white/10 mt-2"
+              >
+                <User className="w-3.5 h-3.5 text-white" />
+                <span>{content?.navigation?.signInLabel || 'Sign In'}</span>
+              </Link>
             )}
           </motion.div>
         )}
