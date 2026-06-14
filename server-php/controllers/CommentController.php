@@ -141,33 +141,57 @@ class CommentController {
         echo json_encode(['message' => 'Comment posted', 'comment' => $inserted]);
     }
 
-    public static function getCommentsForTarget($targetId) {
+    public static function fetchCommentsForTargetWithBatchPopulate($targetId) {
         $db = Database::getInstance();
         $comments = $db->find('comments', [
             'targetId' => $targetId
         ], ['sort' => ['createdAt' => -1]]);
 
-        // Populate commenter and repliers
+        // Gather all unique user IDs
+        $userIds = [];
+        foreach ($comments as $c) {
+            if (!empty($c['user'])) {
+                $userIds[] = $c['user'];
+            }
+            if (isset($c['replies']) && is_array($c['replies'])) {
+                foreach ($c['replies'] as $rep) {
+                    if (!empty($rep['user'])) {
+                        $userIds[] = $rep['user'];
+                    }
+                }
+            }
+        }
+        $userIds = array_values(array_unique($userIds));
+
+        // Fetch all users in one query
+        $userMap = [];
+        if (!empty($userIds)) {
+            $usersList = $db->find('users', ['_id' => ['$in' => $userIds]]);
+            foreach ($usersList as $u) {
+                $userMap[$u['_id']] = [
+                    '_id' => $u['_id'],
+                    'username' => $u['username'],
+                    'avatar' => $u['avatar'] ?? ''
+                ];
+            }
+        }
+
+        // Populate commenters and repliers using the map
         foreach ($comments as &$c) {
-            $u = $db->findOne('users', ['_id' => $c['user']]);
-            $c['user'] = $u ? [
-                '_id' => $u['_id'],
-                'username' => $u['username'],
-                'avatar' => $u['avatar'] ?? ''
-            ] : null;
+            $c['user'] = !empty($c['user']) ? ($userMap[$c['user']] ?? null) : null;
 
             if (isset($c['replies']) && is_array($c['replies'])) {
                 foreach ($c['replies'] as &$rep) {
-                    $ru = $db->findOne('users', ['_id' => $rep['user']]);
-                    $rep['user'] = $ru ? [
-                        '_id' => $ru['_id'],
-                        'username' => $ru['username'],
-                        'avatar' => $ru['avatar'] ?? ''
-                    ] : null;
+                    $rep['user'] = !empty($rep['user']) ? ($userMap[$rep['user']] ?? null) : null;
                 }
             }
         }
 
+        return $comments;
+    }
+
+    public static function getCommentsForTarget($targetId) {
+        $comments = self::fetchCommentsForTargetWithBatchPopulate($targetId);
         header('Content-Type: application/json');
         echo json_encode($comments);
     }

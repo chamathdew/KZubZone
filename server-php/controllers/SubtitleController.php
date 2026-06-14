@@ -136,7 +136,7 @@ class SubtitleController {
         ]);
     }
 
-    public static function getSubtitlesForMedia($mediaId) {
+    public static function fetchSubtitlesForMediaWithBatchPopulate($mediaId) {
         $db = Database::getInstance();
 
         $query = ['approvalStatus' => 'Approved'];
@@ -149,17 +149,40 @@ class SubtitleController {
 
         $subtitles = $db->find('subtitles', $query, ['sort' => ['downloads' => -1, 'rating' => -1]]);
 
-        // Populate uploader
-        foreach ($subtitles as &$sub) {
-            $uploaderId = $sub['uploader'] ?? null;
-            $uploader = $uploaderId ? $db->findOne('users', ['_id' => $uploaderId]) : null;
-            $sub['uploader'] = $uploader ? [
-                '_id' => $uploader['_id'],
-                'username' => $uploader['username'],
-                'avatar' => $uploader['avatar'] ?? ''
-            ] : null;
+        // Gather unique uploader IDs
+        $uploaderIds = [];
+        foreach ($subtitles as $sub) {
+            $uId = $sub['uploader'] ?? null;
+            if ($uId) {
+                $uploaderIds[] = $uId;
+            }
+        }
+        $uploaderIds = array_values(array_unique($uploaderIds));
+
+        // Batch fetch users
+        $userMap = [];
+        if (!empty($uploaderIds)) {
+            $users = $db->find('users', ['_id' => ['$in' => $uploaderIds]]);
+            foreach ($users as $u) {
+                $userMap[$u['_id']] = [
+                    '_id' => $u['_id'],
+                    'username' => $u['username'],
+                    'avatar' => $u['avatar'] ?? ''
+                ];
+            }
         }
 
+        // Populate uploader details using map
+        foreach ($subtitles as &$sub) {
+            $uId = $sub['uploader'] ?? null;
+            $sub['uploader'] = $uId ? ($userMap[$uId] ?? null) : null;
+        }
+
+        return $subtitles;
+    }
+
+    public static function getSubtitlesForMedia($mediaId) {
+        $subtitles = self::fetchSubtitlesForMediaWithBatchPopulate($mediaId);
         header('Content-Type: application/json');
         echo json_encode($subtitles);
     }

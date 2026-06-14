@@ -113,7 +113,8 @@ export default function Detail({ type = 'Movie', initialData }) {
       const res = await apiClient.get(`/api/subtitles/media/${media._id}`);
       return res.data;
     },
-    enabled: !!media?._id,
+    enabled: !!media?._id && !data?.subtitles,
+    initialData: data?.subtitles || [],
     staleTime: 1000 * 60 * 2 // 2 minutes
   });
 
@@ -138,7 +139,20 @@ export default function Detail({ type = 'Movie', initialData }) {
       });
       return grouped;
     },
-    enabled: type === 'Drama' && activeEpisodes.length > 0,
+    enabled: type === 'Drama' && activeEpisodes.length > 0 && !data?.episodeSubtitles,
+    initialData: () => {
+      if (!data?.episodeSubtitles) return undefined;
+      const grouped = {};
+      activeEpisodes.forEach(ep => {
+        grouped[ep._id] = [];
+      });
+      data.episodeSubtitles.forEach(sub => {
+        if (sub.mediaId && grouped[sub.mediaId] !== undefined) {
+          grouped[sub.mediaId].push(sub);
+        }
+      });
+      return grouped;
+    },
     staleTime: 1000 * 60 * 2 // 2 minutes
   });
 
@@ -149,7 +163,8 @@ export default function Detail({ type = 'Movie', initialData }) {
       const res = await apiClient.get(`/api/media/comments/target/${media._id}`);
       return res.data;
     },
-    enabled: !!media?._id,
+    enabled: !!media?._id && !data?.comments,
+    initialData: data?.comments || [],
     staleTime: 1000 * 60 // 1 minute
   });
 

@@ -128,8 +128,44 @@ class DramaController {
         $seasons = $db->find('seasons', ['dramaId' => $drama['_id']], ['sort' => ['seasonNumber' => 1]]);
         $episodes = $db->find('episodes', ['dramaId' => $drama['_id']], ['sort' => ['seasonId' => 1, 'episodeNumber' => 1]]);
 
-        // Dynamic subtitle summary (passing seasons and episodes to save database queries)
-        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id'], $seasons, $episodes);
+        // Fetch all approved subtitles for both the drama and its episodes in a single query
+        $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
+        $allIds = array_merge([$drama['_id']], $episodeIds);
+        
+        $allSubtitles = $db->find('subtitles', [
+            'mediaId' => ['$in' => $allIds],
+            'approvalStatus' => 'Approved'
+        ]);
+
+        // Batch populate uploader for all subtitles
+        $uploaderIds = [];
+        foreach ($allSubtitles as $sub) {
+            $uId = $sub['uploader'] ?? null;
+            if ($uId) {
+                $uploaderIds[] = $uId;
+            }
+        }
+        $uploaderIds = array_values(array_unique($uploaderIds));
+        
+        $userMap = [];
+        if (!empty($uploaderIds)) {
+            $usersList = $db->find('users', ['_id' => ['$in' => $uploaderIds]]);
+            foreach ($usersList as $u) {
+                $userMap[$u['_id']] = [
+                    '_id' => $u['_id'],
+                    'username' => $u['username'],
+                    'avatar' => $u['avatar'] ?? ''
+                ];
+            }
+        }
+        foreach ($allSubtitles as &$sub) {
+            $uId = $sub['uploader'] ?? null;
+            $sub['uploader'] = $uId ? ($userMap[$uId] ?? null) : null;
+        }
+        unset($sub);
+
+        // Dynamic subtitle summary (passing pre-fetched seasons, episodes, and subtitles to save database queries)
+        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id'], $seasons, $episodes, $allSubtitles);
 
         // Map seasonId to seasonNumber for proper ordering across seasons
         $seasonNumberMap = [];
@@ -155,24 +191,28 @@ class DramaController {
             return $aEpNum <=> $bEpNum;
         });
 
-        // Append subtitle count to each episode (Approved subtitles only)
-        $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
-        if (!empty($episodeIds)) {
-            $episodeSubtitles = $db->find('subtitles', [
-                'mediaId' => ['$in' => $episodeIds],
-                'approvalStatus' => 'Approved'
-            ]);
-            $subsCountByMediaId = [];
-            foreach($episodeSubtitles as $sub) {
-                 $mid = (string)$sub['mediaId'];
-                 if (!isset($subsCountByMediaId[$mid])) $subsCountByMediaId[$mid] = 0;
-                 $subsCountByMediaId[$mid]++;
-            }
-            foreach($episodes as &$ep) {
-                 $mid = (string)$ep['_id'];
-                 $ep['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
+        // Separate standalone subtitles from episode subtitles, and set episode subtitle counts
+        $standaloneSubtitles = [];
+        $episodeSubtitles = [];
+        $subsCountByMediaId = [];
+        foreach ($allSubtitles as $sub) {
+            $mId = (string)$sub['mediaId'];
+            if ($mId === (string)$drama['_id']) {
+                $standaloneSubtitles[] = $sub;
+            } else {
+                $episodeSubtitles[] = $sub;
+                if (!isset($subsCountByMediaId[$mId])) {
+                    $subsCountByMediaId[$mId] = 0;
+                }
+                $subsCountByMediaId[$mId]++;
             }
         }
+
+        foreach ($episodes as &$ep) {
+            $mid = (string)$ep['_id'];
+            $ep['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
+        }
+        unset($ep);
 
         // Fetch related dramas (excluding current, sharing keywords)
         $related = [];
@@ -185,12 +225,18 @@ class DramaController {
             self::appendSubtitleSummariesToDramas($related);
         }
 
+        // Fetch comments using batch user populating
+        $comments = \Controllers\CommentController::fetchCommentsForTargetWithBatchPopulate($drama['_id']);
+
         header('Content-Type: application/json');
         echo json_encode([
             'drama' => $drama,
             'seasons' => $seasons,
             'episodes' => $episodes,
-            'related' => $related
+            'related' => $related,
+            'subtitles' => $standaloneSubtitles,
+            'episodeSubtitles' => $episodeSubtitles,
+            'comments' => $comments
         ]);
     }
 
@@ -537,7 +583,7 @@ class DramaController {
         echo json_encode(['message' => 'Episode deleted successfully']);
     }
 
-    public static function getSubtitleSummaryForDrama($dramaId, $seasons = null, $episodes = null) {
+    public static function getSubtitleSummaryForDrama($dramaId, $seasons = null, $episodes = null, $allSubtitles = null) {
         $db = Database::getInstance();
         
         // 1. Get all episodes of the drama (use pre-fetched if available)
@@ -546,14 +592,16 @@ class DramaController {
         }
         $totalEpisodesCount = count($episodes);
         
-        // 2. Get all approved subtitles for both the drama and its episodes in a single query
-        $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
-        $allIds = array_merge([$dramaId], $episodeIds);
-        
-        $allSubtitles = $db->find('subtitles', [
-            'mediaId' => ['$in' => $allIds],
-            'approvalStatus' => 'Approved'
-        ]);
+        // 2. Get all approved subtitles for both the drama and its episodes in a single query (use pre-fetched if available)
+        if ($allSubtitles === null) {
+            $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
+            $allIds = array_merge([$dramaId], $episodeIds);
+            
+            $allSubtitles = $db->find('subtitles', [
+                'mediaId' => ['$in' => $allIds],
+                'approvalStatus' => 'Approved'
+            ]);
+        }
         $totalSubtitles = count($allSubtitles);
         
         if ($totalSubtitles === 0) {

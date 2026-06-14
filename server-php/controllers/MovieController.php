@@ -277,10 +277,18 @@ class MovieController {
             self::appendMetadataToMovies($related);
         }
 
+        // Fetch standalone subtitles with batch populating
+        $subtitles = \Controllers\SubtitleController::fetchSubtitlesForMediaWithBatchPopulate($movie['_id']);
+
+        // Fetch comments with batch populating
+        $comments = \Controllers\CommentController::fetchCommentsForTargetWithBatchPopulate($movie['_id']);
+
         header('Content-Type: application/json');
         echo json_encode([
             'movie' => $movie,
-            'related' => $related
+            'related' => $related,
+            'subtitles' => $subtitles,
+            'comments' => $comments
         ]);
     }
 
