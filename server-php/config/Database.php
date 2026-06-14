@@ -195,7 +195,7 @@ class Database {
             // Auto-translate IPv6 host to IPv4 Session Pooler
             if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
                 $host = 'aws-1-ap-south-1.pooler.supabase.com';
-                $port = 5432;
+                $port = 6543;
                 if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
                     $user = $user . '.ejvczjiueysbiewzsuin';
                 }

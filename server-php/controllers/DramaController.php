@@ -121,19 +121,15 @@ class DramaController {
             // Ignore view count write-lock errors to keep page load stable
         }
 
-        // Fetch 8 latest dramas for the "New" tag
-        $latestDramas = $db->find('dramas', [], ['sort' => ['createdAt' => -1], 'limit' => 8]);
-        $latestDramaIds = array_map(function($d) { return (string)$d['_id']; }, $latestDramas);
-        $drama['isNew'] = in_array((string)$drama['_id'], $latestDramaIds);
+        // Calculate "New" tag based on creation date (within 14 days) instead of table-wide query
+        $drama['isNew'] = (time() - strtotime($drama['createdAt'] ?? 'now')) < (86400 * 14);
 
-        // Dynamic subtitle summary
-        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id']);
-
-        // Fetch seasons
+        // Fetch seasons & episodes first so they can be reused for the subtitle summary
         $seasons = $db->find('seasons', ['dramaId' => $drama['_id']], ['sort' => ['seasonNumber' => 1]]);
-
-        // Fetch episodes
         $episodes = $db->find('episodes', ['dramaId' => $drama['_id']], ['sort' => ['seasonId' => 1, 'episodeNumber' => 1]]);
+
+        // Dynamic subtitle summary (passing seasons and episodes to save database queries)
+        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id'], $seasons, $episodes);
 
         // Map seasonId to seasonNumber for proper ordering across seasons
         $seasonNumberMap = [];
@@ -159,11 +155,12 @@ class DramaController {
             return $aEpNum <=> $bEpNum;
         });
 
-        // Append subtitle count to each episode
+        // Append subtitle count to each episode (Approved subtitles only)
         $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
         if (!empty($episodeIds)) {
             $episodeSubtitles = $db->find('subtitles', [
-                'mediaId' => ['$in' => $episodeIds]
+                'mediaId' => ['$in' => $episodeIds],
+                'approvalStatus' => 'Approved'
             ]);
             $subsCountByMediaId = [];
             foreach($episodeSubtitles as $sub) {
@@ -540,30 +537,23 @@ class DramaController {
         echo json_encode(['message' => 'Episode deleted successfully']);
     }
 
-    public static function getSubtitleSummaryForDrama($dramaId) {
+    public static function getSubtitleSummaryForDrama($dramaId, $seasons = null, $episodes = null) {
         $db = Database::getInstance();
         
-        // 1. Get all episodes of the drama
-        $episodes = $db->find('episodes', ['dramaId' => $dramaId]);
+        // 1. Get all episodes of the drama (use pre-fetched if available)
+        if ($episodes === null) {
+            $episodes = $db->find('episodes', ['dramaId' => $dramaId]);
+        }
         $totalEpisodesCount = count($episodes);
         
-        // 2. Get all approved subtitles for the drama itself
-        $titleSubtitles = $db->find('subtitles', [
-            'mediaId' => $dramaId,
+        // 2. Get all approved subtitles for both the drama and its episodes in a single query
+        $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
+        $allIds = array_merge([$dramaId], $episodeIds);
+        
+        $allSubtitles = $db->find('subtitles', [
+            'mediaId' => ['$in' => $allIds],
             'approvalStatus' => 'Approved'
         ]);
-        
-        // 3. Get all approved subtitles for the episodes of the drama
-        $episodeSubtitles = [];
-        $episodeIds = array_map(function($ep) { return $ep['_id']; }, $episodes);
-        if (!empty($episodeIds)) {
-            $episodeSubtitles = $db->find('subtitles', [
-                'mediaId' => ['$in' => $episodeIds],
-                'approvalStatus' => 'Approved'
-            ]);
-        }
-        
-        $allSubtitles = array_merge($titleSubtitles, $episodeSubtitles);
         $totalSubtitles = count($allSubtitles);
         
         if ($totalSubtitles === 0) {
@@ -574,6 +564,17 @@ class DramaController {
                 'seasonStatus' => 'Ongoing',
                 'latestUploaderRole' => null
             ];
+        }
+        
+        // Split subtitles into title subtitles and episode subtitles
+        $titleSubtitles = [];
+        $episodeSubtitles = [];
+        foreach ($allSubtitles as $sub) {
+            if ((string)$sub['mediaId'] === (string)$dramaId) {
+                $titleSubtitles[] = $sub;
+            } else {
+                $episodeSubtitles[] = $sub;
+            }
         }
         
         // 4. Languages list
@@ -747,10 +748,6 @@ class DramaController {
         foreach ($seasons as $s) {
             $seasonsByDrama[$s['dramaId']][] = $s;
         }
-
-        // Fetch 8 latest dramas for the "New" tag
-        $latestDramas = $db->find('dramas', [], ['sort' => ['createdAt' => -1], 'limit' => 8]);
-        $latestDramaIds = array_map(function($d) { return (string)$d['_id']; }, $latestDramas);
         
         // 2. Get all approved subtitles for all these dramas in a single query
         $allSubtitles = $db->find('subtitles', [
@@ -767,7 +764,7 @@ class DramaController {
         // 3. For each drama, compute the summary using the pre-fetched data
         foreach ($dramas as &$drama) {
             $dId = $drama['_id'];
-            $drama['isNew'] = in_array((string)$dId, $latestDramaIds);
+            $drama['isNew'] = (time() - strtotime($drama['createdAt'] ?? 'now')) < (86400 * 14);
             
             $dramaEps = $episodesByDrama[$dId] ?? [];
             $totalEpisodesCount = count($dramaEps);

@@ -389,8 +389,6 @@ class MovieController {
     public static function appendMetadataToMovies(&$movies) {
         if (empty($movies)) return;
         $db = Database::getInstance();
-        $latestMovies = $db->find('movies', [], ['sort' => ['createdAt' => -1], 'limit' => 8]);
-        $latestMovieIds = array_map(function($m) { return (string)$m['_id']; }, $latestMovies);
         
         $movieIds = array_map(function($m) { return $m['_id']; }, $movies);
         $subtitles = $db->find('subtitles', [
@@ -407,7 +405,7 @@ class MovieController {
         
         foreach ($movies as &$m) {
             $mid = (string)$m['_id'];
-            $m['isNew'] = in_array($mid, $latestMovieIds);
+            $m['isNew'] = (time() - strtotime($m['createdAt'] ?? 'now')) < (86400 * 14);
             $m['subtitleCount'] = $subsCountByMediaId[$mid] ?? 0;
             $m['subtitleSummary'] = [
                 'totalSubtitles' => $m['subtitleCount'],
