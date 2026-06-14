@@ -94,7 +94,7 @@ export default function GlassCard({ item, type }) {
           {/* Ongoing label — bottom-left floating pill, fades out on hover */}
           {mediaType === 'drama' && subtitleSummary.seasonStatus === 'Ongoing' && (
             <div className="absolute bottom-3 left-3 z-20 transition-opacity duration-200 group-hover:opacity-0">
-              <span className="px-2 py-0.5 bg-emerald-600/80 border border-emerald-500/50 backdrop-blur-md rounded-md text-white text-[9px] font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20">
+              <span className="px-2 py-0.5 bg-emerald-600/80 border border-emerald-500/50 backdrop-blur-md rounded-full text-white text-[9px] font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20">
                 Ongoing
               </span>
             </div>
@@ -102,7 +102,7 @@ export default function GlassCard({ item, type }) {
 
           {/* Drama / Movie label — bottom-right floating pill, fades out on hover */}
           <div className="absolute bottom-3 right-3 z-20 transition-opacity duration-200 group-hover:opacity-0">
-            <span className="px-2 py-0.5 bg-black/55 border border-white/10 backdrop-blur-md rounded-md text-white text-[9px] font-extrabold uppercase tracking-wider">
+            <span className="px-2 py-0.5 bg-black/55 border border-white/10 backdrop-blur-md rounded-full text-white text-[9px] font-extrabold uppercase tracking-wider">
               {mediaType === 'drama' ? 'Drama' : 'Movie'}
             </span>
           </div>
