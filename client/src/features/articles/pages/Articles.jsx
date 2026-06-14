@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api/apiClient';
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpenText, CalendarDays, Clock3, Flame, Search, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, BookOpenText, CalendarDays, Clock3, Flame, Search, Sparkles, Star, Eye } from 'lucide-react';
 import SeoTags from '@/components/seo/SeoTags';
 
 const articles = [
@@ -95,7 +95,8 @@ export default function Articles({ initialData }) {
     readTime: `${article.readTime || 5} min read`,
     image: article.coverImage,
     excerpt: article.excerpt,
-    featured: article.isFeatured
+    featured: article.isFeatured,
+    viewCount: article.viewCount || 0
   })) : articles;
 
   const visibleArticles = useMemo(() => {
@@ -175,6 +176,9 @@ export default function Articles({ initialData }) {
                 <span className="rounded-full bg-brand-primary/15 border border-brand-primary/30 px-3 py-1 text-brand-primary">{featuredArticle.category}</span>
                 <span className="text-slate-500 flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> {featuredArticle.date}</span>
                 <span className="text-slate-500 flex items-center gap-1.5"><Clock3 className="w-3.5 h-3.5" /> {featuredArticle.readTime}</span>
+                {featuredArticle.viewCount !== undefined && (
+                  <span className="text-slate-500 flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {featuredArticle.viewCount} Views</span>
+                )}
               </div>
               <h2 className="mt-4 text-3xl sm:text-4xl font-black text-white leading-tight">{featuredArticle.title}</h2>
               <p className="mt-4 text-sm text-slate-300 leading-7">{featuredArticle.excerpt}</p>
@@ -205,6 +209,9 @@ export default function Articles({ initialData }) {
                 <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" /> {article.date}</span>
                   <span className="flex items-center gap-1"><Clock3 className="w-3.5 h-3.5" /> {article.readTime}</span>
+                  {article.viewCount !== undefined && (
+                    <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {article.viewCount} Views</span>
+                  )}
                 </div>
                 <h3 className="mt-3 text-lg font-black text-white leading-snug group-hover:text-violet-100 transition">{article.title}</h3>
                 <p className="mt-2 text-xs text-slate-400 leading-6">{article.excerpt}</p>

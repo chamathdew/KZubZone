@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api/apiClient';
-import { ArrowLeft, CalendarDays, Clock3, Tag } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock3, Tag, Eye } from 'lucide-react';
 import SeoTags from '@/components/seo/SeoTags';
 
 export default function ArticleDetail({ initialData }) {
@@ -66,6 +66,9 @@ export default function ArticleDetail({ initialData }) {
               <span className="rounded-full bg-brand-primary/20 border border-brand-primary/40 px-3 py-1 text-brand-primary">{article.category}</span>
               <span className="text-slate-300 flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : 'Draft'}</span>
               <span className="text-slate-300 flex items-center gap-1.5"><Clock3 className="w-3.5 h-3.5" /> {article.readTime || 5} min read</span>
+              {article.viewCount !== undefined && (
+                <span className="text-slate-300 flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {article.viewCount} Views</span>
+              )}
             </div>
             <h1 className="mt-5 text-4xl sm:text-6xl font-black text-white leading-tight">{article.title}</h1>
             {article.excerpt && <p className="mt-5 text-base sm:text-lg text-slate-200 leading-8">{article.excerpt}</p>}
