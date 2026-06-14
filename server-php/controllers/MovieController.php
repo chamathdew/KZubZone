@@ -250,6 +250,25 @@ class MovieController {
             return;
         }
 
+        // Caching layer
+        $cacheKey = "movie_detail_" . $movie['_id'];
+        $cached = \Utils\Cache::get($cacheKey);
+        if ($cached !== false) {
+            // Background view increment
+            try {
+                if ($db->getDriver() !== 'sqlite') {
+                    $views = ($movie['viewCount'] ?? 0) + 1;
+                    $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
+                }
+            } catch (\Exception $e) {
+                // Ignore view count write-lock errors to keep page load stable
+            }
+
+            header('Content-Type: application/json');
+            echo json_encode($cached);
+            return;
+        }
+
         // Increment views (wrapped in try-catch to prevent DB locking crashes)
         try {
             if ($db->getDriver() !== 'sqlite') {
@@ -283,13 +302,18 @@ class MovieController {
         // Fetch comments with batch populating
         $comments = \Controllers\CommentController::fetchCommentsForTargetWithBatchPopulate($movie['_id']);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $payload = [
             'movie' => $movie,
             'related' => $related,
             'subtitles' => $subtitles,
             'comments' => $comments
-        ]);
+        ];
+
+        // Cache details payload for 1 hour (3600 seconds)
+        \Utils\Cache::set($cacheKey, $payload, 3600);
+
+        header('Content-Type: application/json');
+        echo json_encode($payload);
     }
 
     public static function createMovie() {
@@ -358,6 +382,7 @@ class MovieController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::delete("movie_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($updatedMovie && !empty($updatedMovie['slug'])) {
             \Utils\Revalidate::media('movie', $updatedMovie['slug']);
@@ -385,6 +410,7 @@ class MovieController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::delete("movie_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($movie && !empty($movie['slug'])) {
             \Utils\Revalidate::media('movie', $movie['slug']);
@@ -423,6 +449,60 @@ class MovieController {
                 'latestUploaderRole' => null
             ];
         }
+    }
+
+    public static function getRecommendations() {
+        // Cache layer
+        $cachedRecommendations = \Utils\Cache::get('detail_recommendations');
+        if ($cachedRecommendations !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($cachedRecommendations);
+            return;
+        }
+
+        $db = Database::getInstance();
+        $statusFilter = ['status' => 'Published'];
+
+        // 1. Recommended movies (sort by imdbRating DESC, tmdbRating DESC, limit 12)
+        $recommendedMovies = $db->find('movies', $statusFilter, [
+            'sort' => ['imdbRating' => -1, 'tmdbRating' => -1],
+            'limit' => 12
+        ]);
+        self::appendMetadataToMovies($recommendedMovies);
+
+        // 2. Recommended dramas (sort by imdbRating DESC, tmdbRating DESC, limit 12)
+        $recommendedDramas = $db->find('dramas', $statusFilter, [
+            'sort' => ['imdbRating' => -1, 'tmdbRating' => -1],
+            'limit' => 12
+        ]);
+        \Controllers\DramaController::appendSubtitleSummariesToDramas($recommendedDramas);
+
+        // 3. Trending movies
+        $trendingMovies = $db->find('movies', array_merge($statusFilter, ['isTrending' => true]), [
+            'sort' => ['viewCount' => -1],
+            'limit' => 12
+        ]);
+        self::appendMetadataToMovies($trendingMovies);
+
+        // 4. Trending dramas
+        $trendingDramas = $db->find('dramas', array_merge($statusFilter, ['isTrending' => true]), [
+            'sort' => ['viewCount' => -1],
+            'limit' => 12
+        ]);
+        \Controllers\DramaController::appendSubtitleSummariesToDramas($trendingDramas);
+
+        $recommendations = [
+            'recommendedMovies' => $recommendedMovies,
+            'recommendedDramas' => $recommendedDramas,
+            'trendingMovies' => $trendingMovies,
+            'trendingDramas' => $trendingDramas
+        ];
+
+        // Cache for 2 hours (7200 seconds)
+        \Utils\Cache::set('detail_recommendations', $recommendations, 7200);
+
+        header('Content-Type: application/json');
+        echo json_encode($recommendations);
     }
 }
 

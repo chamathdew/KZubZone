@@ -561,17 +561,20 @@ class SubtitleController {
             if ($mediaTypeClean === 'episode') {
                 $episode = $db->findOne('episodes', ['_id' => $mediaId]);
                 if ($episode) {
+                    \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
                     $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
                     if ($drama && !empty($drama['slug'])) {
                         \Utils\Revalidate::media('drama', $drama['slug']);
                     }
                 }
             } elseif ($mediaTypeClean === 'movie') {
+                \Utils\Cache::delete("movie_detail_" . $mediaId);
                 $movie = $db->findOne('movies', ['_id' => $mediaId]);
                 if ($movie && !empty($movie['slug'])) {
                     \Utils\Revalidate::media('movie', $movie['slug']);
                 }
             } else { // 'drama' or fallback
+                \Utils\Cache::delete("drama_detail_" . $mediaId);
                 $drama = $db->findOne('dramas', ['_id' => $mediaId]);
                 if ($drama && !empty($drama['slug'])) {
                     \Utils\Revalidate::media('drama', $drama['slug']);

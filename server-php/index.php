@@ -389,6 +389,7 @@ $routes = [
 
     // Public Catalog
     ['GET', '/api/media/home', 'Controllers\MovieController::getHomeCatalog'],
+    ['GET', '/api/media/recommendations', 'Controllers\MovieController::getRecommendations'],
     ['GET', '/api/media/movies', 'Controllers\MovieController::getAllMovies'],
     ['GET', '/api/media/movies/([a-z0-9-]+)', 'Controllers\MovieController::getMovieBySlug'],
     ['GET', '/api/media/dramas', 'Controllers\DramaController::getAllDramas'],

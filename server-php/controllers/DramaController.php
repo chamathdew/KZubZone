@@ -110,6 +110,25 @@ class DramaController {
             return;
         }
 
+        // Caching layer
+        $cacheKey = "drama_detail_" . $drama['_id'];
+        $cached = \Utils\Cache::get($cacheKey);
+        if ($cached !== false) {
+            // Background view increment
+            try {
+                if ($db->getDriver() !== 'sqlite') {
+                    $views = ($drama['viewCount'] ?? 0) + 1;
+                    $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
+                }
+            } catch (\Exception $e) {
+                // Ignore view count write-lock errors to keep page load stable
+            }
+
+            header('Content-Type: application/json');
+            echo json_encode($cached);
+            return;
+        }
+
         // Increment views (wrapped in try-catch to prevent DB locking crashes)
         try {
             if ($db->getDriver() !== 'sqlite') {
@@ -228,8 +247,7 @@ class DramaController {
         // Fetch comments using batch user populating
         $comments = \Controllers\CommentController::fetchCommentsForTargetWithBatchPopulate($drama['_id']);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $payload = [
             'drama' => $drama,
             'seasons' => $seasons,
             'episodes' => $episodes,
@@ -237,7 +255,13 @@ class DramaController {
             'subtitles' => $standaloneSubtitles,
             'episodeSubtitles' => $episodeSubtitles,
             'comments' => $comments
-        ]);
+        ];
+
+        // Cache details payload for 1 hour (3600 seconds)
+        \Utils\Cache::set($cacheKey, $payload, 3600);
+
+        header('Content-Type: application/json');
+        echo json_encode($payload);
     }
 
     public static function createDrama() {
@@ -320,6 +344,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::delete("drama_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($updatedDrama && !empty($updatedDrama['slug'])) {
             \Utils\Revalidate::media('drama', $updatedDrama['slug']);
@@ -351,6 +376,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::delete("drama_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
@@ -384,6 +410,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::delete("drama_detail_" . $dramaId);
         \Utils\Revalidate::path('/');
         $drama = $db->findOne('dramas', ['_id' => $dramaId]);
         if ($drama && !empty($drama['slug'])) {
@@ -410,6 +437,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        if ($season && !empty($season['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $season['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
@@ -443,6 +473,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        if ($season && !empty($season['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $season['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
@@ -516,6 +549,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::delete("drama_detail_" . $dramaId);
         \Utils\Revalidate::path('/');
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
@@ -541,6 +575,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        if ($episode && !empty($episode['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
@@ -571,6 +608,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::delete('home_catalog');
+        if ($episode && !empty($episode['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);

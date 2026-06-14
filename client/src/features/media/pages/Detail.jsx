@@ -171,30 +171,24 @@ export default function Detail({ type = 'Movie', initialData }) {
   const { data: recommendationRows = [], isLoading: recommendationsLoading } = useQuery({
     queryKey: ['detailRecommendations', media?._id, type],
     queryFn: async () => {
-      const [
-        moviesRes,
-        dramasRes,
-        trendingMoviesRes,
-        trendingDramasRes
-      ] = await Promise.all([
-        apiClient.get('/api/media/movies?sort=rating&limit=12'),
-        apiClient.get('/api/media/dramas?sort=rating&limit=12'),
-        apiClient.get('/api/media/movies?trending=true&sort=views&limit=12'),
-        apiClient.get('/api/media/dramas?trending=true&sort=views&limit=12')
-      ]);
+      const res = await apiClient.get('/api/media/recommendations');
+      const recs = res.data || {};
 
       const currentId = media?._id;
       const withType = (items, mediaType) => (items || [])
         .filter(item => item._id !== currentId)
         .map(item => ({ ...item, mediaType }));
-      const recommendedMovies = withType(moviesRes.data.movies, 'movie');
-      const recommendedDramas = withType(dramasRes.data.dramas, 'drama');
+
+      const recommendedMovies = withType(recs.recommendedMovies, 'movie');
+      const recommendedDramas = withType(recs.recommendedDramas, 'drama');
+      
       const trending = [
-        ...withType(trendingDramasRes.data.dramas, 'drama'),
-        ...withType(trendingMoviesRes.data.movies, 'movie')
+        ...withType(recs.trendingDramas, 'drama'),
+        ...withType(recs.trendingMovies, 'movie')
       ]
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
         .slice(0, 12);
+
       const popularFallback = [...recommendedDramas, ...recommendedMovies]
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
         .slice(0, 12);
@@ -711,12 +705,25 @@ export default function Detail({ type = 'Movie', initialData }) {
                             <div className="flex flex-shrink-0 items-center justify-end w-full sm:w-auto mt-2 sm:mt-0 gap-2">
 
                               {hasSubtitles ? (
-                                <Link
-                                  href={episodeUrl}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (episodeFiles.length > 0) {
+                                      const sub = episodeFiles[0];
+                                      const cleanMediaTitle = (media.title || 'Subtitle').replace(/[^a-zA-Z0-9]/g, '_');
+                                      const formattedSeason = String(selectedSeason).padStart(2, '0');
+                                      const formattedEpisode = String(ep.episodeNumber).padStart(2, '0');
+                                      const subLang = sub.language || 'Sinhala';
+                                      const customFileName = `${cleanMediaTitle}_S${formattedSeason}_E${formattedEpisode}_${subLang}.${sub.format || 'srt'}`;
+                                      handleDownloadSubtitle(sub._id, sub.fileUrl, customFileName);
+                                    } else {
+                                      router.push(episodeUrl);
+                                    }
+                                  }}
                                   className="flex-1 sm:flex-none h-8 px-4 rounded-lg bg-brand-primary hover:bg-brand-primary/80 text-white text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 transition shadow-sm shadow-brand-primary/20"
                                 >
                                   <Download className="w-3.5 h-3.5" /> Download
-                                </Link>
+                                </button>
                               ) : (
                                 <button
                                   disabled

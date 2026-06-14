@@ -58,6 +58,13 @@ class CommentController {
         $table = $mediaType === 'Movie' ? 'movies' : 'dramas';
         $db->updateOne($table, ['_id' => $mediaId], ['imdbRating' => $avg]);
 
+        // Invalidate details page cache
+        if (strtolower($mediaType) === 'movie') {
+            \Utils\Cache::delete("movie_detail_" . $mediaId);
+        } else {
+            \Utils\Cache::delete("drama_detail_" . $mediaId);
+        }
+
         http_response_code(201);
         echo json_encode(['message' => 'Review added successfully', 'review' => $inserted]);
     }
@@ -136,6 +143,13 @@ class CommentController {
         ];
 
         $inserted = $db->insertOne('comments', $comment);
+
+        // Clear details page cache
+        if (strtolower($targetType) === 'movie') {
+            \Utils\Cache::delete("movie_detail_" . $targetId);
+        } else {
+            \Utils\Cache::delete("drama_detail_" . $targetId);
+        }
 
         http_response_code(201);
         echo json_encode(['message' => 'Comment posted', 'comment' => $inserted]);
@@ -227,6 +241,17 @@ class CommentController {
         $db->updateOne('comments', ['_id' => $commentId], ['replies' => $replies]);
         $updated = $db->findOne('comments', ['_id' => $commentId]);
 
+        // Invalidate details page cache
+        if (!empty($comment['targetType']) && !empty($comment['targetId'])) {
+            $targetType = strtolower($comment['targetType']);
+            $targetId = $comment['targetId'];
+            if ($targetType === 'movie') {
+                \Utils\Cache::delete("movie_detail_" . $targetId);
+            } else {
+                \Utils\Cache::delete("drama_detail_" . $targetId);
+            }
+        }
+
         http_response_code(201);
         echo json_encode(['message' => 'Reply added successfully', 'comment' => $updated]);
     }
@@ -254,6 +279,17 @@ class CommentController {
         $db->updateOne('comments', ['_id' => $id], ['likes' => $likes]);
         $updated = $db->findOne('comments', ['_id' => $id]);
 
+        // Invalidate details page cache
+        if (!empty($comment['targetType']) && !empty($comment['targetId'])) {
+            $targetType = strtolower($comment['targetType']);
+            $targetId = $comment['targetId'];
+            if ($targetType === 'movie') {
+                \Utils\Cache::delete("movie_detail_" . $targetId);
+            } else {
+                \Utils\Cache::delete("drama_detail_" . $targetId);
+            }
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Comment liked/unliked', 'comment' => $updated]);
     }
@@ -279,12 +315,25 @@ class CommentController {
 
     public static function adminDeleteReview($id) {
         $db = Database::getInstance();
+        $review = $db->findOne('reviews', ['_id' => $id]);
         $deleted = $db->deleteOne('reviews', ['_id' => $id]);
         if (!$deleted) {
             http_response_code(404);
             echo json_encode(['message' => 'Review not found']);
             return;
         }
+
+        // Invalidate details page cache
+        if ($review && !empty($review['mediaType']) && !empty($review['mediaId'])) {
+            $mediaType = strtolower($review['mediaType']);
+            $mediaId = $review['mediaId'];
+            if ($mediaType === 'movie') {
+                \Utils\Cache::delete("movie_detail_" . $mediaId);
+            } else {
+                \Utils\Cache::delete("drama_detail_" . $mediaId);
+            }
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Review deleted by administrator']);
     }
@@ -308,12 +357,25 @@ class CommentController {
 
     public static function adminDeleteComment($id) {
         $db = Database::getInstance();
+        $comment = $db->findOne('comments', ['_id' => $id]);
         $deleted = $db->deleteOne('comments', ['_id' => $id]);
         if (!$deleted) {
             http_response_code(404);
             echo json_encode(['message' => 'Comment not found']);
             return;
         }
+
+        // Invalidate details page cache
+        if ($comment && !empty($comment['targetType']) && !empty($comment['targetId'])) {
+            $targetType = strtolower($comment['targetType']);
+            $targetId = $comment['targetId'];
+            if ($targetType === 'movie') {
+                \Utils\Cache::delete("movie_detail_" . $targetId);
+            } else {
+                \Utils\Cache::delete("drama_detail_" . $targetId);
+            }
+        }
+
         header('Content-Type: application/json');
         echo json_encode(['message' => 'Comment deleted by administrator']);
     }
