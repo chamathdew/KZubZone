@@ -41,22 +41,27 @@ export const getMediaImage = (item = {}, kind = 'poster') => {
     ? item.banner || item.backdrop || item.backdrops?.[0]
     : item.poster || item.banner || item.backdrop || item.backdrops?.[0];
 
-  // Optimize TMDB image paths to load faster (w1280 for backdrop, w500 for poster)
+  // Optimize TMDB image paths to load faster (w780 for backdrop, w500 for poster, w342 for card, w154 for thumb)
   if (source && typeof source === 'string' && source.includes('image.tmdb.org/t/p/')) {
-    if (kind === 'backdrop') {
-      source = source.replace('/t/p/original/', '/t/p/w1280/');
-    } else {
-      source = source.replace('/t/p/original/', '/t/p/w500/');
-    }
+    const sizeMap = {
+      backdrop: 'w780',
+      poster: 'w500',
+      card: 'w342',
+      thumb: 'w154'
+    };
+    const size = sizeMap[kind] || 'w500';
+    source = source.replace(/\/t\/p\/[^/]+\//, `/t/p/${size}/`);
   }
 
   if (!isPlaceholderImage(source)) return source;
-  return fallbackSets[fallbackKeyFor(item)]?.[kind] || fallbackSets.default[kind];
+  const fallbackKind = kind === 'backdrop' ? 'backdrop' : 'poster';
+  return fallbackSets[fallbackKeyFor(item)]?.[fallbackKind] || fallbackSets.default[fallbackKind];
 };
 
-export const imageFallbackFor = (item = {}, kind = 'poster') => (
-  fallbackSets[fallbackKeyFor(item)]?.[kind] || fallbackSets.default[kind]
-);
+export const imageFallbackFor = (item = {}, kind = 'poster') => {
+  const fallbackKind = kind === 'backdrop' ? 'backdrop' : 'poster';
+  return fallbackSets[fallbackKeyFor(item)]?.[fallbackKind] || fallbackSets.default[fallbackKind];
+};
 
 export const handleImageFallback = (event, item = {}, kind = 'poster') => {
   const fallback = imageFallbackFor(item, kind);

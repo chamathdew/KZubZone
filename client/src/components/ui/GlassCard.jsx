@@ -12,7 +12,7 @@ export default function GlassCard({ item, type }) {
   const mediaType = type || (item.seasons ? 'drama' : 'movie');
   const detailsUrl = `/${mediaType}/${permalinkSlug(item)}`;
   const rating = item.imdbRating || item.tmdbRating || 0;
-  const posterImage = getMediaImage(item, 'poster');
+  const posterImage = getMediaImage(item, 'card');
   const [imgSrc, setImgSrc] = useState(posterImage);
 
   useEffect(() => {

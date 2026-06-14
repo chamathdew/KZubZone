@@ -1,6 +1,7 @@
 import { Inter, Outfit } from 'next/font/google';
 import Providers from './Providers';
 import dynamic from 'next/dynamic';
+import Script from 'next/script';
 import '@/index.css';
 
 const ParticleBackground = dynamic(() => import('@/components/layout/ParticleBackground'), { ssr: false });
@@ -48,6 +49,19 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en" className={`dark ${inter.variable} ${outfit.variable}`}>
       <body className="bg-luxury-950 text-slate-100 font-sans selection:bg-brand-primary selection:text-white antialiased overflow-x-hidden">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-5YK4V61YQ6"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-5YK4V61YQ6');
+          `}
+        </Script>
         <Providers initialSiteContent={initialSiteContent}>
           <div className="flex flex-col min-h-screen bg-transparent text-slate-100 selection:bg-brand-primary selection:text-white relative">
             <ParticleBackground />

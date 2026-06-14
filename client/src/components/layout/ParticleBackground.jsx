@@ -200,7 +200,7 @@ export default function ParticleBackground() {
     [isMobile],
   );
 
-  if (!mounted) return null;
+  if (!mounted || isMobile) return null;
 
   return (
     <ParticlesProvider init={initParticles}>

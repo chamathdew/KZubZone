@@ -184,10 +184,10 @@ export default function Navbar() {
                       className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                     >
                       <img
-                        src={getMediaImage(item, 'poster')}
+                        src={getMediaImage(item, 'thumb')}
                         alt={item.title}
                         className="w-8 h-12 object-cover rounded-md flex-shrink-0"
-                        onError={(event) => handleImageFallback(event, item, 'poster')}
+                        onError={(event) => handleImageFallback(event, item, 'thumb')}
                       />
                       <div className="overflow-hidden">
                         <p className="text-xs font-semibold text-white truncate">{item.title}</p>
