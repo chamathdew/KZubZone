@@ -205,6 +205,15 @@ $routes = [
             echo "OPcache is not enabled or opcache_reset is disabled.";
         }
     }],
+    ['GET', '/api/clear-cache-xyz', function() {
+        header('Content-Type: text/plain');
+        try {
+            \Utils\Cache::flush();
+            echo "Redis cache flushed successfully!";
+        } catch (\Exception $e) {
+            echo "Error flushing cache: " . $e->getMessage();
+        }
+    }],
     ['GET', '/api/logs-xyz', function() {
         header('Content-Type: text/plain');
         $logPaths = [
