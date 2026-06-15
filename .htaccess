@@ -22,8 +22,8 @@
   RewriteRule ^assets/(.*)$ client/dist/assets/$1 [L]
   RewriteRule ^media-fallback/(.*)$ client/dist/media-fallback/$1 [L]
 
-  # 3. Intercept Social Media Bot Crawlers for dynamic SEO tags
-  RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|whatsapp|twitterbot|linkedinbot|pinterest|discordbot|slackbot|telegrambot|viber) [NC]
+  # 3. Intercept Social Media Bot Crawlers and Search Engine Bots for dynamic SEO tags
+  RewriteCond %{HTTP_USER_AGENT} (googlebot|bingbot|yandex|baiduspider|facebookexternalhit|whatsapp|twitterbot|linkedinbot|pinterest|discordbot|slackbot|telegrambot|viber|vkShare|slack) [NC]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^(.*)$ server-php/bot-seo.php [QSA,L]

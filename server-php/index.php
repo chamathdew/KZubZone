@@ -124,9 +124,11 @@ $routes = [
     // SEO
     ['GET', '/robots.txt', 'Controllers\SeoController::getRobotsTxt'],
     ['GET', '/sitemap.xml', 'Controllers\SeoController::getSitemapIndex'],
+    ['GET', '/sitemap-static.xml', 'Controllers\SeoController::getStaticSitemap'],
     ['GET', '/sitemap-movies.xml', 'Controllers\SeoController::getMoviesSitemap'],
     ['GET', '/sitemap-dramas.xml', 'Controllers\SeoController::getDramasSitemap'],
     ['GET', '/sitemap-episodes.xml', 'Controllers\SeoController::getEpisodesSitemap'],
+    ['GET', '/sitemap-articles.xml', 'Controllers\SeoController::getArticlesSitemap'],
     ['GET', '/news-sitemap.xml', 'Controllers\SeoController::getNewsSitemap'],
 
     // System health

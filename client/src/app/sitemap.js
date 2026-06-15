@@ -1,7 +1,7 @@
 import { permalinkSlug } from '@/utils/slug';
 
 export default async function sitemap() {
-  const baseUrl = 'https://ksubzone.com';
+  const baseUrl = 'https://www.ksubzone.com';
   const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 
   const defaultUrls = [

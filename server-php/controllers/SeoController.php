@@ -5,7 +5,7 @@ use Config\Database;
 use Utils\Slug;
 
 class SeoController {
-    private static $siteUrl = 'https://ksubzone.com';
+    private static $siteUrl = 'https://www.ksubzone.com';
 
     private static function permalinkSlug($item) {
         $slug = Slug::normalizePermalinkSlug($item['slug'] ?? '');
@@ -35,9 +35,11 @@ class SeoController {
         header('Content-Type: application/xml');
         echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         echo '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-static.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-movies.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-dramas.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-episodes.xml</loc></sitemap>' . "\n";
+        echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-articles.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/news-sitemap.xml</loc></sitemap>' . "\n";
         echo '</sitemapindex>';
     }
@@ -165,6 +167,47 @@ class SeoController {
             echo "  </url>\n";
         }
 
+        echo '</urlset>';
+    }
+
+    public static function getStaticSitemap() {
+        header('Content-Type: application/xml');
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $pages = [
+            ['path' => '', 'priority' => '1.0', 'changefreq' => 'daily'],
+            ['path' => '/search', 'priority' => '0.5', 'changefreq' => 'weekly'],
+            ['path' => '/articles', 'priority' => '0.7', 'changefreq' => 'daily'],
+        ];
+        $today = date('Y-m-d');
+        foreach ($pages as $page) {
+            echo "  <url>\n";
+            echo "    <loc>" . self::$siteUrl . $page['path'] . "</loc>\n";
+            echo "    <lastmod>{$today}</lastmod>\n";
+            echo "    <changefreq>{$page['changefreq']}</changefreq>\n";
+            echo "    <priority>{$page['priority']}</priority>\n";
+            echo "  </url>\n";
+        }
+        echo '</urlset>';
+    }
+
+    public static function getArticlesSitemap() {
+        $db = Database::getInstance();
+        $articles = $db->find('articles', ['status' => 'Published']);
+
+        header('Content-Type: application/xml');
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        foreach ($articles as $article) {
+            $slug = htmlspecialchars($article['slug'] ?? '');
+            $lastmod = self::formatDate($article['publishedAt'] ?? $article['updatedAt'] ?? '');
+            echo "  <url>\n";
+            echo "    <loc>" . self::$siteUrl . "/articles/{$slug}</loc>\n";
+            echo "    <lastmod>{$lastmod}</lastmod>\n";
+            echo "    <changefreq>weekly</changefreq>\n";
+            echo "    <priority>0.7</priority>\n";
+            echo "  </url>\n";
+        }
         echo '</urlset>';
     }
 }

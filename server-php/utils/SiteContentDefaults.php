@@ -11,7 +11,7 @@ class SiteContentDefaults {
                 'logoText' => 'KSUBZONE',
                 'logoUrl' => '',
                 'faviconUrl' => '',
-                'primaryUrl' => 'https://ksubzone.com'
+                'primaryUrl' => 'https://www.ksubzone.com'
             ],
             'seo' => [
                 'homeTitle' => 'KSubZone - Sinhala & English K-Drama Subtitles',

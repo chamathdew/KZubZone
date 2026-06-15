@@ -7,6 +7,6 @@ export default function robots() {
         disallow: ['/management', '/profile', '/auth'],
       },
     ],
-    sitemap: 'https://ksubzone.com/sitemap.xml',
+    sitemap: 'https://www.ksubzone.com/sitemap.xml',
   };
 }

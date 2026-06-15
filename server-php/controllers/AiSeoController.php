@@ -99,7 +99,7 @@ class AiSeoController {
 
         $faq = self::generateFaqList($title, $type, $genres, $director, $cast, $releaseYear);
 
-        $canonicalUrl = "https://ksubzone.com/" . strtolower($type) . "/" . preg_replace('/[^a-z0-9]+/i', '-', strtolower($title));
+        $canonicalUrl = "https://www.ksubzone.com/" . strtolower($type) . "/" . preg_replace('/[^a-z0-9]+/i', '-', strtolower($title));
 
         if ($type === 'Movie') {
             $schemaMarkup = [
