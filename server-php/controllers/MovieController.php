@@ -76,6 +76,16 @@ class MovieController {
         }
 
         $skip = ($page - 1) * $limit;
+
+        // Caching layer for search queries
+        $cacheKey = "search_movies_" . md5(json_encode($_GET));
+        $cached = \Utils\Cache::get($cacheKey);
+        if ($cached !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($cached);
+            return;
+        }
+
         $db = Database::getInstance();
         $total = $db->count('movies', $filter);
         $movies = $db->find('movies', $filter, [
@@ -86,13 +96,18 @@ class MovieController {
 
         self::appendMetadataToMovies($movies);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $payload = [
             'total' => $total,
             'page' => $page,
             'totalPages' => ceil($total / $limit),
             'movies' => $movies
-        ]);
+        ];
+
+        // Cache search results for 10 minutes (600 seconds)
+        \Utils\Cache::set($cacheKey, $payload, 600);
+
+        header('Content-Type: application/json');
+        echo json_encode($payload);
     }
 
     public static function getHomeCatalog() {

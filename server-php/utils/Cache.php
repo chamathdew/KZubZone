@@ -4,15 +4,23 @@ namespace Utils;
 class Cache {
     private static $redis = null;
     private static $enabled = null;
+    private static $useFileCache = false;
+    private static $cacheDir = null;
 
     private static function init() {
         if (self::$enabled !== null) {
             return self::$enabled;
         }
 
+        self::$cacheDir = dirname(__DIR__) . '/temp/cache';
+
         if (!class_exists('Redis')) {
-            self::$enabled = false;
-            return false;
+            self::$useFileCache = true;
+            self::$enabled = true;
+            if (!file_exists(self::$cacheDir)) {
+                @mkdir(self::$cacheDir, 0777, true);
+            }
+            return true;
         }
 
         $host = $_ENV['REDIS_HOST'] ?? getenv('REDIS_HOST') ?: '127.0.0.1';
@@ -21,22 +29,27 @@ class Cache {
 
         try {
             self::$redis = new \Redis();
-            // Connect with a 1.0 second timeout to prevent blocking page loads if Redis is down
             $connected = @self::$redis->connect($host, $port, 1.0);
             if ($connected) {
                 if ($password !== null && $password !== '') {
                     @self::$redis->auth($password);
                 }
-                // Option prefix to prevent namespace collisions
                 @self::$redis->setOption(\Redis::OPT_PREFIX, 'ksubzone:');
                 self::$enabled = true;
+                self::$useFileCache = false;
             } else {
-                error_log("Failed to connect to Redis server at {$host}:{$port}");
-                self::$enabled = false;
+                self::$useFileCache = true;
+                self::$enabled = true;
+                if (!file_exists(self::$cacheDir)) {
+                    @mkdir(self::$cacheDir, 0777, true);
+                }
             }
         } catch (\Exception $e) {
-            error_log("Redis connection error: " . $e->getMessage());
-            self::$enabled = false;
+            self::$useFileCache = true;
+            self::$enabled = true;
+            if (!file_exists(self::$cacheDir)) {
+                @mkdir(self::$cacheDir, 0777, true);
+            }
         }
 
         return self::$enabled;
@@ -52,6 +65,27 @@ class Cache {
         if (!self::init()) {
             return false;
         }
+        if (self::$useFileCache) {
+            $filePath = self::$cacheDir . '/' . md5($key) . '.cache';
+            if (!file_exists($filePath)) {
+                return false;
+            }
+            $content = @file_get_contents($filePath);
+            if ($content === false) {
+                return false;
+            }
+            $data = json_decode($content, true);
+            if (!is_array($data) || !isset($data['expire']) || !isset($data['val'])) {
+                @unlink($filePath);
+                return false;
+            }
+            if (time() > $data['expire']) {
+                @unlink($filePath);
+                return false;
+            }
+            return $data['val'];
+        }
+
         try {
             $val = self::$redis->get($key);
             if ($val === false) {
@@ -76,6 +110,16 @@ class Cache {
         if (!self::init()) {
             return false;
         }
+        if (self::$useFileCache) {
+            $filePath = self::$cacheDir . '/' . md5($key) . '.cache';
+            $data = [
+                'expire' => time() + $ttl,
+                'val' => $val
+            ];
+            $jsonVal = json_encode($data);
+            return @file_put_contents($filePath, $jsonVal) !== false;
+        }
+
         try {
             $jsonVal = json_encode($val);
             return self::$redis->setex($key, $ttl, $jsonVal);
@@ -95,6 +139,14 @@ class Cache {
         if (!self::init()) {
             return false;
         }
+        if (self::$useFileCache) {
+            $filePath = self::$cacheDir . '/' . md5($key) . '.cache';
+            if (file_exists($filePath)) {
+                return @unlink($filePath);
+            }
+            return false;
+        }
+
         try {
             return self::$redis->del($key) > 0;
         } catch (\Exception $e) {
@@ -112,6 +164,18 @@ class Cache {
         if (!self::init()) {
             return false;
         }
+        if (self::$useFileCache) {
+            if (file_exists(self::$cacheDir)) {
+                $files = glob(self::$cacheDir . '/*.cache');
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        @unlink($file);
+                    }
+                }
+            }
+            return true;
+        }
+
         try {
             return self::$redis->flushAll();
         } catch (\Exception $e) {

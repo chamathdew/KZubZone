@@ -75,6 +75,16 @@ class DramaController {
         }
 
         $skip = ($page - 1) * $limit;
+
+        // Caching layer for search queries
+        $cacheKey = "search_dramas_" . md5(json_encode($_GET));
+        $cached = \Utils\Cache::get($cacheKey);
+        if ($cached !== false) {
+            header('Content-Type: application/json');
+            echo json_encode($cached);
+            return;
+        }
+
         $db = Database::getInstance();
         $total = $db->count('dramas', $filter);
         $dramas = $db->find('dramas', $filter, [
@@ -85,13 +95,18 @@ class DramaController {
 
         self::appendSubtitleSummariesToDramas($dramas);
 
-        header('Content-Type: application/json');
-        echo json_encode([
+        $payload = [
             'total' => $total,
             'page' => $page,
             'totalPages' => ceil($total / $limit),
             'dramas' => $dramas
-        ]);
+        ];
+
+        // Cache search results for 10 minutes (600 seconds)
+        \Utils\Cache::set($cacheKey, $payload, 600);
+
+        header('Content-Type: application/json');
+        echo json_encode($payload);
     }
 
     public static function getDramaBySlug($slug) {
