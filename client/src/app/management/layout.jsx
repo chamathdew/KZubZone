@@ -10,31 +10,33 @@ export default function ManagementLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
+  const [restorationTimedOut, setRestorationTimedOut] = useState(false);
 
   const isLoginPage = pathname === '/management/login';
 
-  // Wait for client-side hydration before evaluating auth
+  // Wait for client-side hydration
   useEffect(() => {
     setHasMounted(true);
+    // Safety timeout: if session hasn't restored in 4s, stop waiting
+    const t = setTimeout(() => setRestorationTimedOut(true), 4000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
     if (!hasMounted || loading || isLoginPage) return;
-
     const isAuthorized = admin || (user && user.hasDashboardAccess);
-    // Only redirect if there's also no token in storage (not just a slow network)
     const hasAdminToken = !!tokenService.getAdminToken();
-
     if (!isAuthorized && !hasAdminToken) {
       router.push('/management/login');
     }
   }, [hasMounted, loading, admin, user, isLoginPage, router]);
 
-  // Show spinner while: not mounted yet, still loading, OR token exists but admin state not restored yet
   const hasAdminTokenInStorage = typeof window !== 'undefined' && !!tokenService.getAdminToken();
-  const stillRestoringSession = !loading && hasAdminTokenInStorage && !admin && !(user && user.hasDashboardAccess);
+  const isAuthorized = admin || (user && user.hasDashboardAccess);
+  // Only block with spinner if: not mounted, still loading auth, OR token exists but not yet resolved (but only up to timeout)
+  const stillWaiting = !hasMounted || loading || (!isAuthorized && hasAdminTokenInStorage && !restorationTimedOut);
 
-  if (!isLoginPage && (!hasMounted || loading || stillRestoringSession)) {
+  if (!isLoginPage && stillWaiting) {
     return (
       <div className="h-screen w-screen bg-luxury-950 flex flex-col items-center justify-center gap-3 select-none">
         <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />

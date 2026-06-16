@@ -5,6 +5,37 @@ use Config\Database;
 use Utils\Slug;
 
 class DramaController {
+
+    /**
+     * Admin-only: fetch all dramas (all statuses) without caching.
+     * Used by the admin DramaManager panel.
+     */
+    public static function getAdminDramas() {
+        $db = Database::getInstance();
+        $status = $_GET['status'] ?? 'All';
+        $search = $_GET['search'] ?? null;
+        $limit = (int)($_GET['limit'] ?? 200);
+
+        $filter = [];
+        if ($status && $status !== 'All') {
+            $filter['status'] = $status;
+        }
+        if (!empty($search)) {
+            $filter['$text'] = ['$search' => $search];
+        }
+
+        $dramas = $db->find('dramas', $filter, ['sort' => ['createdAt' => -1], 'limit' => $limit]);
+
+        // Append subtitle summaries (batch query, no loops)
+        self::appendSubtitleSummariesToDramas($dramas);
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'total' => count($dramas),
+            'dramas' => $dramas
+        ]);
+    }
+
     public static function getAllDramas() {
         $page = (int)($_GET['page'] ?? 1);
         $limit = (int)($_GET['limit'] ?? 12);

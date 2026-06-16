@@ -17,23 +17,28 @@ export const AuthProvider = ({ children }) => {
       const token = tokenService.getUserToken();
       const adminToken = tokenService.getAdminToken();
 
+      // Run both requests in PARALLEL — no sequential await
+      const [userResult, adminResult] = await Promise.allSettled([
+        token ? apiClient.get('/api/auth/me') : Promise.resolve(null),
+        adminToken ? apiClient.get('/api/admin/me') : Promise.resolve(null)
+      ]);
+
       if (token) {
-        try {
-          const res = await apiClient.get('/api/auth/me');
-          setUser(res.data);
-        } catch (error) {
+        if (userResult.status === 'fulfilled' && userResult.value) {
+          setUser(userResult.value.data);
+        } else {
           tokenService.removeUserToken();
         }
       }
 
       if (adminToken) {
-        try {
-          const res = await apiClient.get('/api/admin/me');
-          setAdmin(res.data);
-        } catch (error) {
+        if (adminResult.status === 'fulfilled' && adminResult.value) {
+          setAdmin(adminResult.value.data);
+        } else {
           tokenService.removeAdminToken();
         }
       }
+
       setLoading(false);
     };
 
