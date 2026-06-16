@@ -91,11 +91,22 @@ export default function DramaManager() {
     if (!silent) setLoading(true);
     setApiError(null);
     try {
-      const res = await apiClient.get(`/api/admin/dramas?status=${selectedStatus}&limit=200`);
+      // Try admin endpoint first; fall back to public endpoint if 404 (deployment lag)
+      let res;
+      try {
+        res = await apiClient.get(`/api/admin/dramas?status=${selectedStatus}&limit=200`);
+      } catch (adminErr) {
+        if (adminErr?.response?.status === 404 || adminErr?.status === 404) {
+          // Admin endpoint not yet deployed — use public endpoint with cache-bust
+          res = await apiClient.get(`/api/media/dramas?status=${selectedStatus}&limit=200&_=${Date.now()}`);
+        } else {
+          throw adminErr;
+        }
+      }
       const list = res.data.dramas || res.data || [];
       setDramas(Array.isArray(list) ? list : []);
     } catch (err) {
-      const status = err?.response?.status;
+      const status = err?.response?.status || err?.status;
       const msg = err?.response?.data?.message || err?.message || 'Unknown error';
       setApiError({ status, msg });
       setError(`API Error ${status || ''}: ${msg}`);
