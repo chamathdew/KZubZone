@@ -1,23 +1,54 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Star, Calendar, Globe, Download, Languages } from 'lucide-react';
 import { permalinkSlug } from '@/utils/slug';
 import { getMediaImage, imageFallbackFor } from '@/utils/mediaImages';
 
-export default function GlassCard({ item, type }) {
+export default function GlassCard({ item, type, priority = false }) {
   const mediaType = type || (item.seasons ? 'drama' : 'movie');
   const detailsUrl = `/${mediaType}/${permalinkSlug(item)}`;
   const rating = item.imdbRating || item.tmdbRating || 0;
   const posterImage = getMediaImage(item, 'card');
   const [imgSrc, setImgSrc] = useState(posterImage);
+  const cardRef = useRef(null);
+  const router = useRouter();
+  const prefetchedRef = useRef(false);
 
   useEffect(() => {
     setImgSrc(posterImage);
   }, [posterImage]);
+
+  // Prefetch detail route when card enters viewport (IntersectionObserver)
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || prefetchedRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !prefetchedRef.current) {
+          prefetchedRef.current = true;
+          router.prefetch(detailsUrl);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [detailsUrl, router]);
+
+  // Also prefetch immediately on hover for instant feel
+  const handleMouseEnter = useCallback(() => {
+    if (!prefetchedRef.current) {
+      prefetchedRef.current = true;
+      router.prefetch(detailsUrl);
+    }
+  }, [detailsUrl, router]);
 
   const subtitleSummary = item.subtitleSummary || {};
   const subtitleLanguages = subtitleSummary.languages || [];
@@ -35,7 +66,7 @@ export default function GlassCard({ item, type }) {
   };
 
   return (
-    <Link href={detailsUrl} prefetch={false} className="block relative group w-full min-w-0">
+    <Link href={detailsUrl} className="block relative group w-full min-w-0" ref={cardRef} onMouseEnter={handleMouseEnter}>
       <motion.div
         whileHover={{ y: -6, scale: 1.02 }}
         transition={{ duration: 0.4, ease: [0.25, 0.8, 0.25, 1] }}
@@ -55,7 +86,7 @@ export default function GlassCard({ item, type }) {
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
             className="w-full h-full object-cover object-center transform scale-100 group-hover:scale-105 transition-transform duration-700 ease-[0.25, 0.8, 0.25, 1]"
-            priority={false}
+            priority={priority}
             onError={() => {
               const fallback = imageFallbackFor(item, 'poster');
               if (imgSrc !== fallback) {
@@ -107,12 +138,12 @@ export default function GlassCard({ item, type }) {
             </span>
           </div>
 
-          {/* Hover Details Overlay */}
-          <div className="absolute inset-x-0 bottom-0 p-4 translate-y-3 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out z-30 flex flex-col gap-2">
+          {/* Hover Details Overlay — desktop: show on hover, mobile: always visible */}
+          <div className="absolute inset-x-0 bottom-0 p-4 sm:translate-y-3 sm:group-hover:translate-y-0 sm:opacity-0 sm:group-hover:opacity-100 opacity-100 translate-y-0 transition-all duration-300 ease-out z-30 flex flex-col gap-2">
             
-            {/* Genre / Keywords tags if available */}
+            {/* Genre / Keywords tags if available — desktop only */}
             {item.keywords && item.keywords.length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className="hidden sm:flex flex-wrap gap-1">
                 {item.keywords.slice(0, 2).map((kw, idx) => (
                   <span key={idx} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] text-slate-300 font-medium">
                     {kw}
@@ -121,20 +152,20 @@ export default function GlassCard({ item, type }) {
               </div>
             )}
 
-            {/* Title */}
-            <h3 className="text-sm font-extrabold text-white leading-snug tracking-tight drop-shadow-md line-clamp-2">
+            {/* Title — desktop only in overlay */}
+            <h3 className="hidden sm:block text-sm font-extrabold text-white leading-snug tracking-tight drop-shadow-md line-clamp-2">
               {item.title}
             </h3>
 
-            {/* Original Title (if available and different) */}
+            {/* Original Title — desktop only */}
             {item.originalTitle && item.originalTitle !== item.title && (
-              <p className="text-[10px] text-slate-400 font-medium font-sans leading-none -mt-1 line-clamp-1 italic">
+              <p className="hidden sm:block text-[10px] text-slate-400 font-medium font-sans leading-none -mt-1 line-clamp-1 italic">
                 {item.originalTitle}
               </p>
             )}
 
-            {/* Meta details (Year, Country) */}
-            <div className="flex min-w-0 items-center gap-2.5 text-[10px] text-slate-300 font-semibold mt-1">
+            {/* Meta details — desktop only */}
+            <div className="hidden sm:flex min-w-0 items-center gap-2.5 text-[10px] text-slate-300 font-semibold mt-1">
               {releaseYear && (
                 <span className="flex flex-shrink-0 items-center gap-1">
                   <Calendar className="w-3 h-3 text-brand-secondary" />
@@ -147,7 +178,7 @@ export default function GlassCard({ item, type }) {
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="hidden sm:flex flex-wrap gap-1.5">
               {subtitleLanguages.length > 0 ? subtitleLanguages.map((language) => (
                 <span key={language} className="px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-200 text-[9px] font-black uppercase inline-flex items-center gap-1">
                   <Languages className="w-2.5 h-2.5" /> {language}
@@ -159,16 +190,16 @@ export default function GlassCard({ item, type }) {
               )}
             </div>
 
-            {/* Download CTA Overlay Button */}
-            <div className="mt-2 py-1.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/20 transition-all duration-200">
+            {/* Download CTA Button — always visible on mobile, hover-only on desktop */}
+            <div className="mt-1 sm:mt-2 py-1.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/20 transition-all duration-200">
               <Download className="w-3.5 h-3.5 fill-current" />
-              <span className="text-[10px] font-black uppercase tracking-wider">Download</span>
+              <span className="text-[10px] font-black uppercase tracking-wider">Download Subs</span>
             </div>
 
           </div>
 
-          {/* Bottom dark gradient overlay for text readability (only active on hover states) */}
-          <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/95 via-black/60 to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {/* Bottom dark gradient overlay for text readability */}
+          <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/95 via-black/60 to-transparent z-10 pointer-events-none sm:opacity-0 sm:group-hover:opacity-100 opacity-100 transition-opacity duration-300" />
         </div>
 
         {/* Default Title & Meta shown below the poster */}
@@ -190,3 +221,4 @@ export default function GlassCard({ item, type }) {
     </Link>
   );
 }
+
