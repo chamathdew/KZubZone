@@ -27,6 +27,116 @@ const emptyForm = {
   seoKeywords: ''
 };
 
+const autoFormatText = (text) => {
+  if (!text) return '';
+
+  let lines = text.replace(/\r\n/g, '\n').split('\n');
+  let formattedLines = [];
+  let inFaqBlock = false;
+  let faqBuffer = [];
+  let inTableBlock = false;
+  let tableBuffer = [];
+
+  const flushFaq = () => {
+    if (faqBuffer.length > 0) {
+      formattedLines.push('[FAQ]');
+      formattedLines.push(...faqBuffer);
+      formattedLines.push('[/FAQ]');
+      formattedLines.push('');
+      faqBuffer = [];
+    }
+    inFaqBlock = false;
+  };
+
+  const flushTable = () => {
+    if (tableBuffer.length > 0) {
+      const headerRow = tableBuffer[0];
+      const cols = headerRow.length;
+      
+      formattedLines.push('| ' + headerRow.join(' | ') + ' |');
+      formattedLines.push('| ' + Array(cols).fill('---').join(' | ') + ' |');
+      
+      for (let i = 1; i < tableBuffer.length; i++) {
+        formattedLines.push('| ' + tableBuffer[i].join(' | ') + ' |');
+      }
+      formattedLines.push('');
+      tableBuffer = [];
+    }
+    inTableBlock = false;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+
+    // stand-alone youtube URL
+    const ytMatch = line.match(/^(?:https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:&\S*)?)$/i);
+    if (ytMatch) {
+      flushFaq();
+      flushTable();
+      formattedLines.push(`[youtube: ${ytMatch[1]}]`);
+      formattedLines.push('');
+      continue;
+    }
+
+    // copy-pasted TSV table
+    if (line.includes('\t')) {
+      flushFaq();
+      inTableBlock = true;
+      const cells = line.split('\t').map(c => c.trim());
+      tableBuffer.push(cells);
+      continue;
+    } else if (inTableBlock && !line.includes('\t')) {
+      flushTable();
+    }
+
+    // question & answer detection
+    const qMatch = line.match(/^(?:ප්‍රශ්නය|ප්‍රශ්න|Question|Q)\s*[:\.-]\s*(.+)$/i);
+    const aMatch = line.match(/^(?:පිළිතුර|පිළිතුරු|Answer|A)\s*[:\.-]\s*(.+)$/i);
+
+    if (qMatch) {
+      inFaqBlock = true;
+      faqBuffer.push(`Q: ${qMatch[1].trim()}`);
+      continue;
+    } else if (aMatch) {
+      faqBuffer.push(`A: ${aMatch[1].trim()}`);
+      continue;
+    } else if (inFaqBlock && (line.startsWith('*') || line.startsWith('-') || line.startsWith('#') || line === '')) {
+      flushFaq();
+    } else if (inFaqBlock && faqBuffer.length > 0) {
+      faqBuffer[faqBuffer.length - 1] += '\n' + line;
+      continue;
+    }
+
+    // list items normalisation
+    if (line.match(/^[•o\+\-]\s*(.+)$/)) {
+      const bulletContent = line.replace(/^[•o\+\-]\s*/, '').trim();
+      formattedLines.push(`* ${bulletContent}`);
+      continue;
+    }
+
+    // headings auto-detection
+    if (line.length > 0 && line.length < 80) {
+      const isPlain = !line.startsWith('#') && !line.startsWith('*') && !line.startsWith('-') && !/^\d+\./.test(line) && !line.startsWith('|');
+      const noPunctuation = !line.endsWith('.') && !line.endsWith('?') && !line.endsWith('!') && !line.endsWith(')');
+      
+      if (isPlain && noPunctuation) {
+        formattedLines.push(`## ${line}`);
+        formattedLines.push('');
+        continue;
+      }
+    }
+
+    formattedLines.push(line);
+  }
+
+  flushFaq();
+  flushTable();
+
+  let result = formattedLines.join('\n');
+  result = result.replace(/\n{3,}/g, '\n\n');
+  return result;
+};
+
 const tokenHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('kd_admin_token')}` }
 });
@@ -40,6 +150,8 @@ export default function ArticleManager() {
   const [editingArticle, setEditingArticle] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [rawText, setRawText] = useState('');
 
   const fetchArticles = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -253,9 +365,62 @@ export default function ArticleManager() {
                 <textarea rows="2" value={form.excerpt} onChange={(e) => updateField('excerpt', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed" />
               </div>
 
+              <div className="border border-white/5 bg-luxury-950/40 rounded-2xl p-4.5 mb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Content Formatting Assistant</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Quickly import, convert Excel tables, auto-format headings, list bullets and FAQs.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAssistant(!showAssistant)}
+                    className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold uppercase tracking-wider transition text-brand-primary"
+                  >
+                    {showAssistant ? 'Hide Assistant' : 'Open Assistant'}
+                  </button>
+                </div>
+
+                {showAssistant && (
+                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4">
+                    <div>
+                      <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Paste Unformatted Draft Here</label>
+                      <textarea
+                        rows="6"
+                        value={rawText}
+                        onChange={(e) => setRawText(e.target.value)}
+                        placeholder="Paste text from Google Docs, website articles, excel tables, or translators here. Headers, lists, tables, youtube videos, and FAQ lines will be auto-formatted."
+                        className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2.5 justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const formatted = autoFormatText(rawText);
+                          updateField('content', formatted);
+                          setShowAssistant(false);
+                          setRawText('');
+                        }}
+                        className="px-4 py-2 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition text-white"
+                      >
+                        Auto-Format & Paste into Article Body
+                      </button>
+                      
+                      <div className="text-[9px] text-slate-400 space-y-0.5 max-w-sm text-right bg-white/[0.02] p-2 rounded-lg border border-white/5">
+                        <p className="font-extrabold uppercase text-brand-primary text-[8px]">💡 Formatting Cheat Sheet</p>
+                        <p>Heading: Write on its own line (no trailing dot)</p>
+                        <p>Bullets: Start lines with <code className="text-brand-primary font-mono">*</code> or <code className="text-brand-primary font-mono">-</code></p>
+                        <p>Table: Paste Excel/Sheets cells directly (with tabs)</p>
+                        <p>FAQ: Use lines starting with <code className="text-brand-primary font-mono">Q:</code> and <code className="text-brand-primary font-mono">A:</code></p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Article Body</label>
-                <textarea required rows="12" value={form.content} onChange={(e) => updateField('content', e.target.value)} placeholder="Write the full article here. Use blank lines to separate paragraphs." className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed" />
+                <textarea required rows="12" value={form.content} onChange={(e) => updateField('content', e.target.value)} placeholder="Write the full article here. Use blank lines to separate paragraphs. Use markdown headers (##, ###), tables (|col|), and FAQ syntax (Q: and A:)." className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
