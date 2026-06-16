@@ -67,6 +67,45 @@ class AnalyticsController {
             return ($b['viewCount'] ?? 0) - ($a['viewCount'] ?? 0);
         });
 
+        // Upcoming episodes: episodes with a future airDate that have no subtitles yet
+        $nowStr = date('Y-m-d H:i:s');
+        $allUpcomingEps = $db->find('episodes', [
+            'airDate' => ['$gt' => $nowStr]
+        ], ['sort' => ['airDate' => 1], 'limit' => 20]);
+
+        // Enrich with drama title
+        $dramaIds = array_unique(array_map(function($ep) { return $ep['dramaId']; }, $allUpcomingEps));
+        $dramaMap = [];
+        if (!empty($dramaIds)) {
+            $dramaList = $db->find('dramas', ['_id' => ['$in' => $dramaIds]]);
+            foreach ($dramaList as $d) {
+                $dramaMap[(string)$d['_id']] = ['title' => $d['title'], 'slug' => $d['slug']];
+            }
+        }
+
+        // Check subtitles for these episodes
+        $epIds = array_map(function($ep) { return $ep['_id']; }, $allUpcomingEps);
+        $epSubs = !empty($epIds) ? $db->find('subtitles', ['mediaId' => ['$in' => $epIds], 'approvalStatus' => 'Approved']) : [];
+        $subbedEpIds = [];
+        foreach ($epSubs as $sub) {
+            $subbedEpIds[(string)$sub['mediaId']] = true;
+        }
+
+        $upcomingEpisodes = [];
+        foreach ($allUpcomingEps as $ep) {
+            $drama = $dramaMap[(string)$ep['dramaId']] ?? null;
+            $hasSubtitles = isset($subbedEpIds[(string)$ep['_id']]);
+            $upcomingEpisodes[] = [
+                '_id' => $ep['_id'],
+                'episodeNumber' => $ep['episodeNumber'],
+                'episodeTitle' => $ep['episodeTitle'] ?? '',
+                'airDate' => $ep['airDate'],
+                'dramaTitle' => $drama['title'] ?? 'Unknown Drama',
+                'dramaSlug' => $drama['slug'] ?? '',
+                'hasSubtitles' => $hasSubtitles
+            ];
+        }
+
         header('Content-Type: application/json');
         echo json_encode([
             'counts' => [
@@ -80,7 +119,8 @@ class AnalyticsController {
             'seoHealthScore' => $analyticsRecord['seoHealthScore'] ?? 98,
             'trafficLogs' => $analyticsRecord['trafficLogs'] ?? [],
             'trendingSearches' => $analyticsRecord['trendingSearches'] ?? [],
-            'topContent' => $topContent
+            'topContent' => $topContent,
+            'upcomingEpisodes' => $upcomingEpisodes
         ]);
     }
 

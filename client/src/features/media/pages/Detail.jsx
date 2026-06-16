@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/services/api/apiClient';
 import { motion } from 'framer-motion';
-import { Star, Plus, Check, Heart, Upload, Download, Film, Tv, Flame, Languages, ShieldCheck, Clock, CheckCircle2, MessageSquare, ThumbsUp, PlayCircle, Eye } from 'lucide-react';
+import { Star, Plus, Check, Heart, Upload, Download, Film, Tv, Flame, Languages, ShieldCheck, Clock, CheckCircle2, MessageSquare, ThumbsUp, PlayCircle, Eye, CalendarClock } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import SeoTags from '@/components/seo/SeoTags';
 
@@ -698,6 +698,20 @@ export default function Detail({ type = 'Movie', initialData }) {
                                 <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
                                   {ep.episodeDescription || `Season ${selectedSeason} Episode ${ep.episodeNumber} subtitle downloads.`}
                                 </p>
+                                {ep.airDate && (() => {
+                                  const airDateObj = new Date(ep.airDate);
+                                  const isUpcoming = airDateObj > new Date();
+                                  const formatted = airDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                  return isUpcoming ? (
+                                    <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider text-violet-400">
+                                      <CalendarClock className="w-3 h-3" /> Coming {formatted}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] text-slate-500 mt-0.5 flex items-center gap-1">
+                                      <CalendarClock className="w-3 h-3" /> Aired {formatted}
+                                    </span>
+                                  );
+                                })()}
                               </div>
                             </div>
 
@@ -774,6 +788,39 @@ export default function Detail({ type = 'Movie', initialData }) {
                 </div>
               </div>
             )}
+
+            {/* Next Episode Release Banner (Ongoing dramas) */}
+            {type === 'Drama' && activeEpisodes.length > 0 && (() => {
+              const now = new Date();
+              // Find next upcoming episode with a future airDate
+              const futureEp = activeEpisodes.find(ep => ep.airDate && new Date(ep.airDate) > now);
+              if (!futureEp) return null;
+              const nextDate = new Date(futureEp.airDate);
+              const formattedDate = nextDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              const daysUntil = Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24));
+
+              return (
+                <div className="relative overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-fuchsia-500/10 p-4 flex items-center gap-4">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_50%,rgba(139,92,246,0.12),transparent_60%)]" />
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
+                    <CalendarClock className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-400 mb-0.5">Next Episode Coming</p>
+                    <p className="text-sm font-bold text-white">
+                      Episode {futureEp.episodeNumber}
+                      {futureEp.episodeTitle && futureEp.episodeTitle.toLowerCase() !== `episode ${futureEp.episodeNumber}`.toLowerCase() && ` — ${futureEp.episodeTitle}`}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{formattedDate}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-black uppercase tracking-wider">
+                      {daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Subtitle Downloads list */}
             {!(type === 'Drama' && standaloneSubtitles.length === 0) && (

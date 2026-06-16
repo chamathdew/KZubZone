@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import apiClient from '@/services/api/apiClient';
 import {
   Film, Tv, Users, Languages, Star, TrendingUp, Search,
-  Settings, Database, Award, ShieldAlert, LogOut, CheckCircle, BookOpenText
+  Settings, Database, Award, ShieldAlert, LogOut, CheckCircle, BookOpenText, Bell, Clapperboard, CalendarCheck2, AlertTriangle
 } from 'lucide-react';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 
@@ -218,6 +218,73 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Upcoming Episodes Notification Panel */}
+          {stats?.upcomingEpisodes && stats.upcomingEpisodes.length > 0 && (() => {
+            const urgentEps = stats.upcomingEpisodes.filter(ep => !ep.hasSubtitles);
+            const readyEps = stats.upcomingEpisodes.filter(ep => ep.hasSubtitles);
+            return (
+              <div className="mb-8 rounded-2xl border border-amber-500/25 bg-gradient-to-r from-amber-500/8 via-orange-500/5 to-amber-500/8 overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-amber-500/15">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                      <Bell className="w-3.5 h-3.5 text-amber-400" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-300">Upcoming Episode Releases</span>
+                    {urgentEps.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-[9px] font-black uppercase tracking-wider">
+                        {urgentEps.length} Need Subtitles
+                      </span>
+                    )}
+                  </div>
+                  <Link href="/management/dramas" className="text-[10px] font-bold text-amber-400 hover:text-amber-300 transition uppercase tracking-wider">
+                    Manage Dramas →
+                  </Link>
+                </div>
+                <div className="divide-y divide-white/5 max-h-[280px] overflow-y-auto">
+                  {stats.upcomingEpisodes.map((ep) => {
+                    const airDate = new Date(ep.airDate);
+                    const now = new Date();
+                    const daysUntil = Math.ceil((airDate - now) / (1000 * 60 * 60 * 24));
+                    const formattedDate = airDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    return (
+                      <div key={ep._id} className={`flex items-center gap-3 px-5 py-3 ${!ep.hasSubtitles ? 'bg-red-500/[0.04]' : ''}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ep.hasSubtitles ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                          <Clapperboard className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-200 truncate">
+                            {ep.dramaTitle} — <span className="text-slate-400">Ep {ep.episodeNumber}</span>
+                            {ep.episodeTitle && ep.episodeTitle.toLowerCase() !== `episode ${ep.episodeNumber}`.toLowerCase() && (
+                              <span className="text-slate-500"> ({ep.episodeTitle})</span>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                            <CalendarCheck2 className="w-3 h-3" />
+                            {formattedDate}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {!ep.hasSubtitles ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 border border-red-500/25 text-red-300 text-[9px] font-black uppercase tracking-wider">
+                              <AlertTriangle className="w-2.5 h-2.5" /> Add Subtitles
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-[9px] font-black uppercase tracking-wider">
+                              <CheckCircle className="w-2.5 h-2.5" /> Ready
+                            </span>
+                          )}
+                          <span className={`text-[9px] font-mono font-bold px-2 py-1 rounded-lg ${daysUntil <= 1 ? 'bg-red-500/20 text-red-300' : daysUntil <= 3 ? 'bg-amber-500/20 text-amber-300' : 'bg-white/5 text-slate-400'}`}>
+                            {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? '1 day' : `${daysUntil}d`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Graphs and Side Widgets */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
