@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api/apiClient';
-import { ArrowLeft, CalendarDays, Clock3, Tag, Eye, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock3, Tag, Eye } from 'lucide-react';
 import SeoTags from '@/components/seo/SeoTags';
 
 // Helper to extract YouTube ID from URL or return plain ID
@@ -369,7 +369,7 @@ const renderBlock = (block, index, isDarkMode) => {
 
 export default function ArticleDetail({ initialData }) {
   const { slug } = useParams();
-  const [theme, setTheme] = useState('light');
+  const theme = 'dark';
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['articleDetail', slug],
@@ -455,16 +455,7 @@ export default function ArticleDetail({ initialData }) {
                 </span>
               ))}
             </div>
-            <button
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-white/20"
-            >
-              {theme === 'light' ? (
-                <><Moon className="w-3.5 h-3.5 text-violet-400" /> Dark Reader</>
-              ) : (
-                <><Sun className="w-3.5 h-3.5 text-amber-400" /> Light Reader</>
-              )}
-            </button>
+
           </div>
 
           {/* Article Body */}
