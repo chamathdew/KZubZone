@@ -209,7 +209,47 @@ export default function MovieManager() {
           {/* Table display */}
           <div className="bg-luxury-900 border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
             {loading ? (
-              <div className="text-center py-16 text-slate-500">Loading catalog...</div>
+              // Skeleton loading rows
+              <div className="overflow-x-auto animate-pulse">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-[10px] uppercase font-bold tracking-widest text-slate-600 bg-luxury-950/30">
+                      <th className="p-4">Movie Title</th>
+                      <th className="p-4">Release Year</th>
+                      <th className="p-4">IMDb</th>
+                      <th className="p-4">TMDB</th>
+                      <th className="p-4">Views</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {[...Array(6)].map((_, i) => (
+                      <tr key={i} className="">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-12 rounded bg-white/5 flex-shrink-0" />
+                            <div className="space-y-1.5">
+                              <div className="h-3 bg-white/8 rounded w-32" />
+                              <div className="h-2 bg-white/5 rounded w-20" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4"><div className="h-3 bg-white/5 rounded w-10" /></td>
+                        <td className="p-4"><div className="h-3 bg-white/5 rounded w-8" /></td>
+                        <td className="p-4"><div className="h-3 bg-white/5 rounded w-8" /></td>
+                        <td className="p-4"><div className="h-3 bg-white/5 rounded w-8" /></td>
+                        <td className="p-4"><div className="h-4 bg-white/5 rounded-full w-16" /></td>
+                        <td className="p-4"><div className="flex justify-end gap-2">
+                          <div className="h-6 w-6 bg-white/5 rounded" />
+                          <div className="h-6 w-6 bg-white/5 rounded" />
+                          <div className="h-6 w-6 bg-white/5 rounded" />
+                        </div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : movies.length === 0 ? (
               <div className="text-center py-16 text-slate-500 text-sm">
                 No movies found. Import some using the TMDB Importer!

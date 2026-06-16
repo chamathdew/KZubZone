@@ -407,7 +407,33 @@ export default function DramaManager() {
 
           <div className="space-y-4">
             {loading ? (
-              <div className="text-center py-12 text-slate-500">Loading catalog...</div>
+              // Skeleton loading cards
+              <div className="space-y-3 animate-pulse">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="bg-luxury-900 border border-white/5 rounded-2xl overflow-hidden shadow-md">
+                    <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-5 h-5 rounded bg-white/5 flex-shrink-0" />
+                        <div className="w-8 h-12 rounded bg-white/5 flex-shrink-0" />
+                        <div className="space-y-2">
+                          <div className="h-3.5 bg-white/8 rounded w-48" />
+                          <div className="h-2.5 bg-white/5 rounded w-28" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6 self-end sm:self-auto">
+                        <div className="h-3 bg-white/5 rounded w-14" />
+                        <div className="h-3 bg-white/5 rounded w-14" />
+                        <div className="h-5 bg-white/5 rounded-full w-16" />
+                        <div className="flex gap-2">
+                          <div className="h-7 w-7 bg-white/5 rounded-lg" />
+                          <div className="h-7 w-7 bg-white/5 rounded-lg" />
+                          <div className="h-7 w-7 bg-white/5 rounded-lg" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : apiError ? (
               <div className="py-10 px-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3">
                 <p className="text-red-400 font-black uppercase text-xs tracking-wider">Failed to Load Dramas</p>
