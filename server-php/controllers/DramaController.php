@@ -20,19 +20,21 @@ class DramaController {
         if ($status && $status !== 'All') {
             $filter['status'] = $status;
         }
+        // No status filter when 'All' — returns published + draft
+
         if (!empty($search)) {
-            $filter['$text'] = ['$search' => $search];
+            $filter['title'] = ['$regex' => $search, '$options' => 'i'];
         }
 
-        $dramas = $db->find('dramas', $filter, ['sort' => ['createdAt' => -1], 'limit' => $limit]);
-
-        // Append subtitle summaries (batch query, no loops)
-        self::appendSubtitleSummariesToDramas($dramas);
+        $dramas = $db->find('dramas', $filter, [
+            'sort' => ['createdAt' => -1],
+            'limit' => $limit
+        ]);
 
         header('Content-Type: application/json');
         echo json_encode([
             'total' => count($dramas),
-            'dramas' => $dramas
+            'dramas' => array_values($dramas)
         ]);
     }
 

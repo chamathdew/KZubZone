@@ -17,6 +17,7 @@ export default function DramaManager() {
   const [dramas, setDramas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [apiError, setApiError] = useState(null);
   
   // Expanded dramas for seasons/episodes rendering
   const [expandedDramaId, setExpandedDramaId] = useState(null);
@@ -88,11 +89,16 @@ export default function DramaManager() {
 
   const fetchDramas = async (selectedStatus = filterStatus, silent = false) => {
     if (!silent) setLoading(true);
+    setApiError(null);
     try {
       const res = await apiClient.get(`/api/admin/dramas?status=${selectedStatus}&limit=200`);
-      setDramas(res.data.dramas || []);
+      const list = res.data.dramas || res.data || [];
+      setDramas(Array.isArray(list) ? list : []);
     } catch (err) {
-      setError('Failed to fetch dramas catalog');
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || 'Unknown error';
+      setApiError({ status, msg });
+      setError(`API Error ${status || ''}: ${msg}`);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -391,6 +397,17 @@ export default function DramaManager() {
           <div className="space-y-4">
             {loading ? (
               <div className="text-center py-12 text-slate-500">Loading catalog...</div>
+            ) : apiError ? (
+              <div className="py-10 px-6 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-3">
+                <p className="text-red-400 font-black uppercase text-xs tracking-wider">Failed to Load Dramas</p>
+                <p className="text-slate-400 text-xs font-mono">{error}</p>
+                <button
+                  onClick={() => fetchDramas(filterStatus)}
+                  className="mt-2 px-4 py-1.5 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-brand-primary/80 transition"
+                >
+                  Retry
+                </button>
+              </div>
             ) : dramas.length === 0 ? (
               <div className="text-center py-12 text-slate-500 text-sm bg-luxury-900 border border-white/5 rounded-2xl">
                 No drama series imported yet. Build a platform using TMDB importer!
