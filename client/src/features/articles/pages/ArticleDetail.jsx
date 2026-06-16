@@ -8,12 +8,16 @@ import apiClient from '@/services/api/apiClient';
 import { ArrowLeft, CalendarDays, Clock3, Tag, Eye, Sun, Moon } from 'lucide-react';
 import SeoTags from '@/components/seo/SeoTags';
 
-// Helper to extract YouTube ID from URL
-const getYoutubeId = (url) => {
-  if (!url) return null;
+// Helper to extract YouTube ID from URL or return plain ID
+const getYoutubeId = (urlOrId) => {
+  if (!urlOrId) return null;
+  const trimmed = urlOrId.trim();
+  // If it looks like a plain video ID (11 chars, no slashes or spaces)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  // Otherwise extract from URL
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const match = trimmed.match(regExp);
+  return (match && match[2].length >= 10) ? match[2] : null;
 };
 
 // Helper to parse line-by-line inline markdown-like formatting (bold, italic, links)
@@ -124,9 +128,17 @@ const parseArticleBlocks = (content) => {
     if (!block) continue;
     
     // 1. YouTube embeds
-    const ytMatch = block.match(/^\[youtube:\s*(.+?)\]$/i) || block.match(/^(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:&\S*)?)$/i);
-    if (ytMatch) {
-      const videoId = ytMatch[2] || getYoutubeId(ytMatch[1]);
+    const ytTagMatch = block.match(/^\[youtube:\s*(.+?)\]$/i);
+    if (ytTagMatch) {
+      const videoId = getYoutubeId(ytTagMatch[1]);
+      if (videoId) {
+        blocks.push({ type: 'youtube', videoId });
+        continue;
+      }
+    }
+    const ytUrlMatch = block.match(/^(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:&\S*)?)$/i);
+    if (ytUrlMatch) {
+      const videoId = ytUrlMatch[2] || getYoutubeId(ytUrlMatch[1]);
       if (videoId) {
         blocks.push({ type: 'youtube', videoId });
         continue;
@@ -241,13 +253,13 @@ const renderBlock = (block, index, isDarkMode) => {
       );
     case 'youtube':
       return (
-        <div key={index} className={`my-8 aspect-video w-full rounded-2xl overflow-hidden shadow-xl border ${
-          isDarkMode ? 'border-white/5 shadow-black/50' : 'border-slate-200 shadow-slate-200/50'
-        }`}>
+        <div key={index} className={`my-10 rounded-3xl overflow-hidden shadow-2xl border ${
+          isDarkMode ? 'border-white/10 shadow-black/60' : 'border-slate-200 shadow-slate-300/40'
+        }`} style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
           <iframe
-            src={`https://www.youtube.com/embed/${block.videoId}`}
+            src={`https://www.youtube.com/embed/${block.videoId}?rel=0&modestbranding=1`}
             title="YouTube video player"
-            className="w-full h-full"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
@@ -403,71 +415,94 @@ export default function ArticleDetail({ initialData }) {
       />
 
       <article>
-        <section className="relative min-h-[70vh] lg:min-h-[75vh] overflow-hidden flex items-end border-b border-white/5">
-          <img src={article.coverImage || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1800&auto=format&fit=crop'} alt={article.title} className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/75 to-black/40" />
-          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-12 pt-32 text-left">
-            <Link href="/articles" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white mb-6">
-              <ArrowLeft className="w-4 h-4" /> Back to Articles
+        {/* Hero Banner */}
+        <section className="relative min-h-[72vh] lg:min-h-[80vh] overflow-hidden flex items-end border-b border-white/5">
+          <img
+            src={article.coverImage || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1800&auto=format&fit=crop'}
+            alt={article.title}
+            className="absolute inset-0 h-full w-full object-cover scale-[1.02]"
+            style={{ objectPosition: 'center top' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-luxury-950 via-luxury-950/80 to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-r from-luxury-950/40 to-transparent" />
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-14 pt-32 text-left">
+            <Link href="/articles" className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-white mb-8 transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Articles
             </Link>
-            <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-              <span className="rounded-full bg-brand-primary/20 border border-brand-primary/40 px-3 py-1 text-brand-primary">{article.category}</span>
-              <span className="text-slate-300 flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : 'Draft'}</span>
-              <span className="text-slate-300 flex items-center gap-1.5"><Clock3 className="w-3.5 h-3.5" /> {article.readTime || 5} min read</span>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-5">
+              <span className="rounded-full bg-brand-primary/25 border border-brand-primary/50 px-3.5 py-1 text-brand-primary">{article.category}</span>
+              <span className="text-slate-400 flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Draft'}</span>
+              <span className="text-slate-400 flex items-center gap-1.5"><Clock3 className="w-3.5 h-3.5" /> {article.readTime || 5} min read</span>
               {article.viewCount !== undefined && (
-                <span className="text-slate-300 flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {article.viewCount} Views</span>
+                <span className="text-slate-400 flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {article.viewCount} Views</span>
               )}
             </div>
-            <h1 className="mt-5 text-4xl sm:text-6xl font-black text-white leading-tight">{article.title}</h1>
-            {article.excerpt && <p className="mt-5 text-base sm:text-lg text-slate-200 leading-8">{article.excerpt}</p>}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight max-w-4xl">{article.title}</h1>
+            {article.excerpt && (
+              <p className="mt-5 text-base sm:text-lg text-slate-300 leading-8 max-w-3xl font-light">{article.excerpt}</p>
+            )}
           </div>
         </section>
 
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 text-left">
-          <div className="flex items-center justify-between gap-4 mb-6">
+        {/* Content Area */}
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16 text-left">
+          {/* Tags & Theme Toggle Bar */}
+          <div className="flex items-center justify-between gap-4 mb-8 py-4 border-b border-white/5">
             <div className="flex flex-wrap gap-2">
               {(article.tags || []).map((tag) => (
-                <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:border-brand-primary/30 hover:text-slate-200 transition-colors cursor-default">
                   <Tag className="w-3 h-3 text-brand-primary" /> {tag}
                 </span>
               ))}
             </div>
-
             <button
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition border bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.08]"
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-white/20"
             >
               {theme === 'light' ? (
-                <>
-                  <Moon className="w-3.5 h-3.5 text-violet-400" /> Dark Reader
-                </>
+                <><Moon className="w-3.5 h-3.5 text-violet-400" /> Dark Reader</>
               ) : (
-                <>
-                  <Sun className="w-3.5 h-3.5 text-amber-400" /> Light Reader
-                </>
+                <><Sun className="w-3.5 h-3.5 text-amber-400" /> Light Reader</>
               )}
             </button>
           </div>
 
-          <div className={`rounded-[2rem] shadow-2xl p-6 sm:p-12 border transition-all duration-300 ${
-            theme === 'light' 
-              ? 'bg-white border-slate-100 text-slate-800' 
-              : 'bg-white/[0.02] border-white/5 text-slate-300'
+          {/* Article Body */}
+          <div className={`rounded-3xl shadow-2xl border transition-all duration-500 overflow-hidden ${
+            theme === 'light'
+              ? 'bg-white border-slate-100'
+              : 'bg-white/[0.025] border-white/[0.06]'
           }`}>
-            <div className="max-w-none">
+            {/* Reading progress strip */}
+            <div className={`h-1 w-full ${
+              theme === 'light'
+                ? 'bg-gradient-to-r from-brand-primary via-violet-500 to-brand-secondary'
+                : 'bg-gradient-to-r from-brand-primary/80 via-violet-500/80 to-brand-secondary/80'
+            }`} />
+            <div className="p-6 sm:p-10 lg:p-14">
               {parsedBlocks.map((block, index) => renderBlock(block, index, theme === 'dark'))}
             </div>
           </div>
 
+          {/* Related Articles */}
           {related.length > 0 && (
-            <div className="mt-12 border-t border-white/5 pt-8">
-              <h2 className="text-xl font-black text-white mb-4">Related Articles</h2>
-              <div className="grid sm:grid-cols-3 gap-4">
+            <div className="mt-16 border-t border-white/5 pt-10">
+              <h2 className="text-xl font-black text-white mb-6 flex items-center gap-2">
+                <span className="w-1 h-6 rounded-full bg-brand-primary" />
+                Related Articles
+              </h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {related.map((item) => (
-                  <Link key={item._id} href={`/articles/${item.slug}`} className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden hover:border-brand-primary/40 transition">
-                    <img src={item.coverImage || article.coverImage} alt={item.title} className="h-28 w-full object-cover" />
+                  <Link
+                    key={item._id}
+                    href={`/articles/${item.slug}`}
+                    className="group rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden hover:border-brand-primary/40 hover:bg-white/[0.04] transition-all duration-300"
+                  >
+                    <div className="overflow-hidden h-32">
+                      <img src={item.coverImage || article.coverImage} alt={item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    </div>
                     <div className="p-4">
-                      <p className="text-xs font-black text-white line-clamp-2">{item.title}</p>
+                      <p className="text-xs font-black text-white line-clamp-2 leading-relaxed group-hover:text-brand-primary transition-colors">{item.title}</p>
                       <p className="mt-2 text-[10px] text-brand-primary font-bold uppercase tracking-wider">{item.category}</p>
                     </div>
                   </Link>
