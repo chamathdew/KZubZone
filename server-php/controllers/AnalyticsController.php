@@ -67,44 +67,91 @@ class AnalyticsController {
             return ($b['viewCount'] ?? 0) - ($a['viewCount'] ?? 0);
         });
 
-        // Upcoming episodes: episodes with a future airDate that have no subtitles yet
+        // Episode subtitle notifications:
+        // Show ALL ongoing drama episodes that have NO subtitles — aired in last 30 days OR upcoming
         $nowStr = date('Y-m-d H:i:s');
-        $allUpcomingEps = $db->find('episodes', [
-            'airDate' => ['$gt' => $nowStr]
-        ], ['sort' => ['airDate' => 1], 'limit' => 20]);
+        $thirtyDaysAgo = date('Y-m-d H:i:s', strtotime('-30 days'));
 
-        // Enrich with drama title
-        $dramaIds = array_unique(array_map(function($ep) { return $ep['dramaId']; }, $allUpcomingEps));
+        // Find all ongoing dramas (status = Published, subtitleSummary.seasonStatus = Ongoing, OR just all published dramas)
+        $ongoingDramas = $db->find('dramas', ['status' => 'Published'], ['sort' => ['createdAt' => -1], 'limit' => 100]);
+        $ongoingDramaIds = array_map(function($d) { return $d['_id']; }, $ongoingDramas);
+
+        // Build a dramaMap for title/slug lookup
         $dramaMap = [];
-        if (!empty($dramaIds)) {
-            $dramaList = $db->find('dramas', ['_id' => ['$in' => $dramaIds]]);
-            foreach ($dramaList as $d) {
-                $dramaMap[(string)$d['_id']] = ['title' => $d['title'], 'slug' => $d['slug']];
+        foreach ($ongoingDramas as $d) {
+            $dramaMap[(string)$d['_id']] = ['title' => $d['title'], 'slug' => $d['slug']];
+        }
+
+        // Get all episodes for these dramas that either:
+        //   (a) have a future airDate (upcoming)
+        //   (b) have an airDate within the last 30 days (recently aired but may lack subs)
+        //   (c) have no airDate at all (always show as needing attention)
+        $allNotifiableEps = [];
+        if (!empty($ongoingDramaIds)) {
+            // Upcoming episodes
+            $upcomingEps = $db->find('episodes', [
+                'dramaId' => ['$in' => $ongoingDramaIds],
+                'airDate' => ['$gt' => $nowStr]
+            ], ['sort' => ['airDate' => 1], 'limit' => 30]);
+
+            // Recently aired episodes (last 30 days)
+            $recentEps = $db->find('episodes', [
+                'dramaId' => ['$in' => $ongoingDramaIds],
+                'airDate' => ['$gte' => $thirtyDaysAgo, '$lte' => $nowStr]
+            ], ['sort' => ['airDate' => -1], 'limit' => 30]);
+
+            // Merge and deduplicate by _id
+            $seen = [];
+            foreach (array_merge($recentEps, $upcomingEps) as $ep) {
+                $eid = (string)$ep['_id'];
+                if (!isset($seen[$eid])) {
+                    $seen[$eid] = true;
+                    $allNotifiableEps[] = $ep;
+                }
             }
         }
 
-        // Check subtitles for these episodes
-        $epIds = array_map(function($ep) { return $ep['_id']; }, $allUpcomingEps);
-        $epSubs = !empty($epIds) ? $db->find('subtitles', ['mediaId' => ['$in' => $epIds], 'approvalStatus' => 'Approved']) : [];
+        // Check which of these have approved subtitles
+        $notifEpIds = array_map(function($ep) { return $ep['_id']; }, $allNotifiableEps);
+        $epSubtitles = !empty($notifEpIds) ? $db->find('subtitles', [
+            'mediaId' => ['$in' => $notifEpIds],
+            'approvalStatus' => 'Approved'
+        ]) : [];
         $subbedEpIds = [];
-        foreach ($epSubs as $sub) {
+        foreach ($epSubtitles as $sub) {
             $subbedEpIds[(string)$sub['mediaId']] = true;
         }
 
+        // Build notification list — prioritize missing-sub episodes first, then sort by airDate
         $upcomingEpisodes = [];
-        foreach ($allUpcomingEps as $ep) {
+        foreach ($allNotifiableEps as $ep) {
             $drama = $dramaMap[(string)$ep['dramaId']] ?? null;
             $hasSubtitles = isset($subbedEpIds[(string)$ep['_id']]);
             $upcomingEpisodes[] = [
                 '_id' => $ep['_id'],
                 'episodeNumber' => $ep['episodeNumber'],
                 'episodeTitle' => $ep['episodeTitle'] ?? '',
-                'airDate' => $ep['airDate'],
+                'airDate' => $ep['airDate'] ?? null,
                 'dramaTitle' => $drama['title'] ?? 'Unknown Drama',
                 'dramaSlug' => $drama['slug'] ?? '',
-                'hasSubtitles' => $hasSubtitles
+                'hasSubtitles' => $hasSubtitles,
+                'isUpcoming' => isset($ep['airDate']) && $ep['airDate'] > $nowStr
             ];
         }
+
+        // Sort: no-subtitle episodes first, then by airDate desc
+        usort($upcomingEpisodes, function($a, $b) {
+            if ($a['hasSubtitles'] !== $b['hasSubtitles']) {
+                return $a['hasSubtitles'] ? 1 : -1; // missing subs first
+            }
+            $aDate = $a['airDate'] ?? '';
+            $bDate = $b['airDate'] ?? '';
+            return strcmp($bDate, $aDate); // newer first
+        });
+
+        // Limit to 25 most relevant
+        $upcomingEpisodes = array_slice($upcomingEpisodes, 0, 25);
+
 
         header('Content-Type: application/json');
         echo json_encode([

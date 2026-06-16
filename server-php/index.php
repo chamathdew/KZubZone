@@ -491,6 +491,35 @@ $routes = [
     ]],
 
     // Admin Drama CRUD
+    ['GET', '/api/admin/dramas', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_dramas'); },
+        function() {
+            $db = \Config\Database::getInstance();
+            $status = $_GET['status'] ?? 'All';
+            $search = $_GET['search'] ?? null;
+            $limit = (int)($_GET['limit'] ?? 200);
+
+            $filter = [];
+            if ($status && $status !== 'All') {
+                $filter['status'] = $status;
+            }
+            if (!empty($search)) {
+                $filter['$text'] = ['$search' => $search];
+            }
+
+            $dramas = $db->find('dramas', $filter, ['sort' => ['createdAt' => -1], 'limit' => $limit]);
+
+            // Append subtitle summaries
+            \Controllers\DramaController::appendSubtitleSummariesToDramas($dramas);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'total' => count($dramas),
+                'dramas' => $dramas
+            ]);
+        }
+    ]],
     ['POST', '/api/admin/dramas', [
         'Middleware\AuthMiddleware::protectAdmin',
         function() { \Middleware\AuthMiddleware::hasPermission('manage_dramas'); },

@@ -219,10 +219,9 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Upcoming Episodes Notification Panel */}
+          {/* Episode Subtitle Notification Panel */}
           {stats?.upcomingEpisodes && stats.upcomingEpisodes.length > 0 && (() => {
             const urgentEps = stats.upcomingEpisodes.filter(ep => !ep.hasSubtitles);
-            const readyEps = stats.upcomingEpisodes.filter(ep => ep.hasSubtitles);
             return (
               <div className="mb-8 rounded-2xl border border-amber-500/25 bg-gradient-to-r from-amber-500/8 via-orange-500/5 to-amber-500/8 overflow-hidden">
                 <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-amber-500/15">
@@ -230,10 +229,10 @@ export default function AdminDashboard() {
                     <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
                       <Bell className="w-3.5 h-3.5 text-amber-400" />
                     </div>
-                    <span className="text-xs font-black uppercase tracking-wider text-amber-300">Upcoming Episode Releases</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-300">Episode Subtitle Status</span>
                     {urgentEps.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-[9px] font-black uppercase tracking-wider">
-                        {urgentEps.length} Need Subtitles
+                      <span className="px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                        {urgentEps.length} Missing Subtitles
                       </span>
                     )}
                   </div>
@@ -241,14 +240,30 @@ export default function AdminDashboard() {
                     Manage Dramas →
                   </Link>
                 </div>
-                <div className="divide-y divide-white/5 max-h-[280px] overflow-y-auto">
+                <div className="divide-y divide-white/5 max-h-[320px] overflow-y-auto">
                   {stats.upcomingEpisodes.map((ep) => {
-                    const airDate = new Date(ep.airDate);
                     const now = new Date();
-                    const daysUntil = Math.ceil((airDate - now) / (1000 * 60 * 60 * 24));
-                    const formattedDate = airDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const airDate = ep.airDate ? new Date(ep.airDate) : null;
+                    const daysUntil = airDate ? Math.ceil((airDate - now) / (1000 * 60 * 60 * 24)) : null;
+                    const formattedDate = airDate
+                      ? airDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'No date set';
+
+                    let countdownLabel = '';
+                    let countdownClass = 'bg-white/5 text-slate-500';
+                    if (daysUntil !== null) {
+                      if (ep.isUpcoming) {
+                        countdownLabel = daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? 'TOMORROW' : `In ${daysUntil}d`;
+                        countdownClass = daysUntil <= 1 ? 'bg-red-500/20 text-red-300' : daysUntil <= 3 ? 'bg-amber-500/20 text-amber-300' : 'bg-violet-500/15 text-violet-300';
+                      } else {
+                        const daysAgo = Math.abs(daysUntil);
+                        countdownLabel = daysAgo === 0 ? 'TODAY' : `${daysAgo}d ago`;
+                        countdownClass = daysAgo <= 3 ? 'bg-red-500/20 text-red-300' : 'bg-white/5 text-slate-400';
+                      }
+                    }
+
                     return (
-                      <div key={ep._id} className={`flex items-center gap-3 px-5 py-3 ${!ep.hasSubtitles ? 'bg-red-500/[0.04]' : ''}`}>
+                      <div key={ep._id} className={`flex items-center gap-3 px-5 py-3 transition-colors ${!ep.hasSubtitles ? 'bg-red-500/[0.04] hover:bg-red-500/[0.07]' : 'hover:bg-white/[0.02]'}`}>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ep.hasSubtitles ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                           <Clapperboard className="w-3.5 h-3.5" />
                         </div>
@@ -261,22 +276,24 @@ export default function AdminDashboard() {
                           </p>
                           <p className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
                             <CalendarCheck2 className="w-3 h-3" />
-                            {formattedDate}
+                            {ep.isUpcoming ? '🔵 Upcoming — ' : '⚡ Aired — '}{formattedDate}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {!ep.hasSubtitles ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/15 border border-red-500/25 text-red-300 text-[9px] font-black uppercase tracking-wider">
-                              <AlertTriangle className="w-2.5 h-2.5" /> Add Subtitles
+                              <AlertTriangle className="w-2.5 h-2.5" /> Add Subs
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-[9px] font-black uppercase tracking-wider">
                               <CheckCircle className="w-2.5 h-2.5" /> Ready
                             </span>
                           )}
-                          <span className={`text-[9px] font-mono font-bold px-2 py-1 rounded-lg ${daysUntil <= 1 ? 'bg-red-500/20 text-red-300' : daysUntil <= 3 ? 'bg-amber-500/20 text-amber-300' : 'bg-white/5 text-slate-400'}`}>
-                            {daysUntil === 0 ? 'TODAY' : daysUntil === 1 ? '1 day' : `${daysUntil}d`}
-                          </span>
+                          {countdownLabel && (
+                            <span className={`text-[9px] font-mono font-bold px-2 py-1 rounded-lg ${countdownClass}`}>
+                              {countdownLabel}
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
