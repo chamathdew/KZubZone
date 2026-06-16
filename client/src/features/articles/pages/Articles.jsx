@@ -5,104 +5,45 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api/apiClient';
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpenText, CalendarDays, Clock3, Flame, Search, Sparkles, Star, Eye } from 'lucide-react';
+import { ArrowRight, BookOpenText, CalendarDays, Clock3, Flame, Loader2, Search, Sparkles, Star, Eye } from 'lucide-react';
 import SeoTags from '@/components/seo/SeoTags';
-
-const articles = [
-  {
-    id: 'weak-hero-character-guide',
-    title: 'Weak Hero: Why school revenge stories feel so intense',
-    category: 'Character Study',
-    date: 'May 26, 2026',
-    readTime: '5 min read',
-    image: 'https://image.tmdb.org/t/p/original/cLTAda6fMRirkCY1xfO4pmcHVkk.jpg',
-    excerpt: 'A closer look at friendship, pressure, violence, and the quiet emotional rhythm that makes Weak Hero stand out.',
-    featured: true
-  },
-  {
-    id: 'best-kdramas-for-new-viewers',
-    title: 'Best K-Dramas to start with if you are new to Korean series',
-    category: 'Guide',
-    date: 'May 25, 2026',
-    readTime: '7 min read',
-    image: 'https://image.tmdb.org/t/p/original/8GMFc9ehJk0k6HMpguGN4kMoazl.jpg',
-    excerpt: 'Romance, action, thriller, and slice-of-life picks that help new viewers find their first favorite drama.',
-    featured: false
-  },
-  {
-    id: 'kdrama-subtitles-sinhala',
-    title: 'Sinhala subtitles and why timing matters in K-Drama watching',
-    category: 'Subtitles',
-    date: 'May 24, 2026',
-    readTime: '4 min read',
-    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1600&auto=format&fit=crop',
-    excerpt: 'Good subtitle timing can change the full mood of a scene, especially in dialogue-heavy Korean dramas.',
-    featured: false
-  },
-  {
-    id: 'korean-zombie-cinema',
-    title: 'From Train to Busan to Peninsula: Korean zombie cinema explained',
-    category: 'Movies',
-    date: 'May 23, 2026',
-    readTime: '6 min read',
-    image: 'https://image.tmdb.org/t/p/original/gEjNlhZhyHeto6Fy5wWy5Uk3A9D.jpg',
-    excerpt: 'How Korean zombie movies mix survival action with family, class pressure, and social collapse.',
-    featured: true
-  },
-  {
-    id: 'romance-contract-marriage',
-    title: 'Why contract marriage plots still work in modern K-Dramas',
-    category: 'Romance',
-    date: 'May 22, 2026',
-    readTime: '5 min read',
-    image: 'https://image.tmdb.org/t/p/original/6ekykPwvAywJRjFEnUoCFWTO9O3.jpg',
-    excerpt: 'The familiar trope keeps returning because it creates fast tension, clear stakes, and emotional payoff.',
-    featured: false
-  },
-  {
-    id: 'tmdb-imdb-ratings',
-    title: 'IMDb ratings vs fan hype: how to choose what to watch next',
-    category: 'Watchlist',
-    date: 'May 21, 2026',
-    readTime: '3 min read',
-    image: 'https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?q=80&w=1600&auto=format&fit=crop',
-    excerpt: 'Ratings help, but genre mood, cast chemistry, and episode pacing matter just as much.',
-    featured: false
-  }
-];
 
 const categories = ['All', 'Guide', 'Character Study', 'Subtitles', 'Movies', 'Romance', 'Watchlist'];
 
 export default function Articles({ initialData }) {
   const [activeCategory, setActiveCategory] = useState('All');
-  const { data: articlesData } = useQuery({
+  const { data: articlesData, isLoading, isFetching } = useQuery({
     queryKey: ['publicArticles', activeCategory],
     queryFn: async () => {
       const categoryParam = activeCategory === 'All' ? '' : `&category=${encodeURIComponent(activeCategory)}`;
       const res = await apiClient.get(`/api/articles?limit=30${categoryParam}`);
       return res.data.articles || [];
     },
-    initialData: activeCategory === 'All' ? initialData : undefined,
-    retry: false
+    initialData: activeCategory === 'All' && Array.isArray(initialData) ? initialData : undefined,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    retry: 1
   });
 
-  const articleSource = articlesData && articlesData.length > 0 ? articlesData.map(article => ({
-    id: article._id,
-    slug: article.slug,
-    title: article.title,
-    category: article.category,
-    date: article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft',
-    readTime: `${article.readTime || 5} min read`,
-    image: article.coverImage,
-    excerpt: article.excerpt,
-    featured: article.isFeatured,
-    viewCount: article.viewCount || 0
-  })) : articles;
+  const articleSource = Array.isArray(articlesData) && articlesData.length > 0
+    ? articlesData.map(article => ({
+        id: article._id,
+        slug: article.slug,
+        title: article.title,
+        category: article.category,
+        date: article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft',
+        readTime: `${article.readTime || 5} min read`,
+        image: article.coverImage,
+        excerpt: article.excerpt,
+        featured: article.isFeatured,
+        viewCount: article.viewCount || 0
+      }))
+    : [];
 
   const visibleArticles = useMemo(() => {
-    if (activeCategory === 'All' || (articlesData && articlesData.length > 0)) return articleSource;
-    return articleSource.filter((article) => article.category === activeCategory);
-  }, [activeCategory, articleSource, articlesData]);
+    return articleSource;
+  }, [articleSource]);
 
   const featuredArticle = visibleArticles.find((article) => article.featured) || visibleArticles[0];
   const otherArticles = visibleArticles.filter((article) => article.id !== featuredArticle?.id);

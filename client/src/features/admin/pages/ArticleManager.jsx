@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import apiClient from '@/services/api/apiClient';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import {
   BookOpenText, Database, Edit3, Eye, Film, Languages, LayoutDashboard,
-  Plus, Save, Settings, Star, Trash2, Tv, Users, X
+  Plus, Save, Settings, Star, Trash2, Tv, Users, X, UploadCloud
 } from 'lucide-react';
 
 const emptyForm = {
@@ -137,6 +137,217 @@ const autoFormatText = (text) => {
   return result;
 };
 
+const htmlToMarkdown = (htmlText) => {
+  if (typeof window === 'undefined') return { title: '', metaDescription: '', content: '', coverImage: '' };
+  
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlText, 'text/html');
+
+  // Extract Title
+  let title = '';
+  const titleTag = doc.querySelector('title');
+  if (titleTag) title = titleTag.textContent.trim();
+  if (!title) {
+    const h1Tag = doc.querySelector('h1');
+    if (h1Tag) title = h1Tag.textContent.trim();
+  }
+
+  // Extract Meta Description
+  let metaDescription = '';
+  const metaDescTag = doc.querySelector('meta[name="description"]');
+  if (metaDescTag) metaDescription = metaDescTag.getAttribute('content') || '';
+
+  // Extract First Image as Cover Image
+  let coverImage = '';
+  const firstImg = doc.querySelector('img');
+  if (firstImg) {
+    coverImage = firstImg.getAttribute('src') || '';
+  }
+
+  // Helper function to recursively walk node and build markdown
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent.replace(/\u00a0/g, ' ');
+    }
+    
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return '';
+    }
+    
+    const tag = node.tagName.toLowerCase();
+    if (tag === 'script' || tag === 'style' || tag === 'head') {
+      return '';
+    }
+
+    // Special handling for FAQPage schema section
+    if (tag === 'section' && node.getAttribute('itemtype')?.includes('FAQPage')) {
+      let faqText = '\n\n[FAQ]\n';
+      const questions = node.querySelectorAll('[itemtype*="Question"]');
+      questions.forEach(qNode => {
+        const qNameNode = qNode.querySelector('[itemprop="name"]');
+        const aTextNode = qNode.querySelector('[itemprop="text"]');
+        if (qNameNode && aTextNode) {
+          const qText = qNameNode.textContent.trim();
+          const aText = convertInlineHtml(aTextNode);
+          faqText += `Q: ${qText}\n`;
+          faqText += `A: ${aText}\n`;
+        }
+      });
+      faqText += '[/FAQ]\n\n';
+      return faqText;
+    }
+
+    // Inline formatting tags
+    if (tag === 'strong' || tag === 'b') {
+      return `**${childNodesToMarkdown(node)}**`;
+    }
+    if (tag === 'em' || tag === 'i') {
+      return `*${childNodesToMarkdown(node)}*`;
+    }
+    if (tag === 'code') {
+      return `\`${node.textContent}\``;
+    }
+    if (tag === 'a') {
+      const href = node.getAttribute('href') || '';
+      return `[${childNodesToMarkdown(node)}](${href})`;
+    }
+    if (tag === 'span') {
+      return childNodesToMarkdown(node);
+    }
+    
+    // Images in body
+    if (tag === 'img') {
+      const src = node.getAttribute('src') || '';
+      const alt = node.getAttribute('alt') || '';
+      return `\n\n![${alt}](${src})\n\n`;
+    }
+
+    // YouTube embeds
+    if (tag === 'iframe') {
+      const src = node.getAttribute('src') || '';
+      const ytMatch = src.match(/(?:embed\/|watch\?v=)([a-zA-Z0-9_-]+)/);
+      if (ytMatch) {
+        return `\n\n[youtube: ${ytMatch[1]}]\n\n`;
+      }
+    }
+
+    // Headings
+    if (/^h[1-6]$/.test(tag)) {
+      const level = parseInt(tag.charAt(1));
+      const hashes = level === 1 ? '##' : '#'.repeat(level);
+      return `\n\n${hashes} ${node.textContent.trim()}\n\n`;
+    }
+
+    // Lists
+    if (tag === 'ul') {
+      let listItems = '';
+      node.childNodes.forEach(li => {
+        if (li.tagName && li.tagName.toLowerCase() === 'li') {
+          listItems += `* ${childNodesToMarkdown(li).trim()}\n`;
+        }
+      });
+      return `\n\n${listItems}\n\n`;
+    }
+    if (tag === 'ol') {
+      let listItems = '';
+      let index = 1;
+      node.childNodes.forEach(li => {
+        if (li.tagName && li.tagName.toLowerCase() === 'li') {
+          listItems += `${index}. ${childNodesToMarkdown(li).trim()}\n`;
+          index++;
+        }
+      });
+      return `\n\n${listItems}\n\n`;
+    }
+
+    // Tables
+    if (tag === 'table') {
+      let tableMarkdown = '\n\n';
+      const rows = Array.from(node.querySelectorAll('tr'));
+      if (rows.length > 0) {
+        let maxCols = 0;
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('th, td');
+          if (cells.length > maxCols) maxCols = cells.length;
+        });
+        
+        rows.forEach((row, rowIndex) => {
+          const cells = Array.from(row.querySelectorAll('th, td')).map(cell => {
+            return convertInlineHtml(cell).trim().replace(/\|/g, '\\|');
+          });
+          
+          while (cells.length < maxCols) {
+            cells.push('');
+          }
+          
+          tableMarkdown += `| ${cells.join(' | ')} |\n`;
+          
+          if (rowIndex === 0) {
+            const separator = Array(maxCols).fill('---');
+            tableMarkdown += `| ${separator.join(' | ')} |\n`;
+          }
+        });
+      }
+      return tableMarkdown + '\n';
+    }
+
+    // Paragraph / Div / Block containers
+    if (tag === 'p' || tag === 'div' || tag === 'section' || tag === 'article' || tag === 'body') {
+      const text = node.textContent.trim();
+      const ytMatch = text.match(/^(?:https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)(?:&\S*)?)$/i);
+      if (ytMatch) {
+        return `\n\n[youtube: ${ytMatch[1]}]\n\n`;
+      }
+      
+      const content = childNodesToMarkdown(node).trim();
+      return content ? `\n\n${content}\n\n` : '';
+    }
+
+    if (tag === 'br') {
+      return '\n';
+    }
+
+    return childNodesToMarkdown(node);
+  };
+
+  const childNodesToMarkdown = (parentNode) => {
+    let text = '';
+    parentNode.childNodes.forEach(child => {
+      text += walk(child);
+    });
+    return text;
+  };
+
+  const convertInlineHtml = (inlineElement) => {
+    let text = '';
+    inlineElement.childNodes.forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        text += child.textContent.replace(/\u00a0/g, ' ');
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const cTag = child.tagName.toLowerCase();
+        if (cTag === 'strong' || cTag === 'b') {
+          text += `**${convertInlineHtml(child)}**`;
+        } else if (cTag === 'em' || cTag === 'i') {
+          text += `*${convertInlineHtml(child)}*`;
+        } else if (cTag === 'span') {
+          text += convertInlineHtml(child);
+        } else if (cTag === 'a') {
+          text += `[${convertInlineHtml(child)}](${child.getAttribute('href') || ''})`;
+        } else {
+          text += convertInlineHtml(child);
+        }
+      }
+    });
+    return text;
+  };
+
+  const body = doc.body || doc;
+  let markdown = walk(body);
+  markdown = markdown.replace(/\n{3,}/g, '\n\n').trim();
+
+  return { title, metaDescription, content: markdown, coverImage };
+};
+
 const tokenHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('kd_admin_token')}` }
 });
@@ -152,6 +363,36 @@ export default function ArticleManager() {
   const [saving, setSaving] = useState(false);
   const [showAssistant, setShowAssistant] = useState(false);
   const [rawText, setRawText] = useState('');
+  const [importedFileName, setImportedFileName] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportedFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'html' || ext === 'htm') {
+        const result = htmlToMarkdown(text);
+        if (result.title) updateField('title', result.title);
+        if (result.metaDescription) updateField('metaDescription', result.metaDescription);
+        if (result.coverImage) updateField('coverImage', result.coverImage);
+        if (result.content) updateField('content', result.content);
+
+        setShowAssistant(false);
+        setImportedFileName('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        setRawText(text);
+        setImportedFileName('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const fetchArticles = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -175,6 +416,9 @@ export default function ArticleManager() {
     setEditingArticle(null);
     setForm(emptyForm);
     setError('');
+    setShowAssistant(false);
+    setImportedFileName('');
+    setRawText('');
     setShowModal(true);
   };
 
@@ -197,6 +441,9 @@ export default function ArticleManager() {
       seoKeywords: (article.seoKeywords || []).join(', ')
     });
     setError('');
+    setShowAssistant(false);
+    setImportedFileName('');
+    setRawText('');
     setShowModal(true);
   };
 
@@ -365,18 +612,49 @@ export default function ArticleManager() {
                 <textarea rows="2" value={form.excerpt} onChange={(e) => updateField('excerpt', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed" />
               </div>
 
-              <div className="border border-white/5 bg-luxury-950/40 rounded-2xl p-4.5 mb-2">
+              {/* HTML / Text Import — Always Visible */}
+              <div className="border border-brand-primary/20 bg-brand-primary/[0.04] rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <UploadCloud className="w-4 h-4 text-brand-primary" />
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Import HTML / Text File</h4>
+                  <span className="ml-auto text-[9px] text-slate-500 font-bold uppercase tracking-wider">Supports .html · .htm · .txt</span>
+                </div>
+                <div
+                  className="relative border-2 border-dashed border-brand-primary/25 hover:border-brand-primary/60 rounded-xl p-5 flex flex-col items-center justify-center bg-black/20 cursor-pointer transition-all duration-200 group"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".html,.htm,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <UploadCloud className="w-9 h-9 text-brand-primary/60 group-hover:text-brand-primary mb-2 transition" />
+                  {importedFileName ? (
+                    <p className="text-xs text-emerald-400 font-bold">{importedFileName} — importing…</p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-slate-300 font-semibold">Click here to select a file</p>
+                      <p className="text-[10px] text-slate-500 mt-1">HTML imports auto-fill title, cover image, meta, and body content</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Collapsible Paste Assistant */}
+              <div className="border border-white/5 bg-luxury-950/40 rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Content Formatting Assistant</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Quickly import, convert Excel tables, auto-format headings, list bullets and FAQs.</p>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Text Paste Assistant</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Auto-format headings, lists, tables, FAQs from raw text.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowAssistant(!showAssistant)}
                     className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold uppercase tracking-wider transition text-brand-primary"
                   >
-                    {showAssistant ? 'Hide Assistant' : 'Open Assistant'}
+                    {showAssistant ? 'Hide' : 'Open'}
                   </button>
                 </div>
 
@@ -403,9 +681,8 @@ export default function ArticleManager() {
                         }}
                         className="px-4 py-2 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition text-white"
                       >
-                        Auto-Format & Paste into Article Body
+                        Auto-Format &amp; Paste into Article Body
                       </button>
-                      
                       <div className="text-[9px] text-slate-400 space-y-0.5 max-w-sm text-right bg-white/[0.02] p-2 rounded-lg border border-white/5">
                         <p className="font-extrabold uppercase text-brand-primary text-[8px]">💡 Formatting Cheat Sheet</p>
                         <p>Heading: Write on its own line (no trailing dot)</p>
