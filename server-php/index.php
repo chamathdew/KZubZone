@@ -398,6 +398,35 @@ $routes = [
     ['GET', '/api/auth/notifications', ['Middleware\AuthMiddleware::protectUser', 'Controllers\UserController::getUserNotifications']],
     ['PUT', '/api/auth/notifications/([a-f0-9]+)/read', ['Middleware\AuthMiddleware::protectUser', 'Controllers\UserController::markNotificationRead']],
 
+    // TEMP: One-time admin credential update (remove after use)
+    ['GET', '/api/setup/update-admin', [function() {
+        $key = $_GET['key'] ?? '';
+        if ($key !== 'ksubzone_update_2026') {
+            http_response_code(403);
+            echo json_encode(['message' => 'Invalid key']);
+            exit;
+        }
+        $db = \Config\Database::getInstance();
+        $admin = $db->findOne('admins', []);
+        if (!$admin) {
+            http_response_code(404);
+            echo json_encode(['message' => 'No admin found']);
+            exit;
+        }
+        $newEmail    = 'chamathd2002@gmail.com';
+        $newPassword = password_hash('#Burnitdown2002#', PASSWORD_BCRYPT);
+        $db->updateOne('admins', ['_id' => $admin['_id']], [
+            '$set' => ['email' => $newEmail, 'password' => $newPassword]
+        ]);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status'  => 'success',
+            'message' => 'Admin credentials updated successfully!',
+            'email'   => $newEmail,
+            'id'      => $admin['_id']
+        ]);
+    }]],
+
     // Public Catalog
     ['GET', '/api/media/home', 'Controllers\MovieController::getHomeCatalog'],
     ['GET', '/api/media/recommendations', 'Controllers\MovieController::getRecommendations'],
