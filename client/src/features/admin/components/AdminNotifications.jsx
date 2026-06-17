@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import apiClient from '@/services/api/apiClient';
 import { Bell, X, Languages, RefreshCw, AlertCircle } from 'lucide-react';
@@ -21,13 +22,42 @@ function setCache(data) {
   try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch (_) {}
 }
 
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export default function AdminNotifications() {
   const [open, setOpen] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [mounted, setMounted] = useState(false);
+  const [coords, setCoords] = useState({ top: 80, left: 16 });
   const btnRef = useRef(null);
   const panelRef = useRef(null);
+
+  const updateCoords = useCallback(() => {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setCoords({
+      top: rect.bottom + 8,
+      left: Math.max(12, Math.min(rect.left, window.innerWidth - 352)),
+    });
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useIsomorphicLayoutEffect(() => {
+    if (open) {
+      updateCoords();
+      window.addEventListener('resize', updateCoords);
+      window.addEventListener('scroll', updateCoords, true);
+    }
+    return () => {
+      window.removeEventListener('resize', updateCoords);
+      window.removeEventListener('scroll', updateCoords, true);
+    };
+  }, [open, updateCoords]);
 
   const fetchMissing = useCallback(async (force = false) => {
     const cached = !force ? getCache() : null;
@@ -126,20 +156,13 @@ export default function AdminNotifications() {
       </button>
 
       {/* Notification Panel — FIXED position, always fully visible */}
-      {open && (
+      {open && mounted && createPortal(
         <div
           ref={panelRef}
           className="fixed z-[9999] w-[340px] max-h-[520px] bg-[#0f0f1a] border border-white/10 rounded-2xl shadow-2xl shadow-black/70 flex flex-col overflow-hidden"
           style={{
-            top: btnRef.current
-              ? btnRef.current.getBoundingClientRect().bottom + 8
-              : 80,
-            left: btnRef.current
-              ? Math.min(
-                  btnRef.current.getBoundingClientRect().left,
-                  window.innerWidth - 356
-                )
-              : 16,
+            top: coords.top,
+            left: coords.left,
           }}
         >
           {/* Header */}
@@ -248,7 +271,8 @@ export default function AdminNotifications() {
               </Link>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Toast Bubbles — bottom right corner */}
