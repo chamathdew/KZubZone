@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { resolveLogoUrl } from '@/utils/mediaImages';
+import AdminNotifications from './AdminNotifications';
 import {
   Film, Tv, Users, Languages, Star, TrendingUp,
   Settings, Database, LogOut, BookOpenText, Wand2, Server, Menu, X, Cloud
@@ -53,13 +54,16 @@ export default function AdminSidebar() {
             {brand.logoText || brand.siteName || 'KSUBZONE'}
           </span>
         </Link>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-1 rounded-md text-slate-400 hover:text-white transition"
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <AdminNotifications />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-1 rounded-md text-slate-400 hover:text-white transition"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer Backdrop */}
@@ -88,18 +92,24 @@ export default function AdminSidebar() {
         </div>
 
         <div className="pb-4 border-b border-white/5 flex flex-col gap-3">
-          <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
-            {resolveLogoUrl(brand.logoUrl) ? (
-              <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-9 w-auto object-contain transition" />
-            ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-primary/30 bg-brand-primary/10">
-                <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
+              {resolveLogoUrl(brand.logoUrl) ? (
+                <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-9 w-auto object-contain transition" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-brand-primary/30 bg-brand-primary/10">
+                  <span className="w-2.5 h-2.5 bg-brand-accent rounded-full animate-pulse" />
+                </span>
+              )}
+              <span className="text-base font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
+                {brand.logoText || brand.siteName || 'KSUBZONE'}
               </span>
-            )}
-            <span className="text-base font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-sans truncate">
-              {brand.logoText || brand.siteName || 'KSUBZONE'}
-            </span>
-          </Link>
+            </Link>
+            {/* Notification Bell — desktop */}
+            <div className="hidden md:block flex-shrink-0">
+              <AdminNotifications />
+            </div>
+          </div>
           <div className="pl-1">
             <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Admin Workspace</p>
             <p className="text-[11px] text-slate-300 truncate mt-0.5 capitalize">{adminRoleName} • {admin?.username}</p>
