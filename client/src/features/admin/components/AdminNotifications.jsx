@@ -65,17 +65,27 @@ export default function AdminNotifications() {
 
     setLoading(true);
     try {
-      const res = await apiClient.get('/api/media/dramas?status=All&limit=50');
+      const res = await apiClient.get('/api/media/dramas?status=Published&limit=50');
       const dramas = res.data.dramas || res.data || [];
       const missing = [];
+      const now = new Date();
 
       // Check up to 15 dramas (performance)
       await Promise.all(
         dramas.slice(0, 15).map(async (drama) => {
           try {
+            if ((drama.status || 'Published') !== 'Published') return;
+
             const detail = await apiClient.get(`/api/media/dramas/${drama.slug}`);
             const episodes = detail.data.episodes || [];
+            const isOngoing = drama.subtitleSummary?.seasonStatus === 'Ongoing';
+
             episodes.forEach((ep) => {
+              // Skip future episodes for ongoing dramas
+              if (isOngoing && ep.airDate && new Date(ep.airDate) > now) {
+                return;
+              }
+
               const subCount = ep.subtitleCount ?? ep.subtitles?.length ?? 0;
               if (subCount === 0) {
                 missing.push({
