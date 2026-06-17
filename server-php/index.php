@@ -985,7 +985,7 @@ foreach ($routes as $route) {
                     call_user_func_array($handlers, $matches);
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("API Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             http_response_code(500);
             header('Content-Type: application/json');
