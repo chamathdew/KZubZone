@@ -36,7 +36,6 @@ class AnalyticsController {
 
         $movieViews = $db->sumJsonField('movies', 'viewCount');
         $dramaViews = $db->sumJsonField('dramas', 'viewCount');
-        $totalViews = $movieViews + $dramaViews;
 
         $analyticsRecord = self::getOrCreateRecord();
 
@@ -47,29 +46,52 @@ class AnalyticsController {
             }
         }
 
-        // Top viewed movies & dramas
-        $topMovies = $db->find('movies', [], ['sort' => ['viewCount' => -1], 'limit' => 3]);
-        $topDramas = $db->find('dramas', [], ['sort' => ['viewCount' => -1], 'limit' => 3]);
+        // Total views = content views (movies + dramas) + site traffic views
+        $totalViews = $movieViews + $dramaViews + $trafficViews;
+
+        // Subtitle moderation stats
+        $pendingSubtitles   = count($db->find('subtitles', ['approvalStatus' => 'Pending']));
+        $approvedSubtitles  = count($db->find('subtitles', ['approvalStatus' => 'Approved']));
+        $rejectedSubtitles  = count($db->find('subtitles', ['approvalStatus' => 'Rejected']));
+
+        // System health snapshot
+        $systemHealth = [
+            'dbDriver'   => $db->getDriver(),
+            'serverTime' => date('Y-m-d H:i:s'),
+            'phpVersion' => PHP_VERSION,
+            'dbStatus'   => 'ok',
+            'timezone'   => date_default_timezone_get()
+        ];
+
+        // Top viewed movies & dramas (limit 8 total for richer list)
+        $topMovies = $db->find('movies', [], ['sort' => ['viewCount' => -1], 'limit' => 5]);
+        $topDramas = $db->find('dramas', [], ['sort' => ['viewCount' => -1], 'limit' => 5]);
 
         $topContent = [];
         foreach ($topMovies as $m) {
             $topContent[] = [
-                '_id' => $m['_id'],
-                'title' => $m['title'],
-                'slug' => $m['slug'],
-                'viewCount' => $m['viewCount'] ?? 0,
+                '_id'        => $m['_id'],
+                'title'      => $m['title'],
+                'slug'       => $m['slug'],
+                'poster'     => $m['poster'] ?? null,
+                'isTrending' => $m['isTrending'] ?? false,
+                'status'     => $m['status'] ?? 'Published',
+                'viewCount'  => $m['viewCount'] ?? 0,
                 'tmdbRating' => $m['tmdbRating'] ?? 0,
-                'type' => 'Movie'
+                'type'       => 'Movie'
             ];
         }
         foreach ($topDramas as $d) {
             $topContent[] = [
-                '_id' => $d['_id'],
-                'title' => $d['title'],
-                'slug' => $d['slug'],
-                'viewCount' => $d['viewCount'] ?? 0,
+                '_id'        => $d['_id'],
+                'title'      => $d['title'],
+                'slug'       => $d['slug'],
+                'poster'     => $d['poster'] ?? null,
+                'isTrending' => $d['isTrending'] ?? false,
+                'status'     => $d['status'] ?? 'Published',
+                'viewCount'  => $d['viewCount'] ?? 0,
                 'tmdbRating' => $d['tmdbRating'] ?? 0,
-                'type' => 'Drama'
+                'type'       => 'Drama'
             ];
         }
 
@@ -167,20 +189,26 @@ class AnalyticsController {
         header('Content-Type: application/json');
         echo json_encode([
             'counts' => [
-                'totalMovies' => $totalMovies,
-                'totalDramas' => $totalDramas,
-                'totalEpisodes' => $totalEpisodes,
-                'totalUsers' => $totalUsers,
-                'totalSubtitles' => $totalSubtitles,
-                'totalReviews' => $totalReviews,
-                'totalViews' => $totalViews,
+                'totalMovies'       => $totalMovies,
+                'totalDramas'       => $totalDramas,
+                'totalEpisodes'     => $totalEpisodes,
+                'totalUsers'        => $totalUsers,
+                'totalSubtitles'    => $totalSubtitles,
+                'totalReviews'      => $totalReviews,
+                'totalViews'        => $totalViews,
                 'totalTrafficViews' => $trafficViews
             ],
-            'seoHealthScore' => $analyticsRecord['seoHealthScore'] ?? 98,
-            'trafficLogs' => $analyticsRecord['trafficLogs'] ?? [],
+            'seoHealthScore'   => $analyticsRecord['seoHealthScore'] ?? 98,
+            'trafficLogs'      => $analyticsRecord['trafficLogs'] ?? [],
             'trendingSearches' => $analyticsRecord['trendingSearches'] ?? [],
-            'topContent' => $topContent,
-            'upcomingEpisodes' => $upcomingEpisodes
+            'topContent'       => $topContent,
+            'upcomingEpisodes' => $upcomingEpisodes,
+            'subtitleStats'    => [
+                'pending'  => $pendingSubtitles,
+                'approved' => $approvedSubtitles,
+                'rejected' => $rejectedSubtitles
+            ],
+            'systemHealth' => $systemHealth
         ]);
     }
 
