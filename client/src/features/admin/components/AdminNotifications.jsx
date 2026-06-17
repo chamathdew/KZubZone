@@ -285,8 +285,8 @@ export default function AdminNotifications() {
         document.body
       )}
 
-      {/* Toast Bubbles — bottom right corner */}
-      <div className="fixed bottom-6 right-6 z-[9998] flex flex-col-reverse gap-3 items-end pointer-events-none">
+      {/* Toast Bubbles — top right corner */}
+      <div className="fixed top-20 right-6 z-[9998] flex flex-col gap-3 items-end pointer-events-none">
         {toasts.map((toast, i) => (
           <div
             key={toast.id}
