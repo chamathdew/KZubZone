@@ -110,12 +110,12 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="relative w-full max-w-md bg-luxury-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden z-10"
+        className="relative w-full max-w-md bg-luxury-900 border border-white/10 rounded-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto z-10"
       >
         {/* Glow Header */}
         <div className="absolute -left-12 -top-12 w-28 h-28 bg-brand-primary/10 rounded-full blur-2xl" />
 
-        <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="flex items-center justify-between mb-3 relative z-10">
           <div>
             <h2 className="text-lg font-bold text-white">Upload Subtitle</h2>
             <p className="text-[10px] text-slate-500 mt-0.5">
@@ -138,7 +138,7 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10 text-left">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 relative z-10 text-left">
             {error && (
               <div className="p-3 bg-brand-secondary/15 border border-brand-secondary/30 rounded-xl text-brand-secondary text-xs font-semibold">
                 {error}
@@ -147,8 +147,8 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
 
             {/* File Drag Area */}
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Subtitle File (.srt, .vtt, .ass)</label>
-              <div className="relative border border-dashed border-white/10 hover:border-brand-primary/40 rounded-2xl p-6 flex flex-col items-center justify-center bg-white/[0.02] cursor-pointer transition">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1 block">Subtitle File (.srt, .vtt, .ass)</label>
+              <div className="relative border border-dashed border-white/10 hover:border-brand-primary/40 rounded-2xl p-4 flex flex-col items-center justify-center bg-white/[0.02] cursor-pointer transition">
                 <input
                   type="file"
                   accept=".srt,.vtt,.ass"
@@ -157,9 +157,9 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
                 />
                 {file ? (
                   <div className="flex flex-col items-center text-center">
-                    <FileText className="w-8 h-8 text-brand-primary mb-2" />
-                    <p className="text-xs font-semibold text-white truncate max-w-[250px]">{file.name}</p>
-                    <p className="text-[10px] text-slate-400 mt-1 uppercase">{(file.size / 1024).toFixed(1)} KB</p>
+                     <FileText className="w-8 h-8 text-brand-primary mb-2" />
+                     <p className="text-xs font-semibold text-white truncate max-w-[250px]">{file.name}</p>
+                     <p className="text-[10px] text-slate-400 mt-1 uppercase">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center text-center">
@@ -172,13 +172,13 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
             </div>
 
             {/* Input Details */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Language</label>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1 block">Language</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary"
+                  className="w-full h-9 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary"
                 >
                   <option value="Sinhala">Sinhala</option>
                   <option value="English">English</option>
@@ -186,13 +186,13 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Version / Synced Release</label>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1 block">Version / Synced Release</label>
                 <input
                   type="text"
                   placeholder="e.g. 1.0 (WEB-DL)"
                   value={version}
                   onChange={(e) => setVersion(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary"
+                  className="w-full h-9 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary"
                 />
               </div>
             </div>
@@ -200,14 +200,14 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
             {mediaType === 'Episode' && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Season</label>
-                  <div className="h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white flex items-center">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1 block">Season</label>
+                  <div className="h-9 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white flex items-center">
                     S{targetMeta.seasonNumber || 1}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Episode</label>
-                  <div className="h-10 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white flex items-center">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1 block">Episode</label>
+                  <div className="h-9 px-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white flex items-center">
                     E{targetMeta.episodeNumber || 1}
                   </div>
                 </div>
@@ -215,13 +215,13 @@ export default function SubtitleUploadModal({ isOpen, onClose, mediaId, mediaTyp
             )}
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">Release Notes (Optional)</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1 block">Release Notes (Optional)</label>
               <textarea
                 placeholder="List subtitle sync/source notes (NF, Viki, WEB-DL, etc.)"
                 value={releaseNotes}
                 onChange={(e) => setReleaseNotes(e.target.value)}
-                rows={3}
-                className="w-full p-3 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary resize-none"
+                rows={2}
+                className="w-full p-2.5 rounded-xl border border-white/5 bg-luxury-800 text-xs text-white focus:outline-none focus:border-brand-primary resize-none"
               />
             </div>
 
