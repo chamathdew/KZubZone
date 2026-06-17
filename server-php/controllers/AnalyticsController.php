@@ -34,7 +34,18 @@ class AnalyticsController {
         $totalSubtitles = $db->count('subtitles');
         $totalReviews = $db->count('reviews');
 
+        $movieViews = $db->sumJsonField('movies', 'viewCount');
+        $dramaViews = $db->sumJsonField('dramas', 'viewCount');
+        $totalViews = $movieViews + $dramaViews;
+
         $analyticsRecord = self::getOrCreateRecord();
+
+        $trafficViews = 0;
+        if (isset($analyticsRecord['trafficLogs']) && is_array($analyticsRecord['trafficLogs'])) {
+            foreach ($analyticsRecord['trafficLogs'] as $log) {
+                $trafficViews += ($log['views'] ?? 0);
+            }
+        }
 
         // Top viewed movies & dramas
         $topMovies = $db->find('movies', [], ['sort' => ['viewCount' => -1], 'limit' => 3]);
@@ -161,7 +172,9 @@ class AnalyticsController {
                 'totalEpisodes' => $totalEpisodes,
                 'totalUsers' => $totalUsers,
                 'totalSubtitles' => $totalSubtitles,
-                'totalReviews' => $totalReviews
+                'totalReviews' => $totalReviews,
+                'totalViews' => $totalViews,
+                'totalTrafficViews' => $trafficViews
             ],
             'seoHealthScore' => $analyticsRecord['seoHealthScore'] ?? 98,
             'trafficLogs' => $analyticsRecord['trafficLogs'] ?? [],

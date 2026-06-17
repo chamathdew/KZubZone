@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
@@ -8,10 +8,24 @@ import ScrollToTop from '@/components/ui/ScrollToTop';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import MaintenanceMode from '@/components/layout/MaintenanceMode';
+import { usePathname } from 'next/navigation';
+import apiClient from '@/services/api/apiClient';
 
 export default function PublicLayout({ children }) {
   const { content, loading: contentLoading } = useSiteContent();
   const { admin, loading: authLoading } = useAuth();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const logVisit = async () => {
+      try {
+        await apiClient.post('/api/analytics/visit');
+      } catch (err) {
+        // Silent error
+      }
+    };
+    logVisit();
+  }, [pathname]);
 
   if (contentLoading) {
     return (

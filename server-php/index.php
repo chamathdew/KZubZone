@@ -462,6 +462,7 @@ $routes = [
 
     // Analytics Search Logging
     ['POST', '/api/analytics/search', 'Controllers\AnalyticsController::logSearchQueryRequest'],
+    ['POST', '/api/analytics/visit', 'Controllers\AnalyticsController::logPageVisit'],
 
     // AI Features
     ['POST', '/api/ai/chat', 'Controllers\AiController::chat'],

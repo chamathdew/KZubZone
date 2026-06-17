@@ -164,10 +164,8 @@ class DramaController {
         if ($cached !== false) {
             // Background view increment
             try {
-                if ($db->getDriver() !== 'sqlite') {
-                    $views = ($drama['viewCount'] ?? 0) + 1;
-                    $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
-                }
+                $views = ($drama['viewCount'] ?? 0) + 1;
+                $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
             } catch (\Exception $e) {
                 // Ignore view count write-lock errors to keep page load stable
             }
@@ -179,11 +177,9 @@ class DramaController {
 
         // Increment views (wrapped in try-catch to prevent DB locking crashes)
         try {
-            if ($db->getDriver() !== 'sqlite') {
-                $views = ($drama['viewCount'] ?? 0) + 1;
-                $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
-                $drama['viewCount'] = $views;
-            }
+            $views = ($drama['viewCount'] ?? 0) + 1;
+            $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
+            $drama['viewCount'] = $views;
         } catch (\Exception $e) {
             // Ignore view count write-lock errors to keep page load stable
         }

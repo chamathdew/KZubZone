@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Download, Languages, Loader2, AlertCircle, RefreshCw, CheckCircle, Clock } from 'lucide-react';
 import apiClient from '@/services/api/apiClient';
@@ -9,7 +10,12 @@ export default function SubtitleManageModal({ isOpen, onClose, mediaId, label, o
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
 
-  const fetchSubtitles = async () => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const fetchSubtitles = useCallback(async () => {
     if (!mediaId) return;
     setLoading(true);
     setError('');
@@ -22,13 +28,13 @@ export default function SubtitleManageModal({ isOpen, onClose, mediaId, label, o
     } finally {
       setLoading(false);
     }
-  };
+  }, [mediaId]);
 
   useEffect(() => {
     if (isOpen && mediaId) {
       fetchSubtitles();
     }
-  }, [isOpen, mediaId]);
+  }, [isOpen, mediaId, fetchSubtitles]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this subtitle? This action cannot be undone.')) {
@@ -48,9 +54,9 @@ export default function SubtitleManageModal({ isOpen, onClose, mediaId, label, o
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
@@ -196,6 +202,7 @@ export default function SubtitleManageModal({ isOpen, onClose, mediaId, label, o
           )}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

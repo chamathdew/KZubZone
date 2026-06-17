@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import apiClient from '@/services/api/apiClient';
 import {
-  Film, Tv, Users, Languages, Star, TrendingUp, Search,
+  Film, Tv, Users, Languages, Star, TrendingUp, Search, Eye,
   Settings, Database, Award, ShieldAlert, LogOut, CheckCircle, BookOpenText, Bell, Clapperboard, CalendarCheck2, AlertTriangle
 } from 'lucide-react';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Quick Metrics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
             {/* Movies */}
             <div className="glass-panel hover:border-violet-500/35 hover:bg-white/[0.04] transition-all duration-300 p-4 rounded-2xl flex items-center gap-3 group border border-white/5 bg-white/[0.02] shadow-sm">
               <div className="p-2.5 bg-violet-500/10 rounded-xl text-violet-400 group-hover:scale-110 transition-transform duration-300">
@@ -215,6 +215,28 @@ export default function AdminDashboard() {
               <div>
                 <h4 className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Reviews</h4>
                 <p className="text-lg font-black font-mono text-white mt-0.5">{stats?.counts?.totalReviews || 0}</p>
+              </div>
+            </div>
+
+            {/* Total Content Views */}
+            <div className="glass-panel hover:border-teal-500/35 hover:bg-white/[0.04] transition-all duration-300 p-4 rounded-2xl flex items-center gap-3 group border border-white/5 bg-white/[0.02] shadow-sm">
+              <div className="p-2.5 bg-teal-500/10 rounded-xl text-teal-400 group-hover:scale-110 transition-transform duration-300">
+                <Eye className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Total Views</h4>
+                <p className="text-lg font-black font-mono text-white mt-0.5">{stats?.counts?.totalViews || 0}</p>
+              </div>
+            </div>
+
+            {/* Site Traffic Views */}
+            <div className="glass-panel hover:border-rose-500/35 hover:bg-white/[0.04] transition-all duration-300 p-4 rounded-2xl flex items-center gap-3 group border border-white/5 bg-white/[0.02] shadow-sm">
+              <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-400 group-hover:scale-110 transition-transform duration-300">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Site Traffic</h4>
+                <p className="text-lg font-black font-mono text-white mt-0.5">{stats?.counts?.totalTrafficViews || 0}</p>
               </div>
             </div>
           </div>

@@ -896,6 +896,39 @@ class Database {
         }
     }
 
+    public function sumJsonField($collection, $field) {
+        if ($this->driver === 'mongodb') {
+            try {
+                $cmd = new \MongoDB\Driver\Command([
+                    'aggregate' => $collection,
+                    'pipeline' => [
+                        ['$group' => ['_id' => null, 'total' => ['$sum' => '$' . $field]]]
+                    ],
+                    'cursor' => new \stdClass()
+                ]);
+                $cursor = $this->manager->executeCommand($this->dbName, $cmd);
+                $res = iterator_to_array($cursor)[0] ?? null;
+                return $res ? ($res->total ?? 0) : 0;
+            } catch (\Exception $e) {
+                return 0;
+            }
+        } else {
+            $sqlField = $this->sqlField($field);
+            if ($this->driver === 'pgsql') {
+                $sql = "SELECT SUM(CAST(COALESCE({$sqlField}, '0') AS INTEGER)) as total FROM \"{$collection}\"";
+            } else {
+                $sql = "SELECT SUM(CAST(coalesce({$sqlField}, 0) AS INTEGER)) as total FROM {$collection}";
+            }
+            try {
+                $stmt = $this->pdo->query($sql);
+                $row = $stmt->fetch();
+                return $row ? (int)$row['total'] : 0;
+            } catch (\Exception $e) {
+                return 0;
+            }
+        }
+    }
+
     // ----------------------------------------------------
     // SEEDING UTILITIES
     // ----------------------------------------------------
