@@ -87,24 +87,19 @@ export default function DramaManager() {
   const [videoUrl, setVideoUrl] = useState('https://www.w3schools.com/html/mov_bbb.mp4');
   const [savingEpisode, setSavingEpisode] = useState(false);
 
+  const CACHE_KEY = 'admin_dramas_cache';
+
   const fetchDramas = async (selectedStatus = filterStatus, silent = false) => {
     if (!silent) setLoading(true);
     setApiError(null);
     try {
-      // Try admin endpoint first; fall back to public endpoint if 404 (deployment lag)
-      let res;
-      try {
-        res = await apiClient.get(`/api/admin/dramas?status=${selectedStatus}&limit=200`);
-      } catch (adminErr) {
-        if (adminErr?.response?.status === 404 || adminErr?.status === 404) {
-          // Admin endpoint not yet deployed — use public endpoint with cache-bust
-          res = await apiClient.get(`/api/media/dramas?status=${selectedStatus}&limit=200&_=${Date.now()}`);
-        } else {
-          throw adminErr;
-        }
-      }
+      // Direct to the working public endpoint (admin endpoint not deployed on live server)
+      const res = await apiClient.get(`/api/media/dramas?status=${selectedStatus}&limit=200`);
       const list = res.data.dramas || res.data || [];
-      setDramas(Array.isArray(list) ? list : []);
+      const dramas = Array.isArray(list) ? list : [];
+      setDramas(dramas);
+      // Cache for instant next load
+      try { sessionStorage.setItem(CACHE_KEY + '_' + selectedStatus, JSON.stringify(dramas)); } catch(_) {}
     } catch (err) {
       const status = err?.response?.status || err?.status;
       const msg = err?.response?.data?.message || err?.message || 'Unknown error';
@@ -116,6 +111,20 @@ export default function DramaManager() {
   };
 
   useEffect(() => {
+    // Show cached data instantly, then revalidate in background
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY + '_' + filterStatus);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDramas(parsed);
+          setLoading(false);
+          // Silently refresh in background
+          fetchDramas(filterStatus, true);
+          return;
+        }
+      }
+    } catch (_) {}
     fetchDramas(filterStatus);
   }, [filterStatus]);
 

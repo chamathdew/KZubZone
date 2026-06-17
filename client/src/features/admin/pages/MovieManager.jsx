@@ -58,11 +58,17 @@ export default function MovieManager() {
   const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
 
+  const MOVIE_CACHE_KEY = 'admin_movies_cache';
+
   const fetchMovies = async (selectedStatus = filterStatus, silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await apiClient.get(`/api/media/movies?status=${selectedStatus}&limit=100&t=${Date.now()}`);
-      setMovies(res.data.movies);
+      const res = await apiClient.get(`/api/media/movies?status=${selectedStatus}&limit=100`);
+      const list = res.data.movies || res.data || [];
+      const movies = Array.isArray(list) ? list : [];
+      setMovies(movies);
+      // Cache for instant next load
+      try { sessionStorage.setItem(MOVIE_CACHE_KEY + '_' + selectedStatus, JSON.stringify(movies)); } catch(_) {}
     } catch (err) {
       setError('Failed to fetch movies catalog');
     } finally {
@@ -71,6 +77,19 @@ export default function MovieManager() {
   };
 
   useEffect(() => {
+    // Show cached data instantly, then revalidate in background
+    try {
+      const cached = sessionStorage.getItem(MOVIE_CACHE_KEY + '_' + filterStatus);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMovies(parsed);
+          setLoading(false);
+          fetchMovies(filterStatus, true); // background refresh
+          return;
+        }
+      }
+    } catch (_) {}
     fetchMovies(filterStatus);
   }, [filterStatus]);
 

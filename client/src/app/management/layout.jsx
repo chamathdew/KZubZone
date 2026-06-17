@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import { tokenService } from '@/services/api/tokenService';
@@ -10,18 +10,14 @@ export default function ManagementLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
-  const [fadeIn, setFadeIn] = useState(false);
 
   const isLoginPage = pathname === '/management/login';
 
   useEffect(() => {
     setHasMounted(true);
-    // Trigger fade-in after mount
-    const t = setTimeout(() => setFadeIn(true), 20);
-    return () => clearTimeout(t);
   }, []);
 
-  // Redirect if no token and auth is confirmed loaded (not just slow)
+  // Redirect only when we're sure there's no valid session
   useEffect(() => {
     if (!hasMounted || loading || isLoginPage) return;
     const hasAdminToken = !!tokenService.getAdminToken();
@@ -31,49 +27,47 @@ export default function ManagementLayout({ children }) {
     }
   }, [hasMounted, loading, admin, user, isLoginPage, router]);
 
-  // SSR safe — check token presence on client only
-  const hasAdminTokenInStorage = hasMounted && !!tokenService.getAdminToken();
-  const isAuthorized = admin || (user && user.hasDashboardAccess);
-
-  // Only block with blank screen if:
-  // 1. Not mounted yet (SSR hydration - unavoidable flash prevention)
-  // 2. Definitely no token AND not on login page
+  // SSR guard
   if (!hasMounted) {
-    // Invisible placeholder — prevents SSR hydration mismatch
-    return (
-      <div className="h-screen w-screen bg-luxury-950" />
-    );
+    return <div className="h-screen w-screen bg-luxury-950" />;
   }
 
+  const hasAdminTokenInStorage = !!tokenService.getAdminToken();
+  const isAuthorized = admin || (user && user.hasDashboardAccess);
+
+  // Only block if genuinely no token at all
   if (!isLoginPage && !hasAdminTokenInStorage && !isAuthorized) {
-    // No token at all, redirect (this is quick)
     return (
       <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-[3px] border-brand-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <>
-      {/* Slim top loading bar shown while auth is in-flight */}
+      {/* Slim progress bar while auth verifies in background */}
       {!isLoginPage && loading && (
-        <div className="fixed top-0 left-0 right-0 z-[9999] h-0.5 bg-brand-primary/30 overflow-hidden">
-          <div className="h-full bg-brand-primary animate-[slide_1.5s_ease-in-out_infinite]"
-               style={{ width: '40%', animation: 'adminProgress 1.5s ease-in-out infinite' }} />
+        <div className="fixed top-0 left-0 right-0 z-[9999] h-0.5 overflow-hidden bg-brand-primary/20">
+          <div className="h-full bg-brand-primary" style={{ animation: 'adminBar 1.2s ease-in-out infinite' }} />
         </div>
       )}
-      <div
-        className="transition-opacity duration-300 ease-out"
-        style={{ opacity: fadeIn ? 1 : 0 }}
-      >
+      {/* Instant render — no opacity delay */}
+      <div className="animate-fadeInAdmin">
         {children}
       </div>
       <style>{`
-        @keyframes adminProgress {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(150%); }
-          100% { transform: translateX(400%); }
+        @keyframes adminBar {
+          0% { transform: translateX(-100%) scaleX(0.4); }
+          60% { transform: translateX(60%) scaleX(0.6); }
+          100% { transform: translateX(200%) scaleX(0.4); }
+        }
+        @keyframes fadeInAdmin {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeInAdmin {
+          animation: fadeInAdmin 0.15s ease-out forwards;
         }
       `}</style>
     </>
