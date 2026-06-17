@@ -337,7 +337,7 @@ class DramaController {
         $inserted = $db->insertOne('dramas', $finalDramaData);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($inserted && !empty($inserted['slug'])) {
             \Utils\Revalidate::media('drama', $inserted['slug']);
@@ -389,8 +389,7 @@ class DramaController {
         $updatedDrama = $db->findOne('dramas', ['_id' => $id]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Cache::delete("drama_detail_" . $id);
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($updatedDrama && !empty($updatedDrama['slug'])) {
             \Utils\Revalidate::media('drama', $updatedDrama['slug']);
@@ -421,8 +420,7 @@ class DramaController {
         $db->deleteMany('episodes', ['dramaId' => $id]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Cache::delete("drama_detail_" . $id);
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
@@ -455,8 +453,7 @@ class DramaController {
         ]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Cache::delete("drama_detail_" . $dramaId);
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         $drama = $db->findOne('dramas', ['_id' => $dramaId]);
         if ($drama && !empty($drama['slug'])) {
@@ -482,10 +479,7 @@ class DramaController {
         $updated = $db->findOne('seasons', ['_id' => $id]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        if ($season && !empty($season['dramaId'])) {
-            \Utils\Cache::delete("drama_detail_" . $season['dramaId']);
-        }
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
@@ -518,10 +512,7 @@ class DramaController {
         $db->deleteMany('episodes', ['seasonId' => $id]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        if ($season && !empty($season['dramaId'])) {
-            \Utils\Cache::delete("drama_detail_" . $season['dramaId']);
-        }
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
@@ -594,8 +585,7 @@ class DramaController {
         $inserted = $db->insertOne('episodes', $episode);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Cache::delete("drama_detail_" . $dramaId);
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
@@ -620,10 +610,7 @@ class DramaController {
         $updated = $db->findOne('episodes', ['_id' => $id]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        if ($episode && !empty($episode['dramaId'])) {
-            \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
-        }
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
@@ -653,10 +640,7 @@ class DramaController {
         }
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        if ($episode && !empty($episode['dramaId'])) {
-            \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
-        }
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
             $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);

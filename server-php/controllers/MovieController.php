@@ -354,7 +354,7 @@ class MovieController {
         $inserted = $db->insertOne('movies', $finalMovieData);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($inserted && !empty($inserted['slug'])) {
             \Utils\Revalidate::media('movie', $inserted['slug']);
@@ -392,8 +392,7 @@ class MovieController {
         $updatedMovie = $db->findOne('movies', ['_id' => $id]);
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Cache::delete("movie_detail_" . $id);
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($updatedMovie && !empty($updatedMovie['slug'])) {
             \Utils\Revalidate::media('movie', $updatedMovie['slug']);
@@ -420,8 +419,7 @@ class MovieController {
         }
 
         // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Cache::delete("movie_detail_" . $id);
+        \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($movie && !empty($movie['slug'])) {
             \Utils\Revalidate::media('movie', $movie['slug']);

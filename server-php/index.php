@@ -431,11 +431,11 @@ $routes = [
     ['GET', '/api/media/home', 'Controllers\MovieController::getHomeCatalog'],
     ['GET', '/api/media/recommendations', 'Controllers\MovieController::getRecommendations'],
     ['GET', '/api/media/movies', 'Controllers\MovieController::getAllMovies'],
-    ['GET', '/api/media/movies/([a-z0-9-]+)', 'Controllers\MovieController::getMovieBySlug'],
+    ['GET', '/api/media/movies/([^/]+)', 'Controllers\MovieController::getMovieBySlug'],
     ['GET', '/api/media/dramas', 'Controllers\DramaController::getAllDramas'],
-    ['GET', '/api/media/dramas/([a-z0-9-]+)', 'Controllers\DramaController::getDramaBySlug'],
+    ['GET', '/api/media/dramas/([^/]+)', 'Controllers\DramaController::getDramaBySlug'],
     ['GET', '/api/articles', 'Controllers\ArticleController::getArticles'],
-    ['GET', '/api/articles/([a-z0-9-]+)', 'Controllers\ArticleController::getArticleBySlug'],
+    ['GET', '/api/articles/([^/]+)', 'Controllers\ArticleController::getArticleBySlug'],
 
     // Favorites & Lists
     ['POST', '/api/media/watchlist', ['Middleware\AuthMiddleware::protectUser', 'Controllers\UserController::toggleWatchlist']],
