@@ -3,21 +3,22 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import apiClient from '@/services/api/apiClient';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import DataTable from '@/features/admin/components/DataTable';
+import { useToast } from '@/features/admin/components/Toast';
 import {
-  TrendingUp, Film, Tv, Languages, Star, Users, Settings,
-  Database, Search, Download, CheckCircle, AlertTriangle, RefreshCw, CheckSquare
+  Tv, Database, Search, Download, RefreshCw, CheckSquare, Clock
 } from 'lucide-react';
 
 export default function TmdbImport() {
   const { admin } = useAuth();
+  const toast = useToast();
   
   const [query, setQuery] = useState('');
-  const [type, setType] = useState('movie'); // 'movie' or 'tv'
+  const [type, setType] = useState('tv'); // 'movie' or 'tv'
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
-  const [error, setError] = useState('');
   const [mode, setMode] = useState('discover'); // 'discover' or 'search'
   const [source, setSource] = useState('popular');
   const [selectedIds, setSelectedIds] = useState([]);
@@ -26,8 +27,10 @@ export default function TmdbImport() {
   // Import state
   const [importingId, setImportingId] = useState(null);
   const [bulkImporting, setBulkImporting] = useState(false);
-  const [importSuccess, setImportSuccess] = useState('');
-  const [importError, setImportError] = useState('');
+
+  // Import history states
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const discoverSources = [
     { id: 'popular', label: 'Popular K-Dramas' },
@@ -37,33 +40,42 @@ export default function TmdbImport() {
     { id: 'airing', label: 'Airing Now' }
   ];
 
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await apiClient.get('/api/admin/tmdb/history');
+      setHistory(res.data);
+    } catch (err) {
+      console.error('Failed to load TMDB import history', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   useEffect(() => {
     handleDiscover('popular');
+    fetchHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!query.trim()) return;
 
     setLoading(true);
-    setError('');
-    setImportSuccess('');
-    setImportError('');
     setResults([]);
 
     try {
-
       const res = await apiClient.get(`/api/admin/tmdb/search`, {
         params: { query, type }
       });
       setResults(res.data);
       setSelectedIds([]);
       if (res.data.length === 0) {
-        setError('No items found matching search terms.');
+        toast.show('No items found matching search terms.', 'info');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Search execution failed.');
+      toast.show(err.response?.data?.message || 'Search execution failed.', 'error');
     } finally {
       setLoading(false);
     }
@@ -74,23 +86,20 @@ export default function TmdbImport() {
     setType('tv');
     setSource(nextSource);
     setLoading(true);
-    setError('');
-    setImportSuccess('');
-    setImportError('');
     setResults([]);
     setSelectedIds([]);
 
     try {
-
       const res = await apiClient.get('/api/admin/tmdb/discover/korean-dramas', {
         params: { source: nextSource }
       });
-      setResults(res.data.results || []);
-      if (!res.data.results || res.data.results.length === 0) {
-        setError('No Korean drama titles found for this source.');
+      const dataResults = res.data.results || [];
+      setResults(dataResults);
+      if (dataResults.length === 0) {
+        toast.show('No Korean drama titles found for this source.', 'info');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Korean drama discovery failed.');
+      toast.show(err.response?.data?.message || 'Korean drama discovery failed.', 'error');
     } finally {
       setLoading(false);
     }
@@ -98,21 +107,19 @@ export default function TmdbImport() {
 
   const handleImport = async (tmdbId) => {
     setImportingId(tmdbId);
-    setImportSuccess('');
-    setImportError('');
 
     try {
-
       const res = await apiClient.post(`/api/admin/tmdb/import`, 
         { id: tmdbId, type, isHistorical }
       );
-      setImportSuccess(res.data.message || 'Import operation completed successfully!');
+      toast.show(res.data.message || 'Import operation completed successfully!', 'success');
       
       // Remove imported item from search list
       setResults(prev => prev.filter(item => item.id !== tmdbId));
       setSelectedIds(prev => prev.filter(id => id !== tmdbId));
+      fetchHistory();
     } catch (err) {
-      setImportError(err.response?.data?.message || 'Cascading import failed.');
+      toast.show(err.response?.data?.message || 'Cascading import failed.', 'error');
     } finally {
       setImportingId(null);
     }
@@ -133,35 +140,100 @@ export default function TmdbImport() {
   const handleBulkImport = async () => {
     if (selectedIds.length === 0) return;
     setBulkImporting(true);
-    setImportSuccess('');
-    setImportError('');
 
     try {
-
       const res = await apiClient.post('/api/admin/tmdb/bulk-import',
         { ids: selectedIds, type: 'tv', isHistorical }
       );
-      setImportSuccess(res.data.message || 'Bulk import completed.');
+      toast.show(res.data.message || 'Bulk import completed.', 'success');
       setResults(prev => prev.filter(item => !selectedIds.includes(item.id)));
       setSelectedIds([]);
+      fetchHistory();
     } catch (err) {
-      setImportError(err.response?.data?.message || 'Bulk import failed.');
+      toast.show(err.response?.data?.message || 'Bulk import failed.', 'error');
     } finally {
       setBulkImporting(false);
     }
   };
 
+  const historyColumns = [
+    {
+      key: 'title',
+      label: 'Title',
+      sortable: true,
+      render: (val, row) => (
+        <div className="font-semibold text-slate-100 flex items-center gap-2">
+          <span>{val}</span>
+        </div>
+      )
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      sortable: true,
+      render: (val) => (
+        <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400 uppercase">
+          {val === 'tv' ? 'TV Series' : 'Movie'}
+        </span>
+      )
+    },
+    {
+      key: 'tmdbId',
+      label: 'TMDB ID',
+      sortable: true,
+      render: (val) => <span className="font-mono text-slate-400 text-xs">{val}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (val) => {
+        const colors = {
+          Success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          Duplicate: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          Failed: 'bg-red-500/10 text-red-400 border-red-500/20'
+        };
+        return (
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors[val] || 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
+            {val}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'timestamp',
+      label: 'Date',
+      sortable: true,
+      render: (val) => <span className="text-slate-500 font-mono text-xs">{val}</span>
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
-      {/* Primary Details Panel */}
-      <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
+      <main className="flex-grow p-6 sm:p-8 overflow-y-auto min-w-0">
         <div className="max-w-5xl mx-auto">
           
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Korean Drama Import Center</h1>
-            <p className="text-slate-400 text-xs mt-1">Discover, search, and bulk-import Korean dramas from legal metadata sources with seasons, episodes, cast, images, and SEO fields.</p>
+            <p className="text-slate-400 text-xs mt-1">Discover, search, and bulk-import Korean dramas from TMDB metadata with seasons, episodes, cast, and SEO fields.</p>
+          </div>
+
+          {/* Visual Step Indicator */}
+          <div className="flex flex-col sm:flex-row gap-2 mb-8 bg-luxury-900/40 border border-white/5 p-3 rounded-2xl">
+            <div className={`flex-1 flex items-center gap-2.5 p-2 rounded-xl transition ${results.length === 0 ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20' : 'text-slate-500 bg-white/[0.01]'}`}>
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${results.length === 0 ? 'bg-brand-primary text-white font-mono' : 'bg-white/5 font-mono'}`}>1</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Search & Discover</span>
+            </div>
+            <div className={`flex-1 flex items-center gap-2.5 p-2 rounded-xl transition ${results.length > 0 && !importingId && !bulkImporting ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20' : 'text-slate-500 bg-white/[0.01]'}`}>
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${results.length > 0 && !importingId && !bulkImporting ? 'bg-brand-primary text-white font-mono' : 'bg-white/5 font-mono'}`}>2</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Preview Metadata</span>
+            </div>
+            <div className={`flex-1 flex items-center gap-2.5 p-2 rounded-xl transition ${importingId || bulkImporting ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20' : 'text-slate-500 bg-white/[0.01]'}`}>
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${importingId || bulkImporting ? 'bg-brand-primary text-white font-mono' : 'bg-white/5 font-mono'}`}>3</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Confirm & Import</span>
+            </div>
           </div>
 
           <div className="bg-luxury-900 border border-white/5 p-5 rounded-2xl mb-6">
@@ -170,7 +242,7 @@ export default function TmdbImport() {
                 <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                   <Tv className="w-4 h-4 text-brand-primary" /> Korean Drama Discovery
                 </h2>
-                <p className="text-[11px] text-slate-500 mt-1">Use these source presets to find dramas without typing a title.</p>
+                <p className="text-[11px] text-slate-500 mt-1">Use presets to find popular and trending dramas without typing a title.</p>
               </div>
               <button
                 type="button"
@@ -259,40 +331,6 @@ export default function TmdbImport() {
             </div>
           </div>
 
-          {/* Feedback alerts */}
-          {error && (
-            <div className="p-4 mb-6 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {importSuccess && (
-            <div className="p-4 mb-6 rounded-xl bg-emerald-500 bg-opacity-10 border border-emerald-500 border-opacity-20 text-emerald-400 text-sm flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{importSuccess}</span>
-              </div>
-              <div className="text-xs text-emerald-500/80 border-t border-emerald-500/10 pt-2 mt-1">
-                💡 Imported titles are saved as **Drafts**. You can view, edit and publish them in the{' '}
-                <a
-                  href={type === 'movie' ? '/management/movies' : '/management/dramas'}
-                  className="font-bold underline hover:text-white"
-                >
-                  {type === 'movie' ? 'Manage Movies' : 'Manage Dramas'}
-                </a>{' '}
-                section under the **Draft** filter tab.
-              </div>
-            </div>
-          )}
-
-          {importError && (
-            <div className="p-4 mb-6 rounded-xl bg-red-500 bg-opacity-10 border border-red-500 border-opacity-20 text-red-400 text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>{importError}</span>
-            </div>
-          )}
-
           {/* Results grid */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -327,7 +365,7 @@ export default function TmdbImport() {
               <div className="text-center py-16 text-slate-500">Querying metadata provider...</div>
             ) : results.length === 0 ? (
               <div className="text-center py-16 bg-luxury-900/20 rounded-2xl border border-white/5 text-slate-500 text-sm">
-                Matches from TMDB will appear here. If the TMDB API is offline or key is missing, premium simulated matches will automatically load!
+                Matches from TMDB will appear here. Simulated local results will trigger if the server API keys are not verified.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -385,7 +423,7 @@ export default function TmdbImport() {
                           {importingId === item.id ? (
                             <>
                               <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              Cascading...
+                              Importing...
                             </>
                           ) : (
                             <>
@@ -402,9 +440,22 @@ export default function TmdbImport() {
             )}
           </div>
 
+          {/* Import History Table */}
+          <div className="mt-12 bg-luxury-900 border border-white/5 p-6 rounded-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-4 h-4 text-brand-primary" />
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">TMDB Import Execution Logs</h3>
+            </div>
+            <DataTable
+              columns={historyColumns}
+              data={history}
+              loading={loadingHistory}
+              searchPlaceholder="Search imports history..."
+            />
+          </div>
+
         </div>
       </main>
-
     </div>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import { useToast } from '@/features/admin/components/Toast';
 import {
   TrendingUp, Film, Tv, Languages, Star, Users, Settings,
   Database, Trash2, MessageSquare, AlertTriangle, ShieldCheck
@@ -11,6 +12,7 @@ import {
 
 export default function ReviewManager() {
   const { admin } = useAuth();
+  const toast = useToast();
   
   const [activeTab, setActiveTab] = useState('reviews'); // 'reviews' or 'comments'
   const [reviews, setReviews] = useState([]);
@@ -45,27 +47,27 @@ export default function ReviewManager() {
   const handleDeleteReview = async (id) => {
     if (!window.confirm('Delete this user review permanently?')) return;
     try {
-
       await apiClient.delete(`/api/admin/reviews/${id}`);
       setReviews(prev => prev.filter(r => r._id !== id));
+      toast.show('User review deleted successfully.', 'success');
     } catch (err) {
-      alert('Delete operation failed.');
+      toast.show('Failed to delete review.', 'error');
     }
   };
 
   const handleDeleteComment = async (id) => {
     if (!window.confirm('Delete this comment and its replies permanently?')) return;
     try {
-
       await apiClient.delete(`/api/admin/comments/${id}`);
       setComments(prev => prev.filter(c => c._id !== id));
+      toast.show('Comment and replies deleted successfully.', 'success');
     } catch (err) {
-      alert('Delete operation failed.');
+      toast.show('Failed to delete comment.', 'error');
     }
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
       {/* Primary Details Panel */}

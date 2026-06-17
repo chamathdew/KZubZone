@@ -13,6 +13,8 @@ import {
   BarChart2, ChevronRight, RefreshCw, Check
 } from 'lucide-react';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import StatCard from '@/features/admin/components/StatCard';
+import { Pulse, CardSkeleton } from '@/features/admin/components/Skeleton';
 
 // ─── Animation Variants ──────────────────────────────────────────────────────
 const fadeUp = {
@@ -57,26 +59,7 @@ function getGreeting() {
   return h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
 }
 
-// ─── Skeleton Components ─────────────────────────────────────────────────────
-const Pulse = ({ className }) => (
-  <div className={`animate-pulse rounded-lg bg-white/[0.05] ${className}`} />
-);
-
-function MetricCardSkeleton() {
-  return (
-    <div className="rounded-2xl border border-white/[0.06] bg-luxury-900/40 p-4 min-h-[96px] border-l-[3px] border-l-white/[0.08]">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 space-y-2">
-          <Pulse className="h-2 w-14" />
-          <Pulse className="h-7 w-10" />
-          <Pulse className="h-2 w-16 mt-3" />
-        </div>
-        <Pulse className="w-10 h-10 rounded-xl flex-shrink-0" />
-      </div>
-    </div>
-  );
-}
-
+// ─── Custom Skeletons for Dashboard widgets ──────────────────────────────────
 function WidgetSkeleton({ rows = 4, className = '' }) {
   return (
     <div className={`rounded-2xl border border-white/[0.06] bg-luxury-900/40 overflow-hidden ${className}`}>
@@ -123,26 +106,6 @@ function ChartSkeleton() {
   );
 }
 
-// ─── Inline Sparkline ────────────────────────────────────────────────────────
-function Sparkline({ values = [], color = '#8b5cf6', w = 64, h = 22 }) {
-  if (!values || values.length < 2) return null;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values);
-  const rng = max - min || 1;
-  const pad = 2;
-  const pts = values.map((v, i) => {
-    const x = (pad + (i / (values.length - 1)) * (w - pad * 2)).toFixed(1);
-    const y = (h - pad - ((v - min) / rng) * (h - pad * 2)).toFixed(1);
-    return `${x},${y}`;
-  }).join(' ');
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5"
-        strokeLinecap="round" strokeLinejoin="round" opacity="0.65" />
-    </svg>
-  );
-}
-
 // ─── Metric Card Config ──────────────────────────────────────────────────────
 const METRIC_CARDS = [
   { key: 'totalMovies',       label: 'Movies',       icon: Film,      href: '/management/movies',    border: 'border-l-violet-500',  iconBg: 'bg-violet-500/15',  iconColor: 'text-violet-400',  spark: '#8b5cf6', grad: 'from-violet-500/[0.07]' },
@@ -154,45 +117,6 @@ const METRIC_CARDS = [
   { key: 'totalViews',        label: 'Total Views',  icon: Eye,       href: '/management/dashboard', border: 'border-l-teal-500',    iconBg: 'bg-teal-500/15',    iconColor: 'text-teal-400',    spark: '#14b8a6', grad: 'from-teal-500/[0.07]' },
   { key: 'totalTrafficViews', label: 'Site Traffic', icon: TrendingUp,href: '/management/dashboard', border: 'border-l-rose-500',    iconBg: 'bg-rose-500/15',    iconColor: 'text-rose-400',    spark: '#f43f5e', grad: 'from-rose-500/[0.07]' },
 ];
-
-// ─── MetricCard Component ────────────────────────────────────────────────────
-function MetricCard({ card, value, sparkValues, trendPct, idx }) {
-  const Icon = card.icon;
-  const isEmpty = !value && value !== 0 || value === 0;
-  return (
-    <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={idx * 0.4}>
-      <Link href={card.href}
-        className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-br ${card.grad} to-transparent p-4 min-h-[100px] border-l-[3px] ${card.border} hover:border-white/[0.12] hover:bg-white/[0.01] active:scale-[0.97] transition-all duration-200`}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1.5">{card.label}</p>
-            <p className={`text-2xl font-black font-mono leading-none ${isEmpty ? 'text-slate-600' : 'text-white'}`}>
-              {isEmpty ? '0' : formatNum(value)}
-            </p>
-            {isEmpty ? (
-              <p className="text-[10px] text-slate-700 mt-1 font-medium">No data yet</p>
-            ) : trendPct !== null ? (
-              <div className={`flex items-center gap-0.5 mt-1.5 ${trendPct > 0 ? 'text-emerald-400' : trendPct < 0 ? 'text-rose-400' : 'text-slate-500'}`}>
-                {trendPct > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : trendPct < 0 ? <TrendingDown className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
-                <span className="text-[9px] font-bold font-mono">{trendPct > 0 ? '+' : ''}{trendPct}% vs prev</span>
-              </div>
-            ) : null}
-          </div>
-          <div className={`w-10 h-10 rounded-xl ${card.iconBg} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-            <Icon className={`w-[18px] h-[18px] ${card.iconColor}`} />
-          </div>
-        </div>
-        {!isEmpty && (
-          <div className="flex items-end justify-between gap-1 mt-2">
-            <Sparkline values={sparkValues} color={card.spark} />
-            <ArrowUpRight className="w-3 h-3 text-slate-700 group-hover:text-slate-400 transition-colors flex-shrink-0" />
-          </div>
-        )}
-      </Link>
-    </motion.div>
-  );
-}
 
 // ─── Traffic Chart ───────────────────────────────────────────────────────────
 function TrafficChart({ allLogs }) {
@@ -909,7 +833,7 @@ export default function AdminDashboard() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+      <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
         <AdminSidebar />
         <main className="flex-grow p-5 sm:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto space-y-7">
@@ -921,7 +845,7 @@ export default function AdminDashboard() {
             </div>
             {/* Cards skeleton */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => <MetricCardSkeleton key={i} />)}
+              {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
             {/* Chart + sidebar skeleton */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -943,7 +867,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
       <main className="flex-grow p-5 sm:p-8 overflow-y-auto min-w-0">
@@ -995,14 +919,21 @@ export default function AdminDashboard() {
           {/* ── Metric Cards (2-col mobile → 4-col desktop) ── */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {METRIC_CARDS.map((card, idx) => (
-              <MetricCard
-                key={card.key}
-                card={card}
-                value={stats?.counts?.[card.key] ?? 0}
-                sparkValues={sparkValues}
-                trendPct={card.key === 'totalTrafficViews' || card.key === 'totalViews' ? trendPct : null}
-                idx={idx}
-              />
+              <motion.div key={card.key} variants={fadeUp} initial="hidden" animate="visible" custom={idx * 0.4}>
+                <StatCard
+                  label={card.label}
+                  value={stats?.counts?.[card.key] !== undefined && stats?.counts?.[card.key] !== null ? formatNum(stats.counts[card.key]) : '0'}
+                  icon={card.icon}
+                  trend={card.key === 'totalTrafficViews' || card.key === 'totalViews' ? trendPct : null}
+                  sparklineValues={sparkValues}
+                  sparklineColor={card.spark}
+                  borderClass={card.border}
+                  iconBgClass={card.iconBg}
+                  iconColorClass={card.iconColor}
+                  gradClass={card.grad}
+                  href={card.href}
+                />
+              </motion.div>
             ))}
           </div>
 

@@ -3,12 +3,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import StatCard from '@/features/admin/components/StatCard';
+import { useToast } from '@/features/admin/components/Toast';
 import {
   Server, Cloud, Upload, RefreshCw, AlertCircle, Check, Trash2, Download,
-  Settings, KeyRound, Database, FileArchive, Loader2, Play
+  Settings, KeyRound, Database, FileArchive, Loader2, Play, Info, HardDrive,
+  Calendar, ShieldCheck
 } from 'lucide-react';
 
 export default function BackupManager() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('cloud'); // 'cloud' | 'manual' | 'settings'
   
   // Settings States
@@ -48,6 +52,7 @@ export default function BackupManager() {
       setLastBackupTime(res.data.lastBackupTime || null);
     } catch (err) {
       setError('Failed to fetch backup configurations.');
+      toast.show('Failed to fetch backup configurations.', 'error');
     }
   };
 
@@ -61,6 +66,7 @@ export default function BackupManager() {
       setBackups(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to sync backups from Google Drive.');
+      toast.show('Failed to sync backups from Google Drive.', 'error');
     } finally {
       setLoadingBackups(false);
     }
@@ -88,12 +94,14 @@ export default function BackupManager() {
         serviceAccount,
         folderId
       });
-      setSuccess(res.data.message || 'Settings updated successfully.');
+      setSuccess('Backup connection settings updated successfully.');
+      toast.show('Settings updated successfully.', 'success');
       setIsConfigured(res.data.serviceAccountConfigured);
       setServiceAccountEmail(res.data.serviceAccountEmail);
       setServiceAccount(''); // Clear text area for security
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save configuration settings.');
+      toast.show('Failed to save settings.', 'error');
     } finally {
       setSavingSettings(false);
     }
@@ -107,10 +115,12 @@ export default function BackupManager() {
     try {
       const res = await apiClient.post('/api/admin/backup/create?drive=true');
       setSuccess(res.data.message || 'Backup successfully uploaded to Google Drive.');
+      toast.show('Backup uploaded to Google Drive successfully.', 'success');
       fetchSettings(); // update last backup time
       fetchBackups(); // reload backups list
     } catch (err) {
       setError(err.response?.data?.message || 'Google Drive backup creation failed.');
+      toast.show('Backup creation failed.', 'error');
     } finally {
       setCreatingBackup(false);
     }
@@ -137,8 +147,10 @@ export default function BackupManager() {
       window.URL.revokeObjectURL(blobUrl);
       
       setSuccess('Local backup archive downloaded successfully.');
+      toast.show('Local ZIP downloaded successfully.', 'success');
     } catch (err) {
       setError('Failed to download local backup archive.');
+      toast.show('Failed to download backup ZIP.', 'error');
     } finally {
       setDownloadingLocal(false);
     }
@@ -155,9 +167,11 @@ export default function BackupManager() {
     try {
       await apiClient.delete(`/api/admin/backup/delete/${fileId}`);
       setSuccess('Backup file deleted from Google Drive.');
+      toast.show('Backup deleted from Google Drive.', 'success');
       setBackups(prev => prev.filter(b => b.id !== fileId));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete backup file.');
+      toast.show('Failed to delete backup file.', 'error');
     } finally {
       setDeletingId('');
     }
@@ -175,10 +189,12 @@ export default function BackupManager() {
     try {
       const res = await apiClient.post('/api/admin/backup/restore', { fileId });
       setSuccess(res.data.message || 'Database restored successfully.');
+      toast.show('Database restored successfully!', 'success');
       window.alert('Database restored successfully! Reloading page to apply changes...');
       window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to restore backup.');
+      toast.show('Failed to restore database.', 'error');
     } finally {
       setRestoringId('');
     }
@@ -193,6 +209,7 @@ export default function BackupManager() {
     } else {
       setSelectedFile(null);
       setError('Please select a valid backup ZIP archive (.zip)');
+      toast.show('Invalid file type selected. Select a ZIP file.', 'error');
     }
   };
 
@@ -218,12 +235,14 @@ export default function BackupManager() {
         }
       });
       setSuccess(res.data.message || 'Database restored from uploaded zip file.');
+      toast.show('Database manual recovery succeeded.', 'success');
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       window.alert('Database restored successfully! Reloading page to apply changes...');
       window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Restoration failed. Please check the integrity of the ZIP file.');
+      toast.show('Restoration failed.', 'error');
     } finally {
       setRestoringManual(false);
     }
@@ -231,11 +250,13 @@ export default function BackupManager() {
 
   // Formatter helpers
   const formatBytes = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    const b = Number(bytes);
+    if (!b || isNaN(b)) return '0 Bytes';
+    if (b === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const i = Math.floor(Math.log(b) / Math.log(k));
+    return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const formatDate = (dateStr) => {
@@ -243,15 +264,18 @@ export default function BackupManager() {
     return new Date(dateStr).toLocaleString();
   };
 
+  // Derived indicators
+  const totalBackupSize = backups.reduce((acc, b) => acc + Number(b.size || 0), 0);
+
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
-      <main className="flex-grow p-6 sm:p-8 overflow-y-auto max-w-[1600px] w-full mx-auto">
+      <main className="flex-grow p-6 sm:p-8 overflow-y-auto min-w-0 max-w-[1600px] w-full mx-auto">
         <div className="space-y-6">
           
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <Cloud className="w-5 h-5 text-emerald-400" />
@@ -263,19 +287,19 @@ export default function BackupManager() {
               </p>
             </div>
             
-            <div className="flex gap-2 self-start sm:self-auto">
+            <div className="flex gap-2.5 self-start sm:self-auto flex-wrap">
               <button
                 onClick={handleDownloadLocalBackup}
                 disabled={downloadingLocal}
-                className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center gap-2 transition disabled:opacity-50"
+                className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-xs font-bold text-slate-200 flex items-center gap-2 transition disabled:opacity-50 cursor-pointer"
               >
-                {downloadingLocal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {downloadingLocal ? <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> : <Download className="w-4 h-4" />}
                 Download ZIP Local
               </button>
               <button
                 onClick={handleCreateCloudBackup}
                 disabled={creatingBackup || !isConfigured}
-                className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 transition disabled:opacity-30 shadow-lg shadow-emerald-500/20"
+                className="h-10 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 transition disabled:opacity-30 shadow-lg shadow-emerald-500/25 cursor-pointer"
               >
                 {creatingBackup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 Backup to Drive
@@ -295,11 +319,41 @@ export default function BackupManager() {
             </div>
           )}
 
+          {/* Metrics Row */}
+          {isConfigured && activeTab === 'cloud' && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                icon={Database}
+                label="Drive Backup count"
+                value={`${backups.length} archives`}
+                trend={{ value: 'Linked', isPositive: true }}
+              />
+              <StatCard
+                icon={HardDrive}
+                label="Total drive storage used"
+                value={formatBytes(totalBackupSize)}
+                trend={{ value: 'ZIP Archives', isPositive: true }}
+              />
+              <StatCard
+                icon={Calendar}
+                label="Last remote backup"
+                value={lastBackupTime ? new Date(lastBackupTime).toLocaleDateString() : 'Never'}
+                trend={{ value: lastBackupTime ? new Date(lastBackupTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pending', isPositive: true }}
+              />
+              <StatCard
+                icon={ShieldCheck}
+                label="Status signature"
+                value="Configured"
+                trend={{ value: 'Google OAuth', isPositive: true }}
+              />
+            </div>
+          )}
+
           {/* Navigation Tabs */}
           <div className="flex border-b border-white/5 gap-6">
             <button
               onClick={() => setActiveTab('cloud')}
-              className={`pb-3 text-xs font-black uppercase tracking-wider transition ${
+              className={`pb-3 text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'cloud' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -307,7 +361,7 @@ export default function BackupManager() {
             </button>
             <button
               onClick={() => setActiveTab('manual')}
-              className={`pb-3 text-xs font-black uppercase tracking-wider transition ${
+              className={`pb-3 text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'manual' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -315,7 +369,7 @@ export default function BackupManager() {
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`pb-3 text-xs font-black uppercase tracking-wider transition ${
+              className={`pb-3 text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                 activeTab === 'settings' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -326,18 +380,17 @@ export default function BackupManager() {
           {/* TAB 1: Google Drive Backups List */}
           {activeTab === 'cloud' && (
             <div className="space-y-6">
-              {/* Configuration warnings */}
               {!isConfigured && (
                 <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="space-y-1.5">
                     <h3 className="text-sm font-extrabold text-amber-300 uppercase tracking-wide">Google Drive is not linked yet</h3>
                     <p className="text-xs text-slate-300">
-                      Configure your Google Cloud Service Account and folder ID to unlock automated remote cloud storage.
+                      Configure your Google Cloud Service Account credentials and folder ID parameters to unlock automated remote backup archives.
                     </p>
                   </div>
                   <button
                     onClick={() => setActiveTab('settings')}
-                    className="h-9 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-[10px] font-black uppercase tracking-wider text-black transition flex-shrink-0"
+                    className="h-9 px-4.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-[10px] font-black uppercase tracking-wider text-black transition flex-shrink-0 cursor-pointer"
                   >
                     Setup Credentials
                   </button>
@@ -345,38 +398,42 @@ export default function BackupManager() {
               )}
 
               {isConfigured && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  
                   {/* Google Status Panel */}
-                  <div className="rounded-2xl border border-white/5 bg-luxury-900 p-5 space-y-4 md:col-span-1">
-                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <div className="rounded-2xl border border-white/5 bg-luxury-900 p-5 space-y-4 lg:col-span-1">
+                    <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2 border-b border-white/5 pb-2.5">
                       <KeyRound className="w-4 h-4 text-emerald-400" /> Connection Parameters
                     </h2>
                     
-                    <div className="space-y-3.5">
+                    <div className="space-y-3.5 text-xs">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[10px] text-slate-500 uppercase font-black">Authorized Account</span>
-                        <span className="text-xs text-white break-all font-mono">{serviceAccountEmail}</span>
+                        <span className="text-xs text-slate-200 break-all font-mono bg-luxury-950 p-2 rounded-lg border border-white/5">{serviceAccountEmail}</span>
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[10px] text-slate-500 uppercase font-black">Target Folder ID</span>
-                        <span className="text-xs text-white font-mono break-all">{folderId}</span>
+                        <span className="text-xs text-slate-200 font-mono break-all bg-luxury-950 p-2 rounded-lg border border-white/5">{folderId}</span>
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[10px] text-slate-500 uppercase font-black">Last Sync Executed</span>
-                        <span className="text-xs text-emerald-400 font-bold">{formatDate(lastBackupTime)}</span>
+                        <span className="text-xs text-emerald-400 font-bold bg-emerald-500/5 p-2 rounded-lg border border-emerald-500/10 flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5" />
+                          {formatDate(lastBackupTime)}
+                        </span>
                       </div>
                     </div>
 
                     <button
                       onClick={fetchBackups}
-                      className="w-full h-10 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold flex items-center justify-center gap-2 transition"
+                      className="w-full h-10 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer"
                     >
-                      <RefreshCw className="w-4 h-4" /> Resync Drive Files
+                      <RefreshCw className="w-4 h-4 text-emerald-400" /> Resync Drive Files
                     </button>
                   </div>
 
                   {/* Remote Backups List */}
-                  <div className="rounded-2xl border border-white/5 bg-luxury-900 overflow-hidden md:col-span-2">
+                  <div className="rounded-2xl border border-white/5 bg-luxury-900 overflow-hidden lg:col-span-2 shadow-2xl">
                     <div className="px-5 py-4 border-b border-white/5 bg-luxury-950/20 flex items-center justify-between">
                       <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
                         <Database className="w-4 h-4 text-slate-500" /> Files Stored on Drive
@@ -416,7 +473,7 @@ export default function BackupManager() {
                                 <button
                                   onClick={() => handleRestoreFromDrive(file.id, file.name)}
                                   disabled={isRestoring || isDeleting}
-                                  className="h-8 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition flex items-center gap-1.5 disabled:opacity-50"
+                                  className="h-8 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                                 >
                                   {isRestoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                                   Restore
@@ -424,7 +481,7 @@ export default function BackupManager() {
                                 <button
                                   onClick={() => handleDeleteBackup(file.id, file.name)}
                                   disabled={isRestoring || isDeleting}
-                                  className="h-8 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider hover:bg-red-500 hover:text-white transition flex items-center gap-1.5 disabled:opacity-50"
+                                  className="h-8 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-wider hover:bg-red-500 hover:text-white transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                                 >
                                   {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                                   Delete
@@ -443,7 +500,7 @@ export default function BackupManager() {
 
           {/* TAB 2: Manual ZIP File Restore */}
           {activeTab === 'manual' && (
-            <div className="max-w-2xl mx-auto rounded-2xl border border-white/5 bg-luxury-900 p-6 space-y-6">
+            <div className="max-w-2xl mx-auto rounded-2xl border border-white/5 bg-luxury-900 p-6 space-y-6 shadow-2xl">
               <div>
                 <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 mb-1 flex items-center gap-2">
                   <Upload className="w-5 h-5 text-emerald-400" /> Drop-in Manual Recovery
@@ -483,7 +540,7 @@ export default function BackupManager() {
                     <button
                       type="button"
                       onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                      className="h-10 px-5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold text-slate-400 transition"
+                      className="h-10 px-5 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-bold text-slate-400 transition cursor-pointer"
                     >
                       Clear Selection
                     </button>
@@ -491,7 +548,7 @@ export default function BackupManager() {
                   <button
                     type="submit"
                     disabled={!selectedFile || restoringManual}
-                    className="h-10 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/20 disabled:text-slate-500 text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 transition shadow-lg shadow-emerald-500/20"
+                    className="h-10 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-500/20 disabled:text-slate-500 text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 transition shadow-lg shadow-emerald-500/25 cursor-pointer"
                   >
                     {restoringManual ? (
                       <>
@@ -510,13 +567,13 @@ export default function BackupManager() {
 
           {/* TAB 3: Configuration Settings */}
           {activeTab === 'settings' && (
-            <div className="max-w-3xl mx-auto rounded-2xl border border-white/5 bg-luxury-900 p-6 space-y-6">
+            <div className="max-w-3xl mx-auto rounded-2xl border border-white/5 bg-luxury-900 p-6 space-y-6 shadow-2xl">
               <div>
                 <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 mb-1 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-emerald-400" /> Google APIs Integration
+                  <Settings className="w-5 h-5 text-emerald-400" /> Google Drive Connection Configuration
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Input your Google Service Account OAuth parameters and target folder configurations below to link remote backups.
+                  Input your Google Service Account private key JSON details and target folder ID configurations below to setup automated backup synchronization.
                 </p>
               </div>
 
@@ -529,16 +586,16 @@ export default function BackupManager() {
                     value={folderId}
                     onChange={(e) => setFolderId(e.target.value)}
                     placeholder="Enter Google Drive Folder ID"
-                    className="w-full h-11 px-4 rounded-xl text-xs glass-input focus:border-emerald-500/50"
+                    className="w-full h-11 px-4 rounded-xl text-xs bg-luxury-950 border border-white/10 focus:border-emerald-500/50 outline-none text-slate-200 transition"
                   />
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[10px] text-slate-500 leading-relaxed block">
                     Typically the long alphanumeric string at the end of the Google Drive folder URL (e.g. 1-mG-eq1GNxQrI9Byj23RC-JFOO_3Z57n)
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    Service Account JSON credentials key
+                    Service Account Private Key JSON credentials file content
                   </label>
                   <textarea
                     rows={8}
@@ -550,10 +607,10 @@ export default function BackupManager() {
                         ? 'Google Service Account credentials already configured. Paste new JSON here to update.' 
                         : 'Paste the contents of your Google Service Account private key JSON file here'
                     }
-                    className="w-full p-4 rounded-xl text-xs font-mono text-emerald-400 glass-input focus:border-emerald-500/50"
+                    className="w-full p-4 rounded-xl text-xs font-mono text-emerald-400 bg-luxury-950 border border-white/10 focus:border-emerald-500/50 outline-none transition"
                   />
-                  <span className="text-[10px] text-slate-500">
-                    Key requires standard Google Drive file write access permissions. Make sure to share the target Google Drive Folder with the Service Account email as an <strong>Editor</strong>.
+                  <span className="text-[10px] text-slate-500 leading-relaxed block">
+                    Key requires standard Google Drive file write access permissions. Make sure to share the target Google Drive Folder with the Service Account email (client_email in JSON file) as an <strong>Editor</strong>.
                   </span>
                 </div>
 
@@ -561,7 +618,7 @@ export default function BackupManager() {
                   <button
                     type="submit"
                     disabled={savingSettings}
-                    className="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 transition shadow-lg shadow-emerald-500/20"
+                    className="h-11 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 transition shadow-lg shadow-emerald-500/25 cursor-pointer"
                   >
                     {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     Save Configurations

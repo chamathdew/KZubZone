@@ -410,99 +410,111 @@ class TmdbController {
     public static function runBackgroundImport($id, $type, $isHistorical) {
         $apiKey = self::getTmdbApiKey();
         $data = null;
+        $title = 'TMDB ID: ' . $id;
 
-        if (!empty($apiKey)) {
-            $endpoint = ($type === 'tv') ? 'tv' : 'movie';
-            $url = "https://api.themoviedb.org/3/{$endpoint}/{$id}";
-            $data = self::httpGet($url, [
-                'api_key' => $apiKey,
-                'append_to_response' => 'credits,videos,images,keywords'
-            ]);
+        try {
+            if (!empty($apiKey)) {
+                $endpoint = ($type === 'tv') ? 'tv' : 'movie';
+                $url = "https://api.themoviedb.org/3/{$endpoint}/{$id}";
+                $data = self::httpGet($url, [
+                    'api_key' => $apiKey,
+                    'append_to_response' => 'credits,videos,images,keywords'
+                ]);
 
-            if (isset($data['success']) && $data['success'] === false) {
-                throw new \Exception('Media not found on TMDB');
-            }
-
-            // Extract keywords
-            $keywordsArr = [];
-            if (isset($data['keywords']['keywords'])) {
-                foreach ($data['keywords']['keywords'] as $k) {
-                    $keywordsArr[] = $k['name'];
+                if (isset($data['success']) && $data['success'] === false) {
+                    throw new \Exception('Media not found on TMDB');
                 }
-            } elseif (isset($data['keywords']['results'])) {
-                foreach ($data['keywords']['results'] as $k) {
-                    $keywordsArr[] = $k['name'];
-                }
-            }
-            $data['keywords'] = $keywordsArr;
 
-            // Extract trailer URL
-            $trailerUrl = '';
-            if (isset($data['videos']['results'])) {
-                foreach ($data['videos']['results'] as $v) {
-                    if ($v['type'] === 'Trailer' && $v['site'] === 'YouTube') {
-                        $trailerUrl = "https://www.youtube.com/embed/{$v['key']}";
+                $title = ($type === 'tv') ? ($data['name'] ?? $title) : ($data['title'] ?? $title);
+
+                // Extract keywords
+                $keywordsArr = [];
+                if (isset($data['keywords']['keywords'])) {
+                    foreach ($data['keywords']['keywords'] as $k) {
+                        $keywordsArr[] = $k['name'];
+                    }
+                } elseif (isset($data['keywords']['results'])) {
+                    foreach ($data['keywords']['results'] as $k) {
+                        $keywordsArr[] = $k['name'];
+                    }
+                }
+                $data['keywords'] = $keywordsArr;
+
+                // Extract trailer URL
+                $trailerUrl = '';
+                if (isset($data['videos']['results'])) {
+                    foreach ($data['videos']['results'] as $v) {
+                        if ($v['type'] === 'Trailer' && $v['site'] === 'YouTube') {
+                            $trailerUrl = "https://www.youtube.com/embed/{$v['key']}";
+                            break;
+                        }
+                    }
+                }
+                $data['trailer'] = $trailerUrl;
+
+                // Extract images
+                $imgArr = [];
+                if (isset($data['images']['backdrops'])) {
+                    $backdrops = array_slice($data['images']['backdrops'], 0, 5);
+                    foreach ($backdrops as $i) {
+                        $imgArr[] = "https://image.tmdb.org/t/p/original" . $i['file_path'];
+                    }
+                }
+                $data['images'] = $imgArr;
+
+                // Fetch seasons if tv
+                if ($type === 'tv' && isset($data['seasons'])) {
+                    $seasonsFull = [];
+                    foreach ($data['seasons'] as $s) {
+                        $sNum = isset($s['season_number']) ? (int)$s['season_number'] : 0;
+                        if ($sNum === 0) continue; // Skip specials
+                        $sUrl = "https://api.themoviedb.org/3/tv/{$id}/season/{$sNum}";
+                        $seasonDetails = self::httpGet($sUrl, ['api_key' => $apiKey]);
+                        if ($seasonDetails) {
+                            $seasonsFull[] = $seasonDetails;
+                        } else {
+                            error_log("Failed to fetch season details for show {$id} season {$sNum}");
+                        }
+                    }
+                    $data['seasons'] = $seasonsFull;
+                }
+            } else {
+                // Mock Import mapping
+                $store = ($type === 'tv') ? self::$mockData['dramas'] : self::$mockData['movies'];
+                foreach ($store as $item) {
+                    if ((int)$item['id'] === (int)$id) {
+                        $data = $item;
                         break;
                     }
                 }
-            }
-            $data['trailer'] = $trailerUrl;
 
-            // Extract images
-            $imgArr = [];
-            if (isset($data['images']['backdrops'])) {
-                $backdrops = array_slice($data['images']['backdrops'], 0, 5);
-                foreach ($backdrops as $i) {
-                    $imgArr[] = "https://image.tmdb.org/t/p/original" . $i['file_path'];
+                if (!$data) {
+                    throw new \Exception('Mock title details not found in fallback database.');
                 }
-            }
-            $data['images'] = $imgArr;
 
-            // Fetch seasons if tv
-            if ($type === 'tv' && isset($data['seasons'])) {
-                $seasonsFull = [];
-                foreach ($data['seasons'] as $s) {
-                    $sNum = isset($s['season_number']) ? (int)$s['season_number'] : 0;
-                    if ($sNum === 0) continue; // Skip specials
-                    $sUrl = "https://api.themoviedb.org/3/tv/{$id}/season/{$sNum}";
-                    $seasonDetails = self::httpGet($sUrl, ['api_key' => $apiKey]);
-                    if ($seasonDetails) {
-                        $seasonsFull[] = $seasonDetails;
-                    } else {
-                        error_log("Failed to fetch season details for show {$id} season {$sNum}");
-                    }
-                }
-                $data['seasons'] = $seasonsFull;
-            }
-        } else {
-            // Mock Import mapping
-            $store = ($type === 'tv') ? self::$mockData['dramas'] : self::$mockData['movies'];
-            foreach ($store as $item) {
-                if ((int)$item['id'] === (int)$id) {
-                    $data = $item;
-                    break;
-                }
+                $title = ($type === 'tv') ? ($data['name'] ?? $title) : ($data['title'] ?? $title);
             }
 
-            if (!$data) {
-                throw new \Exception('Mock title details not found in fallback database.');
+            if ($type === 'tv') {
+                $media = self::processDramaData($data, $isHistorical);
+            } else {
+                $media = self::processMovieData($data, $isHistorical);
             }
+
+            // Invalidate cache and trigger revalidation
+            \Utils\Cache::delete('home_catalog');
+            \Utils\Revalidate::path('/');
+            if ($media && !empty($media['slug'])) {
+                \Utils\Revalidate::media($type === 'tv' ? 'drama' : 'movie', $media['slug']);
+            }
+
+            self::logImport($id, $title, $type, $isHistorical, 'Success');
+
+            return $media;
+        } catch (\Exception $e) {
+            self::logImport($id, $title, $type, $isHistorical, 'Failed');
+            throw $e;
         }
-
-        if ($type === 'tv') {
-            $media = self::processDramaData($data, $isHistorical);
-        } else {
-            $media = self::processMovieData($data, $isHistorical);
-        }
-
-        // Invalidate cache and trigger revalidation
-        \Utils\Cache::delete('home_catalog');
-        \Utils\Revalidate::path('/');
-        if ($media && !empty($media['slug'])) {
-            \Utils\Revalidate::media($type === 'tv' ? 'drama' : 'movie', $media['slug']);
-        }
-
-        return $media;
     }
 
 
@@ -998,6 +1010,33 @@ class TmdbController {
                 'errors' => $errors,
                 'status' => 'Completed'
             ]);
+        }
+    }
+
+    private static function logImport($id, $title, $type, $isHistorical, $status) {
+        try {
+            $db = Database::getInstance();
+            $db->insertOne('tmdb_imports', [
+                'tmdbId' => (int)$id,
+                'title' => $title,
+                'type' => $type,
+                'isHistorical' => (bool)$isHistorical,
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            // Silence log errors
+        }
+    }
+
+    public static function getImportHistory() {
+        header('Content-Type: application/json');
+        try {
+            $db = Database::getInstance();
+            $history = $db->find('tmdb_imports', [], ['limit' => 20]);
+            echo json_encode($history ?: []);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['message' => 'Failed to load import history: ' . $e->getMessage()]);
         }
     }
 }

@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import { useToast } from '@/features/admin/components/Toast';
 import {
   Languages, Sparkles, UploadCloud, Download, AlertTriangle, Play,
   CheckCircle, Plus, Trash2, Edit2, RefreshCw, Layers, ArrowRight, Check, Eye, Settings, FileText, Undo
@@ -92,6 +93,7 @@ const cleanBaseName = (fileName) => {
 export default function SubtitleTools() {
   const { admin } = useAuth();
   const fileInputRef = useRef(null);
+  const toast = useToast();
 
   // Batch Files State
   const [files, setFiles] = useState([]);
@@ -147,7 +149,7 @@ export default function SubtitleTools() {
   const handleFiles = (fileList) => {
     const srtFiles = Array.from(fileList).filter(f => f.name.endsWith('.srt'));
     if (srtFiles.length === 0) {
-      alert('Only .srt files are currently supported.');
+      toast.show('Only .srt files are currently supported.', 'error');
       return;
     }
 
@@ -364,7 +366,7 @@ export default function SubtitleTools() {
   const processBrandingBatch = () => {
     if (files.length === 0) return;
     setFiles(prev => prev.map(file => processFileBranding(file)));
-    alert('All subtitles branded and updated successfully. You can preview changes or proceed to Translate/Export.');
+    toast.show('All subtitles branded and updated successfully.', 'success');
     setActiveTab('export');
   };
 
@@ -545,7 +547,7 @@ export default function SubtitleTools() {
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">

@@ -5,6 +5,8 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import { tokenService } from '@/services/api/tokenService';
 
+import { ToastProvider } from '@/features/admin/components/Toast';
+
 export default function ManagementLayout({ children }) {
   const { user, admin, loading } = useAuth();
   const router = useRouter();
@@ -45,7 +47,7 @@ export default function ManagementLayout({ children }) {
   }
 
   return (
-    <>
+    <ToastProvider>
       {/* Slim progress bar while auth verifies in background */}
       {!isLoginPage && loading && (
         <div className="fixed top-0 left-0 right-0 z-[9999] h-0.5 overflow-hidden bg-brand-primary/20">
@@ -70,6 +72,6 @@ export default function ManagementLayout({ children }) {
           animation: fadeInAdmin 0.15s ease-out forwards;
         }
       `}</style>
-    </>
+    </ToastProvider>
   );
 }

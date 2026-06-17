@@ -502,6 +502,11 @@ $routes = [
         function() { \Middleware\AuthMiddleware::hasPermission('manage_movies'); },
         'Controllers\TmdbController::bulkImportFromTmdb'
     ]],
+    ['GET', '/api/admin/tmdb/history', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_movies'); },
+        'Controllers\TmdbController::getImportHistory'
+    ]],
 
     // Admin Movie CRUD
     ['POST', '/api/admin/movies', [

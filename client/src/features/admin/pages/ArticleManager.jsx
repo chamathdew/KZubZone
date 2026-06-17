@@ -5,9 +5,13 @@ import Link from 'next/link';
 import apiClient from '@/services/api/apiClient';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import DataTable from '@/features/admin/components/DataTable';
+import ModalDrawer from '@/features/admin/components/ModalDrawer';
+import { useToast } from '@/features/admin/components/Toast';
+import StatCard from '@/features/admin/components/StatCard';
 import {
-  BookOpenText, Database, Edit3, Eye, Film, Languages, LayoutDashboard,
-  Plus, Save, Settings, Star, Trash2, Tv, Users, X, UploadCloud
+  BookOpenText, Edit3, Eye, Trash2, Plus, Save, UploadCloud, FileText,
+  ShieldCheck, Star
 } from 'lucide-react';
 
 const emptyForm = {
@@ -354,9 +358,10 @@ const tokenHeaders = () => ({
 
 export default function ArticleManager() {
   const { admin } = useAuth();
+  const toast = useToast();
+  
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -384,10 +389,12 @@ export default function ArticleManager() {
 
         setShowAssistant(false);
         setImportedFileName('');
+        toast.show('HTML content converted and imported.', 'success');
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         setRawText(text);
         setImportedFileName('');
+        toast.show('Text file loaded into assistant.', 'success');
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
@@ -400,7 +407,7 @@ export default function ArticleManager() {
       const res = await apiClient.get('/api/admin/articles', tokenHeaders());
       setArticles(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load articles');
+      toast.show('Failed to load articles list.', 'error');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -408,6 +415,7 @@ export default function ArticleManager() {
 
   useEffect(() => {
     fetchArticles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -415,7 +423,6 @@ export default function ArticleManager() {
   const openCreate = () => {
     setEditingArticle(null);
     setForm(emptyForm);
-    setError('');
     setShowAssistant(false);
     setImportedFileName('');
     setRawText('');
@@ -440,7 +447,6 @@ export default function ArticleManager() {
       metaDescription: article.metaDescription || '',
       seoKeywords: (article.seoKeywords || []).join(', ')
     });
-    setError('');
     setShowAssistant(false);
     setImportedFileName('');
     setRawText('');
@@ -450,18 +456,19 @@ export default function ArticleManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
 
     try {
       if (editingArticle) {
         await apiClient.put(`/api/admin/articles/${editingArticle._id}`, form, tokenHeaders());
+        toast.show('Article modified successfully.', 'success');
       } else {
         await apiClient.post('/api/admin/articles', form, tokenHeaders());
+        toast.show('New article created successfully.', 'success');
       }
       setShowModal(false);
       fetchArticles(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save article');
+      toast.show(err.response?.data?.message || 'Failed to save article.', 'error');
     } finally {
       setSaving(false);
     }
@@ -471,301 +478,315 @@ export default function ArticleManager() {
     if (!window.confirm(`Delete article "${article.title}"?`)) return;
     try {
       await apiClient.delete(`/api/admin/articles/${article._id}`, tokenHeaders());
+      toast.show('Article record removed.', 'success');
       fetchArticles(true);
     } catch (err) {
-      alert(err.response?.data?.message || 'Delete failed');
+      toast.show('Failed to delete article.', 'error');
     }
   };
 
+  const columns = [
+    {
+      key: 'title',
+      label: 'Article Info',
+      sortable: true,
+      render: (val, article) => (
+        <div className="flex items-center gap-3">
+          <img
+            src={article.coverImage || 'https://placehold.co/80x50/111/fff?text=Article'}
+            alt={article.title}
+            className="w-16 h-10 object-cover rounded-lg bg-luxury-950 border border-white/5 flex-shrink-0"
+          />
+          <div>
+            <p className="font-extrabold text-slate-100 text-sm line-clamp-1">{article.title}</p>
+            <p className="text-[10px] text-slate-500 line-clamp-1">{article.excerpt || article.slug}</p>
+            {article.isFeatured && (
+              <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[9px] font-bold uppercase tracking-wider">
+                Featured
+              </span>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'category',
+      label: 'Category',
+      sortable: true,
+      render: (val) => <span className="font-bold text-slate-200">{val}</span>
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (val) => (
+        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+          val === 'Published' 
+            ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
+            : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+        }`}>
+          {val}
+        </span>
+      )
+    },
+    {
+      key: 'viewCount',
+      label: 'Views',
+      sortable: true,
+      render: (val) => <span className="font-mono text-slate-400">{val || 0}</span>
+    },
+    {
+      key: 'updatedAt',
+      label: 'Updated',
+      sortable: true,
+      render: (val) => <span className="text-slate-400 font-mono text-xs">{val ? new Date(val).toLocaleDateString() : 'N/A'}</span>
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_, article) => (
+        <div className="flex justify-end gap-2">
+          {article.status === 'Published' && (
+            <Link href={`/articles/${article.slug}`} target="_blank" className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition" title="View Article">
+              <Eye className="w-3.5 h-3.5" />
+            </Link>
+          )}
+          <button onClick={() => openEdit(article)} className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg transition" title="Edit Article">
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => handleDelete(article)} className="p-1.5 bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary rounded-lg transition" title="Delete Article">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
-      <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
+      <main className="flex-grow p-6 sm:p-8 overflow-y-auto min-w-0">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex justify-between items-center mb-8 gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Manage Articles</h1>
               <p className="text-slate-400 text-xs mt-1">Create, edit, draft, publish, feature and SEO-control KSubZone articles.</p>
             </div>
             <button
               onClick={openCreate}
-              className="px-4 py-2.5 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2"
+              className="px-4 py-2.5 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 flex-shrink-0"
             >
-              <Plus className="w-4 h-4" /> Write Article
+              <Plus className="w-4 h-4" /> Compose
             </button>
           </div>
 
-          {error && <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">{error}</div>}
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="rounded-2xl border border-white/5 bg-luxury-900 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total</p>
-              <p className="mt-1 text-2xl font-black">{articles.length}</p>
-            </div>
-            <div className="rounded-2xl border border-white/5 bg-luxury-900 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Published</p>
-              <p className="mt-1 text-2xl font-black text-emerald-400">{articles.filter(a => a.status === 'Published').length}</p>
-            </div>
-            <div className="rounded-2xl border border-white/5 bg-luxury-900 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Drafts</p>
-              <p className="mt-1 text-2xl font-black text-yellow-400">{articles.filter(a => a.status === 'Draft').length}</p>
-            </div>
-            <div className="rounded-2xl border border-white/5 bg-luxury-900 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Featured</p>
-              <p className="mt-1 text-2xl font-black text-brand-primary">{articles.filter(a => a.isFeatured).length}</p>
-            </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <StatCard label="Total articles" value={articles.length} icon={FileText} borderClass="border-l-indigo-500" iconBgClass="bg-indigo-500/10" iconColorClass="text-indigo-400" gradClass="from-indigo-500/[0.05]" />
+            <StatCard label="Published" value={articles.filter(a => a.status === 'Published').length} icon={FileText} borderClass="border-l-emerald-500" iconBgClass="bg-emerald-500/10" iconColorClass="text-emerald-400" gradClass="from-emerald-500/[0.05]" />
+            <StatCard label="Drafts" value={articles.filter(a => a.status === 'Draft').length} icon={FileText} borderClass="border-l-amber-500" iconBgClass="bg-amber-500/10" iconColorClass="text-amber-400" gradClass="from-amber-500/[0.05]" />
+            <StatCard label="Featured" value={articles.filter(a => a.isFeatured).length} icon={FileText} borderClass="border-l-violet-500" iconBgClass="bg-violet-500/10" iconColorClass="text-violet-400" gradClass="from-violet-500/[0.05]" />
           </div>
 
-          <div className="bg-luxury-900 border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-            {loading ? (
-              <div className="text-center py-16 text-slate-500">Loading articles...</div>
-            ) : articles.length === 0 ? (
-              <div className="text-center py-16 text-slate-500 text-sm">No articles yet. Start by writing your first post.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/5 text-[10px] uppercase font-bold tracking-widest text-slate-400 bg-luxury-950/30">
-                      <th className="p-4">Article</th>
-                      <th className="p-4">Category</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4">Views</th>
-                      <th className="p-4">Updated</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-xs text-slate-300">
-                    {articles.map((article) => (
-                      <tr key={article._id} className="hover:bg-white/5 transition">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <img src={article.coverImage || 'https://placehold.co/80x50/111/fff?text=Article'} alt={article.title} className="w-16 h-10 object-cover rounded-lg bg-luxury-950 border border-white/5" />
-                            <div>
-                              <p className="font-extrabold text-slate-100 text-sm line-clamp-1">{article.title}</p>
-                              <p className="text-[10px] text-slate-500 line-clamp-1">{article.excerpt || article.slug}</p>
-                              {article.isFeatured && <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[9px] font-bold uppercase">Featured</span>}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 font-bold">{article.category}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                            article.status === 'Published' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {article.status}
-                          </span>
-                        </td>
-                        <td className="p-4 font-mono">{article.viewCount || 0}</td>
-                        <td className="p-4 text-slate-400">{article.updatedAt ? new Date(article.updatedAt).toLocaleDateString() : 'N/A'}</td>
-                        <td className="p-4">
-                          <div className="flex justify-end gap-2">
-                            {article.status === 'Published' && (
-                              <Link href={`/articles/${article.slug}`} className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded transition" title="View Article">
-                                <Eye className="w-3.5 h-3.5" />
-                              </Link>
-                            )}
-                            <button onClick={() => openEdit(article)} className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded transition" title="Edit Article">
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={() => handleDelete(article)} className="p-1.5 bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary rounded transition" title="Delete Article">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <DataTable
+            columns={columns}
+            data={articles}
+            loading={loading}
+            searchPlaceholder="Search articles by title or excerpt..."
+          />
         </div>
       </main>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-luxury-900 border border-white/10 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 relative">
-            <button onClick={() => setShowModal(false)} className="absolute right-4 top-4 p-1 hover:bg-white/5 rounded text-slate-400 hover:text-white">
-              <X className="w-5 h-5" />
-            </button>
-
-            <h2 className="text-lg font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-2">
-              <BookOpenText className="w-5 h-5 text-brand-primary" />
-              {editingArticle ? 'Edit Article' : 'Write New Article'}
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Title</label>
-                  <input required value={form.title} onChange={(e) => updateField('title', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Category</label>
-                  <input value={form.category} onChange={(e) => updateField('category', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
+      <ModalDrawer
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingArticle ? 'Edit Article' : 'Write New Article'}
+        size="xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-luxury-950/40 border border-white/5 rounded-2xl p-4.5 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-brand-primary mb-2 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" /> Article Setup
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Title</label>
+                <input required value={form.title} onChange={(e) => updateField('title', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
               </div>
-
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Short Excerpt</label>
-                <textarea rows="2" value={form.excerpt} onChange={(e) => updateField('excerpt', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed" />
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Category</label>
+                <input value={form.category} onChange={(e) => updateField('category', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
               </div>
+            </div>
 
-              {/* HTML / Text Import — Always Visible */}
-              <div className="border border-brand-primary/20 bg-brand-primary/[0.04] rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <UploadCloud className="w-4 h-4 text-brand-primary" />
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Import HTML / Text File</h4>
-                  <span className="ml-auto text-[9px] text-slate-500 font-bold uppercase tracking-wider">Supports .html · .htm · .txt</span>
-                </div>
-                <div
-                  className="relative border-2 border-dashed border-brand-primary/25 hover:border-brand-primary/60 rounded-xl p-5 flex flex-col items-center justify-center bg-black/20 cursor-pointer transition-all duration-200 group"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".html,.htm,.txt"
-                    onChange={handleFileUpload}
-                    className="hidden"
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Short Excerpt</label>
+              <textarea rows="2" value={form.excerpt} onChange={(e) => updateField('excerpt', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed transition" />
+            </div>
+          </div>
+
+          {/* HTML / Text Import */}
+          <div className="bg-luxury-950/40 border border-white/5 rounded-2xl p-4.5 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <UploadCloud className="w-4 h-4 text-brand-primary" />
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">Import HTML / Text File</h4>
+              <span className="ml-auto text-[9px] text-slate-500 font-bold uppercase tracking-wider">Supports .html · .htm · .txt</span>
+            </div>
+            <div
+              className="relative border-2 border-dashed border-brand-primary/25 hover:border-brand-primary/60 rounded-xl p-6 flex flex-col items-center justify-center bg-black/20 cursor-pointer transition-all duration-200 group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".html,.htm,.txt"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <UploadCloud className="w-8 h-8 text-brand-primary/50 group-hover:text-brand-primary mb-2 transition" />
+              {importedFileName ? (
+                <p className="text-xs text-emerald-400 font-bold">{importedFileName} — processing…</p>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-300 font-bold">Click here to choose file</p>
+                  <p className="text-[10px] text-slate-500 mt-1 text-center">HTML file content automatically parses title, metadata, cover, and markdown text body</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Collapsible Paste Assistant */}
+          <div className="bg-luxury-950/40 border border-white/5 rounded-2xl p-4.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">Text Paste Assistant</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Quickly convert unformatted raw text headings, lists, tables, and FAQ grids.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAssistant(!showAssistant)}
+                className="px-3 py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-[10px] font-bold uppercase tracking-wider transition text-brand-primary"
+              >
+                {showAssistant ? 'Collapse' : 'Open Assistant'}
+              </button>
+            </div>
+
+            {showAssistant && (
+              <div className="mt-4 pt-4 border-t border-white/5 space-y-4">
+                <div>
+                  <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Raw Text Block</label>
+                  <textarea
+                    rows="6"
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    placeholder="Paste text from translators or documents here. Headers, lists, TSV tables, and FAQ segments will be formatted to clean markdown."
+                    className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed font-mono"
                   />
-                  <UploadCloud className="w-9 h-9 text-brand-primary/60 group-hover:text-brand-primary mb-2 transition" />
-                  {importedFileName ? (
-                    <p className="text-xs text-emerald-400 font-bold">{importedFileName} — importing…</p>
-                  ) : (
-                    <>
-                      <p className="text-xs text-slate-300 font-semibold">Click here to select a file</p>
-                      <p className="text-[10px] text-slate-500 mt-1">HTML imports auto-fill title, cover image, meta, and body content</p>
-                    </>
-                  )}
                 </div>
-              </div>
-
-              {/* Collapsible Paste Assistant */}
-              <div className="border border-white/5 bg-luxury-950/40 rounded-2xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Text Paste Assistant</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Auto-format headings, lists, tables, FAQs from raw text.</p>
-                  </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                   <button
                     type="button"
-                    onClick={() => setShowAssistant(!showAssistant)}
-                    className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] font-bold uppercase tracking-wider transition text-brand-primary"
+                    onClick={() => {
+                      const formatted = autoFormatText(rawText);
+                      updateField('content', formatted);
+                      setShowAssistant(false);
+                      setRawText('');
+                      toast.show('Formatted text imported into editor body.', 'success');
+                    }}
+                    className="px-4.5 py-2 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition text-white"
                   >
-                    {showAssistant ? 'Hide' : 'Open'}
+                    Format &amp; Insert
                   </button>
-                </div>
-
-                {showAssistant && (
-                  <div className="mt-4 pt-4 border-t border-white/5 space-y-4">
-                    <div>
-                      <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Paste Unformatted Draft Here</label>
-                      <textarea
-                        rows="6"
-                        value={rawText}
-                        onChange={(e) => setRawText(e.target.value)}
-                        placeholder="Paste text from Google Docs, website articles, excel tables, or translators here. Headers, lists, tables, youtube videos, and FAQ lines will be auto-formatted."
-                        className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed"
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2.5 justify-between items-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const formatted = autoFormatText(rawText);
-                          updateField('content', formatted);
-                          setShowAssistant(false);
-                          setRawText('');
-                        }}
-                        className="px-4 py-2 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition text-white"
-                      >
-                        Auto-Format &amp; Paste into Article Body
-                      </button>
-                      <div className="text-[9px] text-slate-400 space-y-0.5 max-w-sm text-right bg-white/[0.02] p-2 rounded-lg border border-white/5">
-                        <p className="font-extrabold uppercase text-brand-primary text-[8px]">💡 Formatting Cheat Sheet</p>
-                        <p>Heading: Write on its own line (no trailing dot)</p>
-                        <p>Bullets: Start lines with <code className="text-brand-primary font-mono">*</code> or <code className="text-brand-primary font-mono">-</code></p>
-                        <p>Table: Paste Excel/Sheets cells directly (with tabs)</p>
-                        <p>FAQ: Use lines starting with <code className="text-brand-primary font-mono">Q:</code> and <code className="text-brand-primary font-mono">A:</code></p>
-                      </div>
-                    </div>
+                  <div className="text-[9px] text-slate-500 space-y-0.5 bg-white/[0.02] p-3 rounded-xl border border-white/5 w-full sm:max-w-xs">
+                    <p className="font-extrabold uppercase text-brand-primary text-[8px] mb-1">💡 QUICK CHEATSHEET</p>
+                    <p>• Plain line without ending punctuation becomes H2</p>
+                    <p>• Lines starting with bullets list are converted to * items</p>
+                    <p>• Direct Copy/Paste TSV grids are formatted into Markdown tables</p>
                   </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Article Body</label>
-                <textarea required rows="12" value={form.content} onChange={(e) => updateField('content', e.target.value)} placeholder="Write the full article here. Use blank lines to separate paragraphs. Use markdown headers (##, ###), tables (|col|), and FAQ syntax (Q: and A:)." className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cover Image URL</label>
-                  <input value={form.coverImage} onChange={(e) => updateField('coverImage', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Read Time (mins)</label>
-                  <input type="number" min="1" value={form.readTime} onChange={(e) => updateField('readTime', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Author</label>
-                  <input value={form.authorName} onChange={(e) => updateField('authorName', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Related Media Title</label>
-                  <input value={form.relatedMediaTitle} onChange={(e) => updateField('relatedMediaTitle', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Status</label>
-                  <select value={form.status} onChange={(e) => updateField('status', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary">
-                    <option value="Draft">Draft</option>
-                    <option value="Published">Published</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Tags (comma separated)</label>
-                  <input value={form.tags} onChange={(e) => updateField('tags', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">SEO Keywords (comma separated)</label>
-                  <input value={form.seoKeywords} onChange={(e) => updateField('seoKeywords', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meta Title</label>
-                  <input value={form.metaTitle} onChange={(e) => updateField('metaTitle', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meta Description</label>
-                  <input value={form.metaDescription} onChange={(e) => updateField('metaDescription', e.target.value)} className="w-full px-3 py-2 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary" />
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
-                <input type="checkbox" checked={form.isFeatured} onChange={(e) => updateField('isFeatured', e.target.checked)} className="w-4 h-4 accent-brand-primary" />
-                Feature this article on the public articles page
-              </label>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-white/5">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-semibold text-slate-300 transition">Cancel</button>
-                <button type="submit" disabled={saving} className="px-6 py-2 bg-brand-primary hover:bg-opacity-95 text-white font-bold rounded-xl text-xs transition flex items-center gap-2">
-                  <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Article'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+
+          <div className="bg-luxury-950/40 border border-white/5 rounded-2xl p-4.5 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-brand-secondary mb-2 flex items-center gap-2">
+              <BookOpenText className="w-4 h-4" /> Markdown Editor
+            </h3>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Article Body (supports Markdown)</label>
+              <textarea required rows="10" value={form.content} onChange={(e) => updateField('content', e.target.value)} placeholder="Write article here. Use blank lines to separate paragraphs. Use markdown syntax like ## (H2), ### (H3), lists, tables, YouTube embed formats, and [FAQ] blocks." className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary leading-relaxed font-mono" />
+            </div>
+          </div>
+
+          <div className="bg-luxury-950/40 border border-white/5 rounded-2xl p-4.5 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-yellow-500 mb-2 flex items-center gap-2">
+              <Star className="w-4 h-4" /> SEO Metadata & Settings
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cover Image URL</label>
+                <input value={form.coverImage} onChange={(e) => updateField('coverImage', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Read Time (minutes)</label>
+                <input type="number" min="1" value={form.readTime} onChange={(e) => updateField('readTime', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Author</label>
+                <input value={form.authorName} onChange={(e) => updateField('authorName', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Related Media Title</label>
+                <input value={form.relatedMediaTitle} onChange={(e) => updateField('relatedMediaTitle', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Status</label>
+                <select value={form.status} onChange={(e) => updateField('status', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition">
+                  <option value="Draft">Draft</option>
+                  <option value="Published">Published</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Tags (comma separated)</label>
+                <input value={form.tags} onChange={(e) => updateField('tags', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">SEO Keywords (comma separated)</label>
+                <input value={form.seoKeywords} onChange={(e) => updateField('seoKeywords', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meta Title</label>
+                <input value={form.metaTitle} onChange={(e) => updateField('metaTitle', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Meta Description</label>
+                <input value={form.metaDescription} onChange={(e) => updateField('metaDescription', e.target.value)} className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition" />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+              <input type="checkbox" checked={form.isFeatured} onChange={(e) => updateField('isFeatured', e.target.checked)} className="w-4 h-4 accent-brand-primary rounded bg-luxury-950 border-white/10" />
+              Feature this article on the public articles portal page
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-6 border-t border-white/5">
+            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-300 transition">Cancel</button>
+            <button type="submit" disabled={saving} className="px-6 py-2.5 bg-brand-primary hover:bg-opacity-95 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition">
+              <Save className="w-4 h-4 inline mr-1" /> {saving ? 'Saving...' : 'Save Article'}
+            </button>
+          </div>
+        </form>
+      </ModalDrawer>
     </div>
   );
 }

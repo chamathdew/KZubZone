@@ -234,7 +234,7 @@ class Database {
 
     private function initializeDatabase() {
         // Skip setup if database is already initialized and matches current schema version
-        $schemaVersion = '2026_v2_indexing';
+        $schemaVersion = '2026_v3_imports';
         $flagFile = dirname(__FILE__) . '/.db_initialized_' . $this->driver;
         
         if (file_exists($flagFile) && trim(@file_get_contents($flagFile)) === $schemaVersion) {
@@ -247,7 +247,7 @@ class Database {
                 'users', 'admins', 'roles', 'permissions', 'movies', 
                 'dramas', 'seasons', 'episodes', 'genres', 'subtitles', 
                 'reviews', 'comments', 'analytics', 'settings', 'articles',
-                'notifications'
+                'notifications', 'tmdb_imports'
             ];
             foreach ($collections as $col) {
                 if ($this->driver === 'sqlite') {
@@ -338,6 +338,9 @@ class Database {
                 'notifications' => [
                     'idx_notifications_recipient' => "json_extract(data, '$.recipient')",
                     'idx_notifications_recipientType' => "json_extract(data, '$.recipientType')",
+                ],
+                'tmdb_imports' => [
+                    'idx_tmdb_imports_tmdbId' => "json_extract(data, '$.tmdbId')",
                 ]
             ];
 
@@ -399,6 +402,9 @@ class Database {
                 'notifications' => [
                     'idx_notifications_recipient' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.recipient'))",
                     'idx_notifications_recipientType' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.recipientType'))",
+                ],
+                'tmdb_imports' => [
+                    'idx_tmdb_imports_tmdbId' => "JSON_UNQUOTE(JSON_EXTRACT(data, '$.tmdbId'))",
                 ]
             ];
 
@@ -461,6 +467,9 @@ class Database {
                 'notifications' => [
                     'idx_notifications_recipient' => "(\"data\"->>'recipient')",
                     'idx_notifications_recipientType' => "(\"data\"->>'recipientType')",
+                ],
+                'tmdb_imports' => [
+                    'idx_tmdb_imports_tmdbId' => "(\"data\"->>'tmdbId')",
                 ]
             ];
 

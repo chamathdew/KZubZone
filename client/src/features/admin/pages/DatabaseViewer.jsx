@@ -3,13 +3,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import ModalDrawer from '@/features/admin/components/ModalDrawer';
+import { useToast } from '@/features/admin/components/Toast';
 import {
   Server, Search, Database, Eye, RefreshCw, AlertCircle, X,
-  FileText, Terminal, ChevronRight, Download, Edit2, Trash2, Save,
+  FileText, Terminal, Download, Edit2, Trash2, Save,
   Layers, PlusCircle, Check
 } from 'lucide-react';
 
 export default function DatabaseViewer() {
+  const toast = useToast();
+
   const [collections, setCollections] = useState([]);
   const [dbDriver, setDbDriver] = useState('');
   const [selectedCol, setSelectedCol] = useState('');
@@ -47,6 +51,7 @@ export default function DatabaseViewer() {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to connect to database manager.');
+      toast.show('Failed to connect to database manager.', 'error');
     } finally {
       setLoadingCollections(false);
     }
@@ -67,6 +72,7 @@ export default function DatabaseViewer() {
       setTotalDocs(res.data.total || 0);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to retrieve collection items.');
+      toast.show('Failed to retrieve collection items.', 'error');
     } finally {
       setLoadingDocs(false);
     }
@@ -81,7 +87,7 @@ export default function DatabaseViewer() {
     fetchDocuments();
   }, [skip]);
 
-  // Clean identifier helper to identify records easily (Sinhala translation references)
+  // Clean identifier helper to identify records easily
   const getIdentifier = (doc, collection) => {
     if (!doc) return '-';
     switch (collection) {
@@ -124,8 +130,6 @@ export default function DatabaseViewer() {
   const displayColumns = useMemo(() => {
     if (documents.length === 0) return ['_id', 'createdAt'];
     const keys = new Set(['_id']);
-    
-    // We add the primary readable Identifier column first
     keys.add('Record Identifier');
 
     // Scan all documents to gather typical fields (excluding objects and long descriptions)
@@ -152,7 +156,6 @@ export default function DatabaseViewer() {
       });
     });
     
-    // Keep it readable: display _id + Identifier + up to 3 other fields + timestamps
     const fields = Array.from(keys).slice(0, 5);
     fields.push('createdAt');
     return fields;
@@ -184,12 +187,12 @@ export default function DatabaseViewer() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.show(`Exported ${selectedCol} collection as JSON.`, 'success');
   };
 
   // Open Edit Modal
   const handleEditClick = (doc) => {
     setEditDoc(doc);
-    // Exclude system parameters from local form states
     const formFields = { ...doc };
     delete formFields._id;
     delete formFields.createdAt;
@@ -241,6 +244,7 @@ export default function DatabaseViewer() {
         payload = JSON.parse(rawJsonText);
       } catch (err) {
         setError('Invalid JSON syntax formatting. Please fix before saving.');
+        toast.show('Invalid JSON syntax formatting.', 'error');
         setSaving(false);
         return;
       }
@@ -249,15 +253,17 @@ export default function DatabaseViewer() {
     try {
       const res = await apiClient.put(`/api/admin/database/collections/${selectedCol}/${editDoc._id}`, payload);
       setSuccess('Record updated successfully.');
+      toast.show('Record updated successfully.', 'success');
       
       // Update local state list
       setDocuments(prev => prev.map(doc => doc._id === editDoc._id ? res.data.document : doc));
       
       setTimeout(() => {
         setEditDoc(null);
-      }, 1000);
+      }, 800);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save updates to record.');
+      toast.show('Failed to save record updates.', 'error');
     } finally {
       setSaving(false);
     }
@@ -272,11 +278,13 @@ export default function DatabaseViewer() {
     setSuccess('');
     try {
       await apiClient.delete(`/api/admin/database/collections/${selectedCol}/${id}`);
-      setSuccess(`Record ${id} deleted successfully.`);
+      setSuccess(`Record deleted successfully.`);
+      toast.show('Record deleted successfully.', 'success');
       setDocuments(prev => prev.filter(doc => doc._id !== id));
       setTotalDocs(prev => Math.max(0, prev - 1));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete record.');
+      toast.show('Failed to delete record.', 'error');
     }
   };
 
@@ -297,23 +305,25 @@ export default function DatabaseViewer() {
     try {
       const res = await apiClient.post('/api/admin/database/wipe-all');
       setSuccess(res.data.message || 'Database cleared successfully.');
+      toast.show('Database cleared successfully.', 'success');
       fetchCollections();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to wipe database.');
+      toast.show('Failed to wipe database.', 'error');
     } finally {
       setWiping(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
-      <main className="flex-grow p-6 sm:p-8 overflow-y-auto max-w-[1600px] w-full mx-auto">
+      <main className="flex-grow p-6 sm:p-8 overflow-y-auto min-w-0 max-w-[1600px] w-full mx-auto">
         <div className="space-y-6">
           
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-5">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <Server className="w-5 h-5 text-amber-400" />
@@ -325,19 +335,19 @@ export default function DatabaseViewer() {
               </p>
             </div>
             
-            <div className="flex gap-2 self-start sm:self-auto">
+            <div className="flex gap-2 self-start sm:self-auto flex-wrap">
               <button
                 onClick={handleWipeDatabase}
                 disabled={wiping}
-                className="h-10 px-4 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-xs font-bold text-red-400 flex items-center gap-2 transition"
+                className="h-10 px-4 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-xs font-bold text-red-400 flex items-center gap-2 transition cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" /> {wiping ? 'Wiping...' : 'Wipe Media Data'}
               </button>
               <button
                 onClick={fetchCollections}
-                className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center gap-2 transition"
+                className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center gap-2 transition cursor-pointer"
               >
-                <RefreshCw className="w-4 h-4" /> Refresh Database
+                <RefreshCw className="w-4 h-4" /> Refresh Engine
               </button>
             </div>
           </div>
@@ -373,7 +383,7 @@ export default function DatabaseViewer() {
                         <button
                           key={col.name}
                           onClick={() => { setSelectedCol(col.name); setActiveDoc(null); }}
-                          className={`w-full h-10 px-3 rounded-xl text-xs font-semibold flex items-center justify-between transition ${
+                          className={`w-full h-10 px-3 rounded-xl text-xs font-semibold flex items-center justify-between transition text-left cursor-pointer ${
                             isActive 
                               ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold' 
                               : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -383,7 +393,7 @@ export default function DatabaseViewer() {
                             <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-amber-400' : 'bg-slate-600'}`} />
                             {col.name}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] ${isActive ? 'bg-amber-500/20 text-amber-400' : 'bg-luxury-950 text-slate-500'}`}>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${isActive ? 'bg-amber-500/20 text-amber-400' : 'bg-luxury-950 text-slate-500'}`}>
                             {col.count}
                           </span>
                         </button>
@@ -405,7 +415,7 @@ export default function DatabaseViewer() {
                     placeholder={`Search within '${selectedCol}' records...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-10 pl-10 pr-4 rounded-xl text-xs glass-input focus:border-amber-400/50"
+                    className="w-full h-10 pl-10 pr-4 rounded-xl text-xs bg-luxury-950 border border-white/10 focus:border-amber-400/50 outline-none text-slate-200 transition"
                   />
                   <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
                 </div>
@@ -414,7 +424,7 @@ export default function DatabaseViewer() {
                   <button
                     onClick={handleExportJSON}
                     disabled={documents.length === 0}
-                    className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center justify-center gap-2 transition disabled:opacity-50 flex-1 md:flex-initial"
+                    className="h-10 px-4 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-slate-200 hover:bg-white/[0.07] flex items-center justify-center gap-2 transition disabled:opacity-50 flex-1 md:flex-initial cursor-pointer"
                   >
                     <Download className="w-4 h-4" /> Export JSON
                   </button>
@@ -422,7 +432,7 @@ export default function DatabaseViewer() {
               </div>
 
               {/* Data Table */}
-              <div className="rounded-2xl border border-white/5 bg-luxury-900 overflow-hidden">
+              <div className="rounded-2xl border border-white/5 bg-luxury-900 overflow-hidden shadow-2xl">
                 {loadingDocs ? (
                   <div className="py-24 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-3">
                     <RefreshCw className="w-6 h-6 animate-spin text-amber-400" />
@@ -433,14 +443,14 @@ export default function DatabaseViewer() {
                     No documents found in '{selectedCol}'.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto font-sans">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-white/5 bg-luxury-950/40 text-[10px] font-black uppercase tracking-wider text-slate-400">
                           {displayColumns.map(col => (
-                            <th key={col} className="px-5 py-3.5">{col}</th>
+                            <th key={col} className="px-5 py-4">{col}</th>
                           ))}
-                          <th className="px-5 py-3.5 text-right">Actions</th>
+                          <th className="px-5 py-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 text-xs text-slate-300">
@@ -449,7 +459,7 @@ export default function DatabaseViewer() {
                             {displayColumns.map(col => {
                               if (col === 'Record Identifier') {
                                 return (
-                                  <td key={col} className="px-5 py-3.5 max-w-[220px] truncate font-bold text-white">
+                                  <td key={col} className="px-5 py-4 max-w-[220px] truncate font-bold text-white">
                                     {getIdentifier(doc, selectedCol)}
                                   </td>
                                 );
@@ -458,7 +468,7 @@ export default function DatabaseViewer() {
                               if (typeof val === 'boolean') val = val ? 'true' : 'false';
                               if (typeof val === 'object' && val !== null) val = '{...}';
                               return (
-                                <td key={col} className="px-5 py-3.5 max-w-[150px] truncate font-mono text-[11px] text-slate-400">
+                                <td key={col} className="px-5 py-4 max-w-[150px] truncate font-mono text-[11px] text-slate-400">
                                   {val !== undefined && val !== null ? String(val) : '-'}
                                 </td>
                               );
@@ -466,24 +476,24 @@ export default function DatabaseViewer() {
                             
                             {/* Action columns */}
                             <td className="px-5 py-3 text-right">
-                              <div className="inline-flex gap-1">
+                              <div className="inline-flex gap-1.5">
                                 <button
                                   onClick={() => setActiveDoc(doc)}
-                                  className="h-8 px-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-[10px] font-bold hover:bg-white/10 transition flex items-center gap-1"
+                                  className="h-8 px-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-[10px] font-bold hover:bg-white/10 transition flex items-center gap-1 cursor-pointer"
                                   title="View raw JSON"
                                 >
                                   <Eye className="w-3.5 h-3.5" /> View
                                 </button>
                                 <button
                                   onClick={() => handleEditClick(doc)}
-                                  className="h-8 px-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold hover:bg-amber-500 hover:text-white transition flex items-center gap-1"
+                                  className="h-8 px-2.5 rounded-lg bg-amber-500/15 border border-amber-500/20 text-amber-400 text-[10px] font-bold hover:bg-amber-500 hover:text-white transition flex items-center gap-1 cursor-pointer"
                                   title="Edit properties"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" /> Edit
                                 </button>
                                 <button
                                   onClick={() => handleDeleteRecord(doc._id)}
-                                  className="h-8 px-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold hover:bg-red-500 hover:text-white transition flex items-center gap-1"
+                                  className="h-8 px-2.5 rounded-lg bg-red-500/15 border border-red-500/20 text-red-400 text-[10px] font-bold hover:bg-red-500 hover:text-white transition flex items-center gap-1 cursor-pointer"
                                   title="Delete record"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -501,20 +511,20 @@ export default function DatabaseViewer() {
                 {totalDocs > limit && (
                   <div className="px-5 py-4 border-t border-white/5 bg-luxury-950/20 flex items-center justify-between gap-4 text-xs text-slate-400">
                     <span>
-                      Showing {skip + 1} to {Math.min(skip + limit, totalDocs)} of {totalDocs} records
+                      Showing <b className="text-slate-200">{skip + 1}</b> to <b className="text-slate-200">{Math.min(skip + limit, totalDocs)}</b> of <b className="text-slate-200">{totalDocs}</b> records
                     </span>
                     <div className="flex gap-2">
                       <button
                         disabled={skip === 0 || loadingDocs}
                         onClick={() => setSkip(prev => Math.max(0, prev - limit))}
-                        className="h-8 px-3 rounded-lg border border-white/10 text-[10px] font-bold text-slate-200 disabled:opacity-50"
+                        className="h-8 px-3.5 rounded-lg border border-white/10 text-[10px] font-bold text-slate-200 disabled:opacity-50 hover:bg-white/5 transition cursor-pointer"
                       >
                         Previous
                       </button>
                       <button
                         disabled={skip + limit >= totalDocs || loadingDocs}
                         onClick={() => setSkip(prev => prev + limit)}
-                        className="h-8 px-3 rounded-lg border border-white/10 text-[10px] font-bold text-slate-200 disabled:opacity-50"
+                        className="h-8 px-3.5 rounded-lg border border-white/10 text-[10px] font-bold text-slate-200 disabled:opacity-50 hover:bg-white/5 transition cursor-pointer"
                       >
                         Next
                       </button>
@@ -528,91 +538,64 @@ export default function DatabaseViewer() {
       </main>
 
       {/* JSON Viewer Modal Drawer */}
-      {activeDoc && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-end p-4">
-          <div className="bg-luxury-900 border border-white/10 rounded-2xl w-full max-w-2xl h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-luxury-950/40">
-              <div className="flex items-center gap-2.5">
-                <FileText className="w-5 h-5 text-amber-400" />
-                <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Document Inspector</h3>
-                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">_id: {activeDoc._id}</p>
-                </div>
+      <ModalDrawer
+        isOpen={Boolean(activeDoc)}
+        onClose={() => setActiveDoc(null)}
+        title="Document Inspector"
+        size="lg"
+      >
+        {activeDoc && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-500 font-mono">_id: {activeDoc._id}</span>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-luxury-950 p-4.5 overflow-auto max-h-[70vh] font-mono text-xs leading-5 text-emerald-400 select-text">
+              <div className="mb-2.5 text-[10px] font-black uppercase text-slate-500 flex items-center gap-1.5 border-b border-white/5 pb-2">
+                <Terminal className="w-3.5 h-3.5" /> Parsed Fields Tree
               </div>
+              <pre>{JSON.stringify(activeDoc, null, 2)}</pre>
+            </div>
+            <div className="flex justify-end pt-3">
               <button
                 onClick={() => setActiveDoc(null)}
-                className="text-slate-400 hover:text-white transition p-1 hover:bg-white/5 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Content Container */}
-            <div className="flex-grow overflow-y-auto p-6 bg-luxury-950/25">
-              <div className="rounded-xl border border-white/10 bg-luxury-950 p-4 overflow-auto max-h-[70vh] font-mono text-xs leading-5 text-emerald-400 select-text">
-                <div className="mb-2 text-[10px] font-black uppercase text-slate-500 flex items-center gap-1">
-                  <Terminal className="w-3.5 h-3.5" /> Parsed Fields Tree
-                </div>
-                <pre>{JSON.stringify(activeDoc, null, 2)}</pre>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/5 bg-luxury-950/40 flex justify-end">
-              <button
-                onClick={() => setActiveDoc(null)}
-                className="h-10 px-5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200 hover:bg-white/10 transition"
+                className="h-10 px-5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200 hover:bg-white/10 transition cursor-pointer"
               >
                 Close Inspector
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalDrawer>
 
       {/* Record Editor Modal Drawer */}
-      {editDoc && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-end p-4">
-          <div className="bg-luxury-900 border border-white/10 rounded-2xl w-full max-w-2xl h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-luxury-950/40">
-              <div className="flex items-center gap-2.5">
-                <Edit2 className="w-5 h-5 text-amber-400" />
-                <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Edit database record</h3>
-                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">Table: {selectedCol} • ID: {editDoc._id}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setEditDoc(null)}
-                className="text-slate-400 hover:text-white transition p-1 hover:bg-white/5 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+      <ModalDrawer
+        isOpen={Boolean(editDoc)}
+        onClose={() => setEditDoc(null)}
+        title={`Edit record in '${selectedCol}'`}
+        size="lg"
+      >
+        {editDoc && (
+          <div className="space-y-5">
             {/* Form Mode Selector tabs */}
-            <div className="flex border-b border-white/5 bg-luxury-950/20 px-6 py-2 gap-4">
+            <div className="flex border-b border-white/5 bg-luxury-950/20 py-2 gap-4">
               <button
                 type="button"
                 onClick={() => setEditTab('fields')}
-                className={`py-1 text-xs font-bold uppercase tracking-wider transition ${editTab === 'fields' ? 'text-amber-400 border-b-2 border-amber-400' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`py-1 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${editTab === 'fields' ? 'text-amber-400 border-b-2 border-amber-400' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 Form Fields
               </button>
               <button
                 type="button"
                 onClick={() => setEditTab('json')}
-                className={`py-1 text-xs font-bold uppercase tracking-wider transition ${editTab === 'json' ? 'text-amber-400 border-b-2 border-amber-400' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`py-1 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${editTab === 'json' ? 'text-amber-400 border-b-2 border-amber-400' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 Raw JSON
               </button>
             </div>
 
             {/* Form Editor Body */}
-            <div className="flex-grow overflow-y-auto p-6 space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               {error && (
                 <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
                   {error}
@@ -655,28 +638,31 @@ export default function DatabaseViewer() {
                         </label>
 
                         {isBool ? (
-                          <div className="flex items-center h-10">
+                          <div className="flex items-center h-11 bg-luxury-950 px-4 rounded-xl border border-white/5">
                             <input
                               type="checkbox"
                               checked={!!value}
+                              id={`edit-bool-${key}`}
                               onChange={(e) => handleFormFieldChange(key, e.target.checked, 'checkbox')}
                               className="w-5 h-5 rounded border-white/10 bg-luxury-950 text-amber-500 focus:ring-amber-500 focus:ring-offset-luxury-950 cursor-pointer"
                             />
-                            <span className="ml-2.5 text-xs text-slate-300">Enabled / Active</span>
+                            <label htmlFor={`edit-bool-${key}`} className="ml-3 text-xs text-slate-300 font-bold select-none cursor-pointer">
+                              Enabled / Active
+                            </label>
                           </div>
                         ) : isLongText ? (
                           <textarea
                             rows={4}
                             value={String(value)}
                             onChange={(e) => handleFormFieldChange(key, e.target.value, 'string')}
-                            className="w-full rounded-xl border border-white/10 bg-luxury-950 px-3 py-2 text-xs text-white outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                            className="w-full rounded-xl border border-white/10 bg-luxury-950 px-4 py-3 text-xs text-slate-100 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                           />
                         ) : (
                           <input
                             type={isNum ? 'number' : 'text'}
                             value={value !== null ? String(value) : ''}
                             onChange={(e) => handleFormFieldChange(key, e.target.value, isNum ? 'number' : 'string')}
-                            className="w-full h-10 rounded-xl border border-white/10 bg-luxury-950 px-3 text-xs text-white outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                            className="w-full h-11 rounded-xl border border-white/10 bg-luxury-950 px-4 text-xs text-slate-100 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                           />
                         )}
                       </div>
@@ -684,24 +670,24 @@ export default function DatabaseViewer() {
                   })}
                 </form>
               ) : (
-                <div className="flex flex-col h-full gap-2">
+                <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Document Object JSON</label>
                   <textarea
-                    rows={18}
+                    rows={12}
                     value={rawJsonText}
                     onChange={(e) => handleRawJsonChange(e.target.value)}
-                    className="w-full flex-grow rounded-xl border border-white/10 bg-luxury-950 p-4 font-mono text-xs text-emerald-400 outline-none focus:border-amber-400"
+                    className="w-full rounded-xl border border-white/10 bg-luxury-950 p-4 font-mono text-xs text-emerald-400 outline-none focus:border-amber-400"
                   />
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/5 bg-luxury-950/40 flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-4 border-t border-white/5">
               <button
                 type="button"
                 onClick={() => setEditDoc(null)}
-                className="h-10 px-5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200 hover:bg-white/10 transition"
+                className="h-10 px-5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-200 hover:bg-white/10 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -709,14 +695,14 @@ export default function DatabaseViewer() {
                 type="button"
                 onClick={handleUpdateRecord}
                 disabled={saving}
-                className="h-10 px-5 rounded-xl bg-amber-500 text-white text-xs font-black uppercase tracking-wider hover:bg-amber-600 disabled:opacity-50 transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20"
+                className="h-10 px-5 rounded-xl bg-amber-500 text-white text-xs font-black uppercase tracking-wider hover:bg-amber-600 disabled:opacity-50 transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
               >
                 <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalDrawer>
 
     </div>
   );

@@ -41,7 +41,7 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Mobile Sticky Header */}
-      <div className="flex md:hidden items-center justify-between px-6 py-4 bg-luxury-900 border-b border-white/5 sticky top-0 z-40 w-full">
+      <div className="flex lg:hidden items-center justify-between px-6 py-4 bg-luxury-900 border-b border-white/5 sticky top-0 z-40 w-full">
         <Link href="/" className="flex items-center gap-2.5 group">
           {resolveLogoUrl(brand.logoUrl) ? (
             <img src={resolveLogoUrl(brand.logoUrl)} alt={brand.siteName || 'Logo'} className="h-8 w-auto object-contain transition" />
@@ -69,19 +69,19 @@ export default function AdminSidebar() {
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar Aside */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 md:sticky md:top-0 md:h-screen overflow-y-auto flex-shrink-0 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-luxury-900 border-r border-white/5 p-6 flex flex-col gap-6 lg:sticky lg:top-0 lg:h-screen overflow-y-auto flex-shrink-0 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Mobile Close Button */}
-        <div className="flex md:hidden justify-end">
+        <div className="flex lg:hidden justify-end">
           <button
             onClick={() => setMobileOpen(false)}
             className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition"
@@ -106,7 +106,7 @@ export default function AdminSidebar() {
               </span>
             </Link>
             {/* Notification Bell — desktop */}
-            <div className="hidden md:block flex-shrink-0">
+            <div className="hidden lg:block flex-shrink-0">
               <AdminNotifications />
             </div>
           </div>

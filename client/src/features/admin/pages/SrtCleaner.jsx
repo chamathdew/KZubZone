@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
+import { useToast } from '@/features/admin/components/Toast';
 import {
   Wand2, Bot, Trash2, Settings, FileText, CheckCircle2,
   UploadCloud, Download, Sparkles, AlertTriangle, RefreshCw, Languages
@@ -113,6 +114,7 @@ const DEFAULT_OPTIONS = {
 export default function SrtCleaner() {
   const { admin } = useAuth();
   const fileInputRef = useRef(null);
+  const toast = useToast();
 
   // File states (Multiple Files Queue)
   const [files, setFiles] = useState([]);
@@ -141,7 +143,7 @@ export default function SrtCleaner() {
     for (let i = 0; i < selectedFiles.length; i++) {
       const f = selectedFiles[i];
       if (!f.name.endsWith('.srt')) {
-        alert(`${f.name} is not supported. Only .srt files are currently supported.`);
+        toast.show(`${f.name} is not supported. Only .srt files are currently supported.`, 'error');
         continue;
       }
       const fileId = Math.random().toString(36).substring(2, 9);
@@ -650,7 +652,7 @@ export default function SrtCleaner() {
   };
 
   return (
-    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-luxury-950 text-slate-100 flex flex-col lg:flex-row">
       <AdminSidebar />
 
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
