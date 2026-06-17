@@ -102,6 +102,7 @@ export default function SubtitleTools() {
   // Editing Block State (for Visual Preview inline editor)
   const [editingBlockId, setEditingBlockId] = useState(null);
   const [editingText, setEditingText] = useState('');
+  const [translationEngine, setTranslationEngine] = useState('gemini');
 
   // Global Configs
   const [activeTab, setActiveTab] = useState('upload'); // 'upload', 'brand', 'translate', 'export'
@@ -401,7 +402,8 @@ export default function SubtitleTools() {
         
         // Post to backend translation API
         const response = await apiClient.post('/api/admin/ai/translate', {
-          srtContent: chunkSrtText
+          srtContent: chunkSrtText,
+          engine: translationEngine
         });
 
         const translatedChunkText = response.data.translatedSrt;
@@ -1017,6 +1019,22 @@ export default function SubtitleTools() {
                     <li>You can translate only the selected file, or trigger all files in a batch.</li>
                     <li>Exact timestamps, sequence numbers, and formatting tags are preserved.</li>
                   </ul>
+                </div>
+
+                {/* Translation Engine Selector */}
+                <div className="bg-luxury-950 border border-white/5 p-4.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-bold text-slate-200">Translation Engine</span>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Choose between Gemini 1.5 Flash (AI) or Google Translate (Free)</p>
+                  </div>
+                  <select
+                    value={translationEngine}
+                    onChange={(e) => setTranslationEngine(e.target.value)}
+                    className="h-10 px-3.5 bg-luxury-900 border border-white/10 rounded-xl outline-none focus:border-brand-primary text-slate-300 text-xs cursor-pointer min-w-[180px]"
+                  >
+                    <option value="gemini">Gemini 1.5 Flash (AI)</option>
+                    <option value="google">Google Translate (Free)</option>
+                  </select>
                 </div>
 
                 {/* Progress Indicators for All Files */}

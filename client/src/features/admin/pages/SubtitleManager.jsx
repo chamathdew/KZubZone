@@ -51,6 +51,7 @@ export default function SubtitleManager() {
   const [aiTranslatedText, setAiTranslatedText] = useState('');
   const [isAiTranslating, setIsAiTranslating] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [translationEngine, setTranslationEngine] = useState('gemini');
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -168,12 +169,13 @@ export default function SubtitleManager() {
     
     try {
       const res = await apiClient.post('/api/admin/ai/translate', {
-        srtContent: aiSourceText
+        srtContent: aiSourceText,
+        engine: translationEngine
       });
       setAiTranslatedText(res.data.translatedSrt);
-      toast.success('Gemini translated SRT successfully.');
+      toast.success(translationEngine === 'gemini' ? 'Gemini translated SRT successfully.' : 'Google translated SRT successfully.');
     } catch (err) {
-      setAiError(err.response?.data?.error || 'Translation failed. Please check Gemini API Key in backend.');
+      setAiError(err.response?.data?.error || 'Translation failed. Please check backend setup.');
       toast.error('AI translation failed.');
     } finally {
       setIsAiTranslating(false);
@@ -601,7 +603,23 @@ export default function SubtitleManager() {
         title="KSubZone AI Subtitle Translator"
         size="xl"
       >
-        <p className="text-xs text-slate-400 mb-5">Translate raw English SRT files into Sinhala while preserving standard subtitle timecodes and indices.</p>
+        <p className="text-xs text-slate-400 mb-4">Translate raw English SRT files into Sinhala while preserving standard subtitle timecodes and indices.</p>
+
+        {/* Translation Engine Selector */}
+        <div className="bg-luxury-950 border border-white/5 p-4.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-4">
+          <div>
+            <span className="font-bold text-slate-200">Translation Engine</span>
+            <p className="text-[10px] text-slate-500 mt-0.5">Choose between Gemini 1.5 Flash (AI) or Google Translate (Free)</p>
+          </div>
+          <select
+            value={translationEngine}
+            onChange={(e) => setTranslationEngine(e.target.value)}
+            className="h-10 px-3.5 bg-luxury-900 border border-white/10 rounded-xl outline-none focus:border-brand-primary text-slate-300 text-xs cursor-pointer min-w-[180px]"
+          >
+            <option value="gemini">Gemini 1.5 Flash (AI)</option>
+            <option value="google">Google Translate (Free)</option>
+          </select>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[50vh] min-h-[300px]">
           {/* Source Text */}
@@ -626,7 +644,7 @@ export default function SubtitleManager() {
           {/* Translated Text */}
           <div className="flex flex-col h-full overflow-hidden border border-brand-primary/20 rounded-xl bg-luxury-950 relative">
             <div className="px-4 py-2 border-b border-brand-primary/20 bg-brand-primary/5 flex items-center justify-between">
-              <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">Sinhala (AI Output)</span>
+              <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">Sinhala ({translationEngine === 'gemini' ? 'AI Output' : 'Google Output'})</span>
               {aiTranslatedText && (
                 <button 
                   onClick={() => {
@@ -643,7 +661,9 @@ export default function SubtitleManager() {
               {isAiTranslating ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-luxury-950/80 backdrop-blur-sm z-10">
                   <Loader2 className="w-8 h-8 text-brand-accent animate-spin mb-3" />
-                  <p className="text-brand-accent text-xs font-bold animate-pulse">Gemini AI is translating srt layout...</p>
+                  <p className="text-brand-accent text-xs font-bold animate-pulse">
+                    {translationEngine === 'gemini' ? 'Gemini AI is translating srt layout...' : 'Google Translate is translating srt layout...'}
+                  </p>
                 </div>
               ) : null}
               
@@ -653,7 +673,7 @@ export default function SubtitleManager() {
                 </div>
               )}
 
-              <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">{aiTranslatedText || 'Gemini output will render here...'}</pre>
+              <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">{aiTranslatedText || (translationEngine === 'gemini' ? 'Gemini output will render here...' : 'Google Translate output will render here...')}</pre>
             </div>
           </div>
         </div>

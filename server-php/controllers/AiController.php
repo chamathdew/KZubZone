@@ -152,6 +152,74 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
         }
     }
 
+    // Free Google Translate Helper Method using HTTP GET translate_a/single
+    private static function googleTranslateFree($text, $sl = 'en', $tl = 'si') {
+        $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" . $sl . "&tl=" . $tl . "&dt=t&q=" . urlencode($text);
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            throw new \Exception("Google Translate cURL Error: " . $error);
+        }
+        
+        $json = json_decode($response, true);
+        if (!is_array($json) || !isset($json[0])) {
+            throw new \Exception("Unexpected response from Google Translate API");
+        }
+        
+        $translatedText = '';
+        foreach ($json[0] as $sentences) {
+            $translatedText .= $sentences[0] ?? '';
+        }
+        return $translatedText;
+    }
+
+    // Translate SRT with grouping chunk logic to stay within Google Translate length boundaries
+    private static function translateSrtFree($srtText) {
+        // Standardize newlines
+        $srtText = str_replace("\r\n", "\n", $srtText);
+        $blocks = explode("\n\n", $srtText);
+        
+        $translatedSrt = "";
+        $currentGroup = [];
+        $currentLength = 0;
+        
+        foreach ($blocks as $block) {
+            $block = trim($block);
+            if (empty($block)) continue;
+            
+            $blockLength = strlen($block);
+            // If adding this block exceeds 3500 characters, translate current group first
+            if ($currentLength + $blockLength + 2 > 3500 && !empty($currentGroup)) {
+                $groupText = implode("\n\n", $currentGroup);
+                $translatedGroup = self::googleTranslateFree($groupText);
+                $translatedSrt .= $translatedGroup . "\n\n";
+                
+                $currentGroup = [];
+                $currentLength = 0;
+            }
+            
+            $currentGroup[] = $block;
+            $currentLength += $blockLength + 2;
+        }
+        
+        if (!empty($currentGroup)) {
+            $groupText = implode("\n\n", $currentGroup);
+            $translatedGroup = self::googleTranslateFree($groupText);
+            $translatedSrt .= $translatedGroup;
+        }
+        
+        return trim($translatedSrt);
+    }
+
     // 3. AI Subtitle Translator (Admin Only)
     public static function translateSubtitle() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -174,11 +242,27 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
         
         $body = json_decode(file_get_contents('php://input'), true);
         $srtText = $body['srtContent'] ?? '';
+        $engine = $body['engine'] ?? 'gemini';
 
         if (empty($srtText)) {
             http_response_code(400);
             echo json_encode(['error' => 'SRT content is required']);
             return;
+        }
+
+        if ($engine === 'google') {
+            try {
+                $translated = self::translateSrtFree($srtText);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'translatedSrt' => $translated
+                ]);
+                return;
+            } catch (\Exception $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+                return;
+            }
         }
 
         $systemPrompt = "You are a professional subtitle translator. Your task is to translate the provided SRT subtitle file from English to Sinhala.
