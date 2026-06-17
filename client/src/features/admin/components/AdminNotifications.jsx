@@ -286,35 +286,38 @@ export default function AdminNotifications() {
       )}
 
       {/* Toast Bubbles — top right corner */}
-      <div className="fixed top-20 right-6 z-[9998] flex flex-col gap-3 items-end pointer-events-none">
-        {toasts.map((toast, i) => (
-          <div
-            key={toast.id}
-            className="pointer-events-auto flex items-center gap-3 px-4 py-3.5 bg-luxury-900/95 backdrop-blur-xl border border-brand-primary/20 rounded-2xl shadow-glass-neon w-[300px]"
-            style={{ animation: 'toastIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
-          >
-            {toast.poster && (
-              <img src={toast.poster} alt="" className="w-9 h-12 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5" />
-            )}
-            <div className="flex-grow min-w-0">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary animate-pulse flex-shrink-0" />
-                <p className="text-[9px] font-black uppercase tracking-wider text-brand-secondary">Sub Needed</p>
-              </div>
-              <p className="text-xs font-bold text-white truncate leading-tight">{toast.dramaTitle}</p>
-              <p className="text-[10px] text-brand-primary font-mono font-bold mt-0.5">
-                Season {toast.season} · Ep {toast.episode} — No subs yet
-              </p>
-            </div>
-            <button
-              onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
-              className="p-1 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition flex-shrink-0"
+      {mounted && createPortal(
+        <div className="fixed top-20 right-6 z-[9998] flex flex-col gap-3 items-end pointer-events-none">
+          {toasts.map((toast, i) => (
+            <div
+              key={toast.id}
+              className="pointer-events-auto flex items-center gap-3 px-4 py-3.5 bg-luxury-900/95 backdrop-blur-xl border border-brand-primary/20 rounded-2xl shadow-glass-neon w-[300px]"
+              style={{ animation: 'toastIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
             >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
+              {toast.poster && (
+                <img src={toast.poster} alt="" className="w-9 h-12 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5" />
+              )}
+              <div className="flex-grow min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary animate-pulse flex-shrink-0" />
+                  <p className="text-[9px] font-black uppercase tracking-wider text-brand-secondary">Sub Needed</p>
+                </div>
+                <p className="text-xs font-bold text-white truncate leading-tight">{toast.dramaTitle}</p>
+                <p className="text-[10px] text-brand-primary font-mono font-bold mt-0.5">
+                  Season {toast.season} · Ep {toast.episode} — No subs yet
+                </p>
+              </div>
+              <button
+                onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                className="p-1 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
 
       <style>{`
         @keyframes toastIn {
