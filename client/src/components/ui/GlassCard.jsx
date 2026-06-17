@@ -138,8 +138,8 @@ export default function GlassCard({ item, type, priority = false }) {
             </span>
           </div>
 
-          {/* Hover Details Overlay — desktop: show on hover, mobile: always visible */}
-          <div className="absolute inset-x-0 bottom-0 p-4 sm:translate-y-3 sm:group-hover:translate-y-0 sm:opacity-0 sm:group-hover:opacity-100 opacity-100 translate-y-0 transition-all duration-300 ease-out z-30 flex flex-col gap-2">
+          {/* Hover Details Overlay — desktop: show on hover, mobile: hidden */}
+          <div className="hidden sm:flex absolute inset-x-0 bottom-0 p-4 translate-y-3 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out z-30 flex-col gap-2">
             
             {/* Genre / Keywords tags if available — desktop only */}
             {item.keywords && item.keywords.length > 0 && (
@@ -190,7 +190,7 @@ export default function GlassCard({ item, type, priority = false }) {
               )}
             </div>
 
-            {/* Download CTA Button — always visible on mobile, hover-only on desktop */}
+            {/* Download CTA Button */}
             <div className="mt-1 sm:mt-2 py-1.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/20 transition-all duration-200">
               <Download className="w-3.5 h-3.5 fill-current" />
               <span className="text-[10px] font-black uppercase tracking-wider">Download Subs</span>
@@ -198,8 +198,8 @@ export default function GlassCard({ item, type, priority = false }) {
 
           </div>
 
-          {/* Bottom dark gradient overlay for text readability */}
-          <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/95 via-black/60 to-transparent z-10 pointer-events-none sm:opacity-0 sm:group-hover:opacity-100 opacity-100 transition-opacity duration-300" />
+          {/* Bottom dark gradient overlay for text readability — hidden on mobile, visible on desktop hover */}
+          <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/95 via-black/60 to-transparent z-10 pointer-events-none opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
         </div>
 
         {/* Default Title & Meta shown below the poster */}
