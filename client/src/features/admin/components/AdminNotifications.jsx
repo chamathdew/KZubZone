@@ -169,38 +169,38 @@ export default function AdminNotifications() {
       {open && mounted && createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[9999] w-[340px] max-h-[520px] bg-[#0f0f1a] border border-white/10 rounded-2xl shadow-2xl shadow-black/70 flex flex-col overflow-hidden"
+          className="fixed z-[9999] w-[340px] max-h-[520px] bg-luxury-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-glass-neon flex flex-col overflow-hidden"
           style={{
             top: coords.top,
             left: coords.left,
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 bg-white/[0.03] flex-shrink-0">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/5 bg-gradient-to-r from-luxury-800 to-luxury-900 flex-shrink-0">
             <div>
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400" />
+                <AlertCircle className="w-4 h-4 text-brand-secondary" />
                 <p className="text-xs font-black text-white uppercase tracking-wider">Subtitle Alerts</p>
                 {alerts.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-[9px] font-black">
+                  <span className="px-1.5 py-0.5 rounded-lg bg-brand-secondary/20 text-brand-secondary text-[9px] font-black uppercase tracking-wider">
                     {alerts.length} missing
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-500 mt-0.5 ml-6">Episodes without Sinhala subtitles</p>
+              <p className="text-[9px] text-slate-400 mt-0.5 ml-6 font-medium">Episodes without Sinhala subtitles</p>
             </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => fetchMissing(true)}
                 disabled={loading}
-                className="p-1.5 rounded-lg hover:bg-white/8 text-slate-400 hover:text-white transition"
+                className="p-1.5 rounded-lg hover:bg-white/[0.05] border border-transparent hover:border-white/5 text-slate-400 hover:text-white transition"
                 title="Refresh"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-brand-primary' : ''}`} />
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-white/8 text-slate-400 hover:text-white transition"
+                className="p-1.5 rounded-lg hover:bg-white/[0.05] border border-transparent hover:border-white/5 text-slate-400 hover:text-white transition"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -222,34 +222,34 @@ export default function AdminNotifications() {
             ) : (
               <div className="divide-y divide-white/5">
                 {alerts.map((alert) => (
-                  <div key={alert.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition">
+                  <div key={alert.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] hover:border-l-2 hover:border-brand-primary pl-4 hover:pl-3.5 transition-all duration-200">
                     {/* Poster */}
                     {alert.poster ? (
                       <img
                         src={alert.poster}
                         alt=""
-                        className="w-10 h-14 object-cover rounded-lg bg-white/5 flex-shrink-0"
+                        className="w-9 h-13 object-cover rounded-xl bg-white/5 border border-white/5 flex-shrink-0 shadow-sm"
                       />
                     ) : (
-                      <div className="w-10 h-14 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center flex-shrink-0">
+                      <div className="w-9 h-13 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center flex-shrink-0">
                         <Languages className="w-4 h-4 text-brand-primary" />
                       </div>
                     )}
 
                     {/* Info */}
                     <div className="flex-grow min-w-0">
-                      <p className="text-[11px] font-bold text-white leading-tight truncate">
+                      <p className="text-[11px] font-semibold text-white leading-tight truncate">
                         {alert.dramaTitle}
                       </p>
-                      <p className="text-[11px] font-black text-brand-secondary font-mono mt-0.5">
-                        Season {alert.season} · Episode {alert.episode}
+                      <p className="text-[10px] font-black text-brand-secondary font-mono mt-0.5 tracking-wider uppercase">
+                        Season {alert.season} · Ep {alert.episode}
                       </p>
                       {alert.episodeTitle && (
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                        <p className="text-[10px] text-slate-400 truncate mt-0.5 font-medium italic">
                           "{alert.episodeTitle}"
                         </p>
                       )}
-                      <span className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold uppercase tracking-wider">
+                      <span className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded-md bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[8px] font-bold uppercase tracking-wider">
                         <Languages className="w-2.5 h-2.5" />
                         No Subtitles
                       </span>
@@ -259,7 +259,7 @@ export default function AdminNotifications() {
                     <Link
                       href="/management/subtitles"
                       onClick={() => setOpen(false)}
-                      className="flex-shrink-0 px-2.5 py-1.5 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 text-brand-primary text-[9px] font-black uppercase tracking-wider transition"
+                      className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white border border-brand-primary/25 hover:border-transparent text-[10px] font-black uppercase tracking-wider transition-all duration-300 shadow-sm"
                     >
                       Import
                     </Link>
@@ -270,11 +270,11 @@ export default function AdminNotifications() {
           </div>
 
           {alerts.length > 0 && (
-            <div className="px-4 py-3 border-t border-white/8 bg-white/[0.02] flex-shrink-0">
+            <div className="px-4 py-3.5 border-t border-white/5 bg-luxury-950/40 flex-shrink-0">
               <Link
                 href="/management/subtitles"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-center gap-2 w-full h-8 rounded-xl bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-wider transition"
+                className="flex items-center justify-center gap-2 w-full h-9 rounded-xl bg-gradient-to-r from-brand-primary/10 to-brand-secondary/10 hover:from-brand-primary hover:to-brand-secondary border border-brand-primary/20 hover:border-transparent text-brand-primary hover:text-white text-[10px] font-black uppercase tracking-wider transition-all duration-300 shadow-sm shadow-brand-primary/5 hover:shadow-brand-secondary/20"
               >
                 <Languages className="w-3.5 h-3.5" />
                 Go to Subtitle Import Panel
@@ -290,19 +290,19 @@ export default function AdminNotifications() {
         {toasts.map((toast, i) => (
           <div
             key={toast.id}
-            className="pointer-events-auto flex items-center gap-3 px-4 py-3.5 bg-[#0f0f1a] border border-red-500/25 rounded-2xl shadow-2xl shadow-black/60 w-[300px]"
+            className="pointer-events-auto flex items-center gap-3 px-4 py-3.5 bg-luxury-900/95 backdrop-blur-xl border border-brand-primary/20 rounded-2xl shadow-glass-neon w-[300px]"
             style={{ animation: 'toastIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards' }}
           >
             {toast.poster && (
-              <img src={toast.poster} alt="" className="w-9 h-12 object-cover rounded-lg flex-shrink-0" />
+              <img src={toast.poster} alt="" className="w-9 h-12 object-cover rounded-lg flex-shrink-0 shadow-md border border-white/5" />
             )}
             <div className="flex-grow min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-                <p className="text-[9px] font-black uppercase tracking-wider text-red-400">Sub Needed</p>
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary animate-pulse flex-shrink-0" />
+                <p className="text-[9px] font-black uppercase tracking-wider text-brand-secondary">Sub Needed</p>
               </div>
               <p className="text-xs font-bold text-white truncate leading-tight">{toast.dramaTitle}</p>
-              <p className="text-[10px] text-brand-secondary font-mono font-bold mt-0.5">
+              <p className="text-[10px] text-brand-primary font-mono font-bold mt-0.5">
                 Season {toast.season} · Ep {toast.episode} — No subs yet
               </p>
             </div>
