@@ -149,7 +149,7 @@ export default function SubtitleTools() {
   const handleFiles = (fileList) => {
     const srtFiles = Array.from(fileList).filter(f => f.name.endsWith('.srt'));
     if (srtFiles.length === 0) {
-      toast.show('Only .srt files are currently supported.', 'error');
+      toast.error('Only .srt files are currently supported.');
       return;
     }
 
@@ -366,7 +366,7 @@ export default function SubtitleTools() {
   const processBrandingBatch = () => {
     if (files.length === 0) return;
     setFiles(prev => prev.map(file => processFileBranding(file)));
-    toast.show('All subtitles branded and updated successfully.', 'success');
+    toast.success('All subtitles branded and updated successfully.');
     setActiveTab('export');
   };
 

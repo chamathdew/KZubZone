@@ -21,17 +21,26 @@ export default function ManagementLayout({ children }) {
 
   // Redirect only when we're sure there's no valid session
   useEffect(() => {
+    console.log('[ManagementLayout] Redirect useEffect triggered. hasMounted:', hasMounted, 'loading:', loading, 'isLoginPage:', isLoginPage, 'admin:', !!admin, 'user:', !!user);
     if (!hasMounted || loading || isLoginPage) return;
     const hasAdminToken = !!tokenService.getAdminToken();
     const isAuthorized = admin || (user && user.hasDashboardAccess);
+    console.log('[ManagementLayout] Evaluating redirect: hasAdminToken:', hasAdminToken, 'isAuthorized:', isAuthorized);
     if (!isAuthorized && !hasAdminToken) {
+      console.log('[ManagementLayout] Redirecting to login!');
       router.push('/management/login');
+    } else {
+      console.log('[ManagementLayout] Authorization check passed, no redirect');
     }
   }, [hasMounted, loading, admin, user, isLoginPage, router]);
 
-  // SSR guard
-  if (!hasMounted) {
-    return <div className="h-screen w-screen bg-luxury-950" />;
+  // SSR guard & Session verification loading state
+  if (!hasMounted || (loading && !isLoginPage)) {
+    return (
+      <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-[3px] border-brand-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   const hasAdminTokenInStorage = !!tokenService.getAdminToken();

@@ -71,7 +71,7 @@ export default function MovieManager() {
       setMovies(fetched);
       try { sessionStorage.setItem(MOVIE_CACHE_KEY + '_' + selectedStatus, JSON.stringify(fetched)); } catch(_) {}
     } catch (err) {
-      toast.show('Failed to fetch movies catalog', 'error');
+      toast.error('Failed to fetch movies catalog');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -159,15 +159,15 @@ export default function MovieManager() {
     try {
       if (editingMovie) {
         await apiClient.put(`/api/admin/movies/${editingMovie._id}`, payload);
-        toast.show('Movie details updated successfully.', 'success');
+        toast.success('Movie details updated successfully.');
       } else {
         await apiClient.post('/api/admin/movies', payload);
-        toast.show('New movie entry created successfully.', 'success');
+        toast.success('New movie entry created successfully.');
       }
       setShowModal(false);
       fetchMovies(filterStatus, true);
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Failed to save movie details.', 'error');
+      toast.error(err.response?.data?.message || 'Failed to save movie details.');
     } finally {
       setSaving(false);
     }
@@ -177,10 +177,10 @@ export default function MovieManager() {
     if (!window.confirm('Are you absolutely sure you want to delete this movie record?')) return;
     try {
       await apiClient.delete(`/api/admin/movies/${id}`);
-      toast.show('Movie record deleted successfully.', 'success');
+      toast.success('Movie record deleted successfully.');
       fetchMovies(filterStatus, true);
     } catch (err) {
-      toast.show('Failed to delete movie record.', 'error');
+      toast.error('Failed to delete movie record.');
     }
   };
 

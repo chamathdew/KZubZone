@@ -14,31 +14,43 @@ export const AuthProvider = ({ children }) => {
   // Sync session on mount
   useEffect(() => {
     const initAuth = async () => {
+      console.log('[AuthContext] initAuth started');
       const token = tokenService.getUserToken();
       const adminToken = tokenService.getAdminToken();
+      console.log('[AuthContext] Read tokens from storage - user token present:', !!token, 'admin token present:', !!adminToken);
 
       // Run both requests in PARALLEL — no sequential await
+      console.log('[AuthContext] Triggering parallel /me fetches...');
       const [userResult, adminResult] = await Promise.allSettled([
         token ? apiClient.get('/api/auth/me') : Promise.resolve(null),
         adminToken ? apiClient.get('/api/admin/me') : Promise.resolve(null)
       ]);
 
+      console.log('[AuthContext] Parallel fetches completed');
+      console.log('[AuthContext] userResult status:', userResult.status, 'value:', userResult.status === 'fulfilled' ? !!userResult.value : userResult.reason);
+      console.log('[AuthContext] adminResult status:', adminResult.status, 'value:', adminResult.status === 'fulfilled' ? !!adminResult.value : adminResult.reason);
+
       if (token) {
         if (userResult.status === 'fulfilled' && userResult.value) {
+          console.log('[AuthContext] Restoring user session:', userResult.value.data);
           setUser(userResult.value.data);
         } else {
+          console.log('[AuthContext] User token invalid, clearing');
           tokenService.removeUserToken();
         }
       }
 
       if (adminToken) {
         if (adminResult.status === 'fulfilled' && adminResult.value) {
+          console.log('[AuthContext] Restoring admin session:', adminResult.value.data);
           setAdmin(adminResult.value.data);
         } else {
+          console.log('[AuthContext] Admin token invalid, clearing');
           tokenService.removeAdminToken();
         }
       }
 
+      console.log('[AuthContext] Setting loading to false');
       setLoading(false);
     };
 

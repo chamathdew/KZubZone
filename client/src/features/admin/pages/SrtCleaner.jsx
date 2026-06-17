@@ -143,7 +143,7 @@ export default function SrtCleaner() {
     for (let i = 0; i < selectedFiles.length; i++) {
       const f = selectedFiles[i];
       if (!f.name.endsWith('.srt')) {
-        toast.show(`${f.name} is not supported. Only .srt files are currently supported.`, 'error');
+        toast.error(`${f.name} is not supported. Only .srt files are currently supported.`);
         continue;
       }
       const fileId = Math.random().toString(36).substring(2, 9);

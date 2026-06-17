@@ -58,7 +58,7 @@ export default function SubtitleManager() {
       const res = await apiClient.get('/api/admin/subtitles');
       setSubtitles(res.data);
     } catch (err) {
-      toast.show('Failed to fetch subtitles queue', 'error');
+      toast.error('Failed to fetch subtitles queue');
     } finally {
       setLoading(false);
     }
@@ -89,9 +89,9 @@ export default function SubtitleManager() {
         return copy;
       });
 
-      toast.show(`Subtitle has been ${status.toLowerCase()} successfully.`, 'success');
+      toast.success(`Subtitle has been ${status.toLowerCase()} successfully.`);
     } catch (err) {
-      toast.show('Failed to update subtitle approval state.', 'error');
+      toast.error('Failed to update subtitle approval state.');
     } finally {
       setProcessingId(null);
     }
@@ -154,9 +154,9 @@ export default function SubtitleManager() {
       
       setActiveModal(null);
       setSelectedSubtitle(null);
-      toast.show('Subtitle modified successfully.', 'success');
+      toast.success('Subtitle modified successfully.');
     } catch (err) {
-      toast.show('Failed to update subtitle details.', 'error');
+      toast.error('Failed to update subtitle details.');
     }
   };
 
@@ -171,10 +171,10 @@ export default function SubtitleManager() {
         srtContent: aiSourceText
       });
       setAiTranslatedText(res.data.translatedSrt);
-      toast.show('Gemini translated SRT successfully.', 'success');
+      toast.success('Gemini translated SRT successfully.');
     } catch (err) {
       setAiError(err.response?.data?.error || 'Translation failed. Please check Gemini API Key in backend.');
-      toast.show('AI translation failed.', 'error');
+      toast.error('AI translation failed.');
     } finally {
       setIsAiTranslating(false);
     }
@@ -187,9 +187,9 @@ export default function SubtitleManager() {
     try {
       await apiClient.delete(`/api/admin/subtitles/${id}`);
       setSubtitles(prev => prev.filter(sub => sub._id !== id));
-      toast.show('Subtitle deleted successfully.', 'success');
+      toast.success('Subtitle deleted successfully.');
     } catch (err) {
-      toast.show('Failed to delete subtitle.', 'error');
+      toast.error('Failed to delete subtitle.');
     }
   };
 
@@ -631,7 +631,7 @@ export default function SubtitleManager() {
                 <button 
                   onClick={() => {
                     navigator.clipboard.writeText(aiTranslatedText);
-                    toast.show('Translated text copied to clipboard.', 'success');
+                    toast.success('Translated text copied to clipboard.');
                   }}
                   className="text-[10px] text-brand-primary hover:text-white flex items-center gap-1 font-bold"
                 >

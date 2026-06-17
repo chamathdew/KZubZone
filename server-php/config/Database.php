@@ -670,7 +670,8 @@ class Database {
         } else {
             $params = [];
             $where = $this->buildWhere($filter, $params);
-            $sql = "SELECT * FROM {$collection}" . $where;
+            $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
+            $sql = "SELECT * FROM {$table}" . $where;
 
             if (isset($options['sort'])) {
                 $sortParts = [];
@@ -865,7 +866,8 @@ class Database {
         } else {
             $params = [];
             $where = $this->buildWhere($filter, $params);
-            $stmt = $this->pdo->prepare("DELETE FROM {$collection}" . $where);
+            $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
+            $stmt = $this->pdo->prepare("DELETE FROM {$table}" . $where);
             foreach ($params as $key => $val) {
                 $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
                 $stmt->bindValue($key, $val, $type);
@@ -893,7 +895,8 @@ class Database {
         } else {
             $params = [];
             $where = $this->buildWhere($filter, $params);
-            $sql = "SELECT COUNT(*) as cnt FROM {$collection}" . $where;
+            $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
+            $sql = "SELECT COUNT(*) as cnt FROM {$table}" . $where;
             $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $val) {
                 $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));

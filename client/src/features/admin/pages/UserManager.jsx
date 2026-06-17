@@ -32,7 +32,7 @@ export default function UserManager() {
       setUsers(res.data || []);
     } catch (err) {
       setError('Failed to fetch user accounts logs');
-      toast.show('Failed to fetch user accounts logs', 'error');
+      toast.error('Failed to fetch user accounts logs');
     } finally {
       setLoading(false);
     }
@@ -51,9 +51,9 @@ export default function UserManager() {
         status: nextStatus
       });
       setUsers(prev => prev.map(u => u._id === id ? { ...u, status: nextStatus } : u));
-      toast.show(`User status changed to ${nextStatus} successfully.`, 'success');
+      toast.success(`User status changed to ${nextStatus} successfully.`);
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Failed to toggle status', 'error');
+      toast.error(err.response?.data?.message || 'Failed to toggle status');
     }
   };
 
@@ -66,9 +66,9 @@ export default function UserManager() {
         hasDashboardAccess: nextAccess
       });
       setUsers(prev => prev.map(u => u._id === id ? { ...u, hasDashboardAccess: nextAccess } : u));
-      toast.show(`Dashboard access ${nextAccess ? 'granted' : 'revoked'} successfully.`, 'success');
+      toast.success(`Dashboard access ${nextAccess ? 'granted' : 'revoked'} successfully.`);
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Failed to toggle dashboard access', 'error');
+      toast.error(err.response?.data?.message || 'Failed to toggle dashboard access');
     }
   };
 

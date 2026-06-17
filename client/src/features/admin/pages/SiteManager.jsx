@@ -111,7 +111,7 @@ export default function SiteManager() {
         setJsonDraft(JSON.stringify(mergedContent, null, 2));
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load site builder settings.');
-        toast.show('Failed to load site builder settings.', 'error');
+        toast.error('Failed to load site builder settings.');
       } finally {
         setLoading(false);
       }
@@ -184,12 +184,12 @@ export default function SiteManager() {
       setDraft(mergeSiteContent(defaultSiteContent, res.data.content || draft));
       await refreshSiteContent();
       setSuccess('Site builder saved successfully!');
-      toast.show('Site builder settings updated. Public website content updated.', 'success');
+      toast.success('Site builder settings updated. Public website content updated.');
     } catch (err) {
       const isJsonErr = err instanceof SyntaxError;
       const msg = isJsonErr ? 'Advanced JSON has invalid formatting.' : err.response?.data?.message || 'Failed to save site builder settings.';
       setError(msg);
-      toast.show(msg, 'error');
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -198,7 +198,7 @@ export default function SiteManager() {
   const resetSection = () => {
     if (!window.confirm('Are you sure you want to reset this section back to standard system values? Unsaved changes will be discarded.')) return;
     setDraft((prev) => ({ ...prev, [activeSection]: defaultSiteContent[activeSection] }));
-    toast.show('Section content reset to default state locally.', 'info');
+    toast.info('Section content reset to default state locally.');
   };
 
   const activeFields = textFields[activeSection] || [];

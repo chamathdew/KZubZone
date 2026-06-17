@@ -33,7 +33,7 @@ export default function SeoManager() {
       setSettings(res.data || []);
     } catch (err) {
       setError('Failed to fetch settings record list');
-      toast.show('Failed to fetch settings record list', 'error');
+      toast.error('Failed to fetch settings record list');
     } finally {
       setLoading(false);
     }
@@ -58,13 +58,13 @@ export default function SeoManager() {
       });
       
       setSuccess('Setting saved successfully!');
-      toast.show('Setting saved successfully!', 'success');
+      toast.success('Setting saved successfully!');
       setKey('');
       setValue('');
       fetchSettings();
     } catch (err) {
       setError('Failed to save settings to database.');
-      toast.show('Failed to save settings to database.', 'error');
+      toast.error('Failed to save settings to database.');
     } finally {
       setSaving(false);
     }

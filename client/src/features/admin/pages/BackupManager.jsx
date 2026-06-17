@@ -52,7 +52,7 @@ export default function BackupManager() {
       setLastBackupTime(res.data.lastBackupTime || null);
     } catch (err) {
       setError('Failed to fetch backup configurations.');
-      toast.show('Failed to fetch backup configurations.', 'error');
+      toast.error('Failed to fetch backup configurations.');
     }
   };
 
@@ -66,7 +66,7 @@ export default function BackupManager() {
       setBackups(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to sync backups from Google Drive.');
-      toast.show('Failed to sync backups from Google Drive.', 'error');
+      toast.error('Failed to sync backups from Google Drive.');
     } finally {
       setLoadingBackups(false);
     }
@@ -95,13 +95,13 @@ export default function BackupManager() {
         folderId
       });
       setSuccess('Backup connection settings updated successfully.');
-      toast.show('Settings updated successfully.', 'success');
+      toast.success('Settings updated successfully.');
       setIsConfigured(res.data.serviceAccountConfigured);
       setServiceAccountEmail(res.data.serviceAccountEmail);
       setServiceAccount(''); // Clear text area for security
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save configuration settings.');
-      toast.show('Failed to save settings.', 'error');
+      toast.error('Failed to save settings.');
     } finally {
       setSavingSettings(false);
     }
@@ -115,12 +115,12 @@ export default function BackupManager() {
     try {
       const res = await apiClient.post('/api/admin/backup/create?drive=true');
       setSuccess(res.data.message || 'Backup successfully uploaded to Google Drive.');
-      toast.show('Backup uploaded to Google Drive successfully.', 'success');
+      toast.success('Backup uploaded to Google Drive successfully.');
       fetchSettings(); // update last backup time
       fetchBackups(); // reload backups list
     } catch (err) {
       setError(err.response?.data?.message || 'Google Drive backup creation failed.');
-      toast.show('Backup creation failed.', 'error');
+      toast.error('Backup creation failed.');
     } finally {
       setCreatingBackup(false);
     }
@@ -147,10 +147,10 @@ export default function BackupManager() {
       window.URL.revokeObjectURL(blobUrl);
       
       setSuccess('Local backup archive downloaded successfully.');
-      toast.show('Local ZIP downloaded successfully.', 'success');
+      toast.success('Local ZIP downloaded successfully.');
     } catch (err) {
       setError('Failed to download local backup archive.');
-      toast.show('Failed to download backup ZIP.', 'error');
+      toast.error('Failed to download backup ZIP.');
     } finally {
       setDownloadingLocal(false);
     }
@@ -165,13 +165,12 @@ export default function BackupManager() {
     setError('');
     setSuccess('');
     try {
-      await apiClient.delete(`/api/admin/backup/delete/${fileId}`);
       setSuccess('Backup file deleted from Google Drive.');
-      toast.show('Backup deleted from Google Drive.', 'success');
+      toast.success('Backup deleted from Google Drive.');
       setBackups(prev => prev.filter(b => b.id !== fileId));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete backup file.');
-      toast.show('Failed to delete backup file.', 'error');
+      toast.error('Failed to delete backup file.');
     } finally {
       setDeletingId('');
     }
@@ -189,12 +188,13 @@ export default function BackupManager() {
     try {
       const res = await apiClient.post('/api/admin/backup/restore', { fileId });
       setSuccess(res.data.message || 'Database restored successfully.');
-      toast.show('Database restored successfully!', 'success');
-      window.alert('Database restored successfully! Reloading page to apply changes...');
-      window.location.reload();
+      toast.success('Database restored successfully! Reloading page to apply changes...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to restore backup.');
-      toast.show('Failed to restore database.', 'error');
+      toast.error('Failed to restore database.');
     } finally {
       setRestoringId('');
     }
@@ -209,7 +209,7 @@ export default function BackupManager() {
     } else {
       setSelectedFile(null);
       setError('Please select a valid backup ZIP archive (.zip)');
-      toast.show('Invalid file type selected. Select a ZIP file.', 'error');
+      toast.error('Invalid file type selected. Select a ZIP file.');
     }
   };
 
@@ -235,14 +235,15 @@ export default function BackupManager() {
         }
       });
       setSuccess(res.data.message || 'Database restored from uploaded zip file.');
-      toast.show('Database manual recovery succeeded.', 'success');
+      toast.success('Database restored successfully! Reloading page to apply changes...');
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      window.alert('Database restored successfully! Reloading page to apply changes...');
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Restoration failed. Please check the integrity of the ZIP file.');
-      toast.show('Restoration failed.', 'error');
+      toast.error('Restoration failed.');
     } finally {
       setRestoringManual(false);
     }

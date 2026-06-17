@@ -389,12 +389,12 @@ export default function ArticleManager() {
 
         setShowAssistant(false);
         setImportedFileName('');
-        toast.show('HTML content converted and imported.', 'success');
+        toast.success('HTML content converted and imported.');
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         setRawText(text);
         setImportedFileName('');
-        toast.show('Text file loaded into assistant.', 'success');
+        toast.success('Text file loaded into assistant.');
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
@@ -407,7 +407,7 @@ export default function ArticleManager() {
       const res = await apiClient.get('/api/admin/articles', tokenHeaders());
       setArticles(res.data);
     } catch (err) {
-      toast.show('Failed to load articles list.', 'error');
+      toast.error('Failed to load articles list.');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -460,15 +460,15 @@ export default function ArticleManager() {
     try {
       if (editingArticle) {
         await apiClient.put(`/api/admin/articles/${editingArticle._id}`, form, tokenHeaders());
-        toast.show('Article modified successfully.', 'success');
+        toast.success('Article modified successfully.');
       } else {
         await apiClient.post('/api/admin/articles', form, tokenHeaders());
-        toast.show('New article created successfully.', 'success');
+        toast.success('New article created successfully.');
       }
       setShowModal(false);
       fetchArticles(true);
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Failed to save article.', 'error');
+      toast.error(err.response?.data?.message || 'Failed to save article.');
     } finally {
       setSaving(false);
     }
@@ -478,10 +478,10 @@ export default function ArticleManager() {
     if (!window.confirm(`Delete article "${article.title}"?`)) return;
     try {
       await apiClient.delete(`/api/admin/articles/${article._id}`, tokenHeaders());
-      toast.show('Article record removed.', 'success');
+      toast.success('Article record removed.');
       fetchArticles(true);
     } catch (err) {
-      toast.show('Failed to delete article.', 'error');
+      toast.error('Failed to delete article.');
     }
   };
 
@@ -691,7 +691,7 @@ export default function ArticleManager() {
                       updateField('content', formatted);
                       setShowAssistant(false);
                       setRawText('');
-                      toast.show('Formatted text imported into editor body.', 'success');
+                      toast.success('Formatted text imported into editor body.');
                     }}
                     className="px-4.5 py-2 bg-brand-primary hover:bg-opacity-90 rounded-xl text-xs font-bold uppercase tracking-wider transition text-white"
                   >

@@ -49,9 +49,9 @@ export default function ReviewManager() {
     try {
       await apiClient.delete(`/api/admin/reviews/${id}`);
       setReviews(prev => prev.filter(r => r._id !== id));
-      toast.show('User review deleted successfully.', 'success');
+      toast.success('User review deleted successfully.');
     } catch (err) {
-      toast.show('Failed to delete review.', 'error');
+      toast.error('Failed to delete review.');
     }
   };
 
@@ -60,9 +60,9 @@ export default function ReviewManager() {
     try {
       await apiClient.delete(`/api/admin/comments/${id}`);
       setComments(prev => prev.filter(c => c._id !== id));
-      toast.show('Comment and replies deleted successfully.', 'success');
+      toast.success('Comment and replies deleted successfully.');
     } catch (err) {
-      toast.show('Failed to delete comment.', 'error');
+      toast.error('Failed to delete comment.');
     }
   };
 

@@ -51,7 +51,7 @@ export default function DatabaseViewer() {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to connect to database manager.');
-      toast.show('Failed to connect to database manager.', 'error');
+      toast.error('Failed to connect to database manager.');
     } finally {
       setLoadingCollections(false);
     }
@@ -72,7 +72,7 @@ export default function DatabaseViewer() {
       setTotalDocs(res.data.total || 0);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to retrieve collection items.');
-      toast.show('Failed to retrieve collection items.', 'error');
+      toast.error('Failed to retrieve collection items.');
     } finally {
       setLoadingDocs(false);
     }
@@ -187,7 +187,7 @@ export default function DatabaseViewer() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.show(`Exported ${selectedCol} collection as JSON.`, 'success');
+    toast.success(`Exported ${selectedCol} collection as JSON.`);
   };
 
   // Open Edit Modal
@@ -244,7 +244,7 @@ export default function DatabaseViewer() {
         payload = JSON.parse(rawJsonText);
       } catch (err) {
         setError('Invalid JSON syntax formatting. Please fix before saving.');
-        toast.show('Invalid JSON syntax formatting.', 'error');
+        toast.error('Invalid JSON syntax formatting.');
         setSaving(false);
         return;
       }
@@ -253,7 +253,7 @@ export default function DatabaseViewer() {
     try {
       const res = await apiClient.put(`/api/admin/database/collections/${selectedCol}/${editDoc._id}`, payload);
       setSuccess('Record updated successfully.');
-      toast.show('Record updated successfully.', 'success');
+      toast.success('Record updated successfully.');
       
       // Update local state list
       setDocuments(prev => prev.map(doc => doc._id === editDoc._id ? res.data.document : doc));
@@ -263,7 +263,7 @@ export default function DatabaseViewer() {
       }, 800);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save updates to record.');
-      toast.show('Failed to save record updates.', 'error');
+      toast.error('Failed to save record updates.');
     } finally {
       setSaving(false);
     }
@@ -279,12 +279,12 @@ export default function DatabaseViewer() {
     try {
       await apiClient.delete(`/api/admin/database/collections/${selectedCol}/${id}`);
       setSuccess(`Record deleted successfully.`);
-      toast.show('Record deleted successfully.', 'success');
+      toast.success('Record deleted successfully.');
       setDocuments(prev => prev.filter(doc => doc._id !== id));
       setTotalDocs(prev => Math.max(0, prev - 1));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete record.');
-      toast.show('Failed to delete record.', 'error');
+      toast.error('Failed to delete record.');
     }
   };
 
@@ -294,7 +294,7 @@ export default function DatabaseViewer() {
     );
     if (confirmInput !== 'WIPE') {
       if (confirmInput !== null) {
-        alert("Wipe cancelled. Confirmation word did not match.");
+        toast.error("Wipe cancelled. Confirmation word did not match.");
       }
       return;
     }
@@ -305,11 +305,11 @@ export default function DatabaseViewer() {
     try {
       const res = await apiClient.post('/api/admin/database/wipe-all');
       setSuccess(res.data.message || 'Database cleared successfully.');
-      toast.show('Database cleared successfully.', 'success');
+      toast.success('Database cleared successfully.');
       fetchCollections();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to wipe database.');
-      toast.show('Failed to wipe database.', 'error');
+      toast.error('Failed to wipe database.');
     } finally {
       setWiping(false);
     }

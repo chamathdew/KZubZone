@@ -40,7 +40,7 @@ apiClient.interceptors.response.use(
   (error) => {
     const status = error.response ? error.response.status : null;
     
-    if (status === 401) {
+    if (status === 401 || status === 403) {
       // Clear only the expired role token based on URL
       const url = error.config?.url || '';
       const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');

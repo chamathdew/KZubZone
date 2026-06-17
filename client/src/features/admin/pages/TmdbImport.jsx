@@ -72,10 +72,10 @@ export default function TmdbImport() {
       setResults(res.data);
       setSelectedIds([]);
       if (res.data.length === 0) {
-        toast.show('No items found matching search terms.', 'info');
+        toast.info('No items found matching search terms.');
       }
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Search execution failed.', 'error');
+      toast.error(err.response?.data?.message || 'Search execution failed.');
     } finally {
       setLoading(false);
     }
@@ -96,10 +96,10 @@ export default function TmdbImport() {
       const dataResults = res.data.results || [];
       setResults(dataResults);
       if (dataResults.length === 0) {
-        toast.show('No Korean drama titles found for this source.', 'info');
+        toast.info('No Korean drama titles found for this source.');
       }
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Korean drama discovery failed.', 'error');
+      toast.error(err.response?.data?.message || 'Korean drama discovery failed.');
     } finally {
       setLoading(false);
     }
@@ -112,14 +112,14 @@ export default function TmdbImport() {
       const res = await apiClient.post(`/api/admin/tmdb/import`, 
         { id: tmdbId, type, isHistorical }
       );
-      toast.show(res.data.message || 'Import operation completed successfully!', 'success');
+      toast.success(res.data.message || 'Import operation completed successfully!');
       
       // Remove imported item from search list
       setResults(prev => prev.filter(item => item.id !== tmdbId));
       setSelectedIds(prev => prev.filter(id => id !== tmdbId));
       fetchHistory();
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Cascading import failed.', 'error');
+      toast.error(err.response?.data?.message || 'Cascading import failed.');
     } finally {
       setImportingId(null);
     }
@@ -145,12 +145,12 @@ export default function TmdbImport() {
       const res = await apiClient.post('/api/admin/tmdb/bulk-import',
         { ids: selectedIds, type: 'tv', isHistorical }
       );
-      toast.show(res.data.message || 'Bulk import completed.', 'success');
+      toast.success(res.data.message || 'Bulk import completed.');
       setResults(prev => prev.filter(item => !selectedIds.includes(item.id)));
       setSelectedIds([]);
       fetchHistory();
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Bulk import failed.', 'error');
+      toast.error(err.response?.data?.message || 'Bulk import failed.');
     } finally {
       setBulkImporting(false);
     }

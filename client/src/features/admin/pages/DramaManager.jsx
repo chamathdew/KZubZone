@@ -99,7 +99,7 @@ export default function DramaManager() {
       setDramas(fetched);
       try { sessionStorage.setItem(CACHE_KEY + '_' + selectedStatus, JSON.stringify(fetched)); } catch(_) {}
     } catch (err) {
-      toast.show('Failed to fetch dramas catalog.', 'error');
+      toast.error('Failed to fetch dramas catalog.');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -132,7 +132,7 @@ export default function DramaManager() {
         episodes: res.data.episodes || []
       });
     } catch (err) {
-      toast.show('Failed to load season structure.', 'error');
+      toast.error('Failed to load season structure.');
     } finally {
       setLoadingExpansion(false);
     }
@@ -209,15 +209,15 @@ export default function DramaManager() {
     try {
       if (editingDrama) {
         await apiClient.put(`/api/admin/dramas/${editingDrama._id}`, payload);
-        toast.show('Drama series settings updated successfully.', 'success');
+        toast.success('Drama series settings updated successfully.');
       } else {
         await apiClient.post('/api/admin/dramas', payload);
-        toast.show('New Drama series registered successfully.', 'success');
+        toast.success('New Drama series registered successfully.');
       }
       setShowDramaModal(false);
       fetchDramas(filterStatus, true);
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Failed to save drama configuration.', 'error');
+      toast.error(err.response?.data?.message || 'Failed to save drama configuration.');
     } finally {
       setSavingDrama(false);
     }
@@ -227,10 +227,10 @@ export default function DramaManager() {
     if (!window.confirm('WARNING: Deleting a drama will delete all cascading seasons and episodes! Are you absolutely sure?')) return;
     try {
       await apiClient.delete(`/api/admin/dramas/${id}`);
-      toast.show('Drama series deleted successfully.', 'success');
+      toast.success('Drama series deleted successfully.');
       fetchDramas(filterStatus, true);
     } catch (err) {
-      toast.show('Failed to delete drama series.', 'error');
+      toast.error('Failed to delete drama series.');
     }
   };
 
@@ -265,15 +265,15 @@ export default function DramaManager() {
     try {
       if (editingSeason) {
         await apiClient.put(`/api/admin/seasons/${editingSeason._id}`, payload);
-        toast.show('Season settings updated.', 'success');
+        toast.success('Season settings updated.');
       } else {
         await apiClient.post('/api/admin/seasons', payload);
-        toast.show('New Season registered.', 'success');
+        toast.success('New Season registered.');
       }
       setShowSeasonModal(false);
       refreshExplorer();
     } catch (err) {
-      toast.show(err.response?.data?.message || 'Season setup failed.', 'error');
+      toast.error(err.response?.data?.message || 'Season setup failed.');
     } finally {
       setSavingSeason(false);
     }
@@ -283,10 +283,10 @@ export default function DramaManager() {
     if (!window.confirm('Delete season and all its episodes?')) return;
     try {
       await apiClient.delete(`/api/admin/seasons/${seasonId}`);
-      toast.show('Season deleted.', 'success');
+      toast.success('Season deleted.');
       refreshExplorer();
     } catch (err) {
-      toast.show('Delete season operation failed.', 'error');
+      toast.error('Delete season operation failed.');
     }
   };
 
@@ -336,15 +336,15 @@ export default function DramaManager() {
     try {
       if (editingEpisode) {
         await apiClient.put(`/api/admin/episodes/${editingEpisode._id}`, payload);
-        toast.show('Episode details saved.', 'success');
+        toast.success('Episode details saved.');
       } else {
         await apiClient.post('/api/admin/episodes', payload);
-        toast.show('New Episode registered.', 'success');
+        toast.success('New Episode registered.');
       }
       setShowEpisodeModal(false);
       refreshExplorer();
     } catch (err) {
-      toast.show('Failed to save episode details.', 'error');
+      toast.error('Failed to save episode details.');
     } finally {
       setSavingEpisode(false);
     }
@@ -354,10 +354,10 @@ export default function DramaManager() {
     if (!window.confirm('Delete this episode?')) return;
     try {
       await apiClient.delete(`/api/admin/episodes/${epId}`);
-      toast.show('Episode deleted.', 'success');
+      toast.success('Episode deleted.');
       refreshExplorer();
     } catch (err) {
-      toast.show('Delete episode failed.', 'error');
+      toast.error('Delete episode failed.');
     }
   };
 
