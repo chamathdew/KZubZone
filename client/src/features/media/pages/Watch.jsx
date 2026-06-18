@@ -113,7 +113,7 @@ export default function Watch({ initialDramaData }) {
       <SeoTags
         title={`${drama.title} Season ${seasonNumber} Episode ${episodeNumber} Subtitles | KSubZone`}
         description={activeEpisodeDoc.episodeDescription || `Download Sinhala and English subtitles for ${drama.title} S${seasonNumber}E${episodeNumber}.`}
-        canonical={`https://ksubzone.com/drama/${dramaPermalink}/season-${seasonNumber}/episode-${episodeNumber}`}
+        canonical={`https://www.ksubzone.com/drama/${dramaPermalink}/season-${seasonNumber}/episode-${episodeNumber}`}
         schemaMarkup={activeEpisodeDoc.episodeSchemaMarkup}
       />
 

@@ -95,6 +95,45 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
             $canonicalUrl = $protocol . '://' . $host . $uri;
             $html = preg_replace('/<\/head>/i', '<link rel="canonical" href="' . htmlspecialchars($canonicalUrl) . '" />' . "\n</head>", $html);
 
+            // Bug 4 Fix: Inject main schema (Movie / TVSeries) for Googlebot.
+            // Previously only OG/meta tags were injected; structured data was invisible to crawlers.
+            if (!empty($media['schemaMarkup']) && is_array($media['schemaMarkup'])) {
+                $mainSchema = json_encode($media['schemaMarkup'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $mainSchemaScript = '<script type="application/ld+json">' . $mainSchema . '</script>';
+                $html = preg_replace('/<\/head>/i', $mainSchemaScript . "\n</head>", $html);
+            }
+
+            // Inject FAQPage schema for Googlebot so FAQ rich results appear in Google Search.
+            // The faq array is populated by AiSeoController::generateFaqList() when AI SEO is run.
+            if (!empty($media['faq']) && is_array($media['faq'])) {
+                $faqEntities = [];
+                foreach ($media['faq'] as $item) {
+                    $question = htmlspecialchars_decode($item['question'] ?? '', ENT_QUOTES);
+                    $answer   = htmlspecialchars_decode($item['answer']   ?? '', ENT_QUOTES);
+                    if (empty($question) || empty($answer)) continue;
+                    $faqEntities[] = [
+                        '@type'          => 'Question',
+                        'name'           => $question,
+                        'acceptedAnswer' => [
+                            '@type' => 'Answer',
+                            'text'  => $answer
+                        ]
+                    ];
+                }
+
+                if (!empty($faqEntities)) {
+                    $faqSchema = [
+                        '@context'   => 'https://schema.org',
+                        '@type'      => 'FAQPage',
+                        'mainEntity' => $faqEntities
+                    ];
+                    $faqScript = '<script type="application/ld+json">'
+                        . json_encode($faqSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                        . '</script>';
+                    $html = preg_replace('/<\/head>/i', $faqScript . "\n</head>", $html);
+                }
+            }
+
             // Create fallback visible content for search indexing bots
             $fallbackHtml = "<h1>{$title}</h1>\n<p>{$rawDesc}</p>";
             if (!empty($media['posterPath'] ?? '')) {

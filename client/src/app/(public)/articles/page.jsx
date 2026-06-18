@@ -6,7 +6,7 @@ export const metadata = {
   description: 'Read Korean drama articles, watch guides, character analysis, Sinhala subtitle notes, and movie recommendations on KSubZone.',
   keywords: ['kdrama articles', 'korean drama guides', 'sinhala subtitles', 'ksubzone articles'],
   alternates: {
-    canonical: 'https://ksubzone.com/articles',
+    canonical: 'https://www.ksubzone.com/articles',
   },
 };
 

@@ -26,12 +26,12 @@ export async function generateMetadata({ params }) {
         description: article.metaDescription || article.excerpt || 'Read this article on KSubZone.',
         keywords: article.seoKeywords || article.tags || [],
         alternates: {
-          canonical: `https://ksubzone.com/articles/${slug}`,
+          canonical: `https://www.ksubzone.com/articles/${slug}`,
         },
         openGraph: {
           title: article.metaTitle || article.title,
           description: article.metaDescription || article.excerpt,
-          url: `https://ksubzone.com/articles/${slug}`,
+          url: `https://www.ksubzone.com/articles/${slug}`,
           images: article.coverImage ? [{ url: article.coverImage }] : [],
           type: 'article',
         },

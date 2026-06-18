@@ -41,12 +41,12 @@ export async function generateMetadata({ params }) {
           title: `${drama.title} Season ${seasonNumber} Episode ${episodeNumber} Subtitles | KSubZone`,
           description: activeEpisodeDoc.episodeDescription || `Download Sinhala and English subtitles for ${drama.title} S${seasonNumber}E${episodeNumber}.`,
           alternates: {
-            canonical: `https://ksubzone.com/drama/${slug}/season-${seasonNumber}/episode-${episodeNumber}`,
+            canonical: `https://www.ksubzone.com/drama/${slug}/season-${seasonNumber}/episode-${episodeNumber}`,
           },
           openGraph: {
             title: `${drama.title} S${seasonNumber}E${episodeNumber} Subtitles`,
             description: activeEpisodeDoc.episodeDescription,
-            url: `https://ksubzone.com/drama/${slug}/season-${seasonNumber}/episode-${episodeNumber}`,
+            url: `https://www.ksubzone.com/drama/${slug}/season-${seasonNumber}/episode-${episodeNumber}`,
             images: drama.poster ? [{ url: drama.poster }] : [],
             type: 'video.episode',
           },

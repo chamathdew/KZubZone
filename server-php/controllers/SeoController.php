@@ -68,50 +68,103 @@ class SeoController {
         $db = Database::getInstance();
         $dramas = $db->find('dramas', ['status' => 'Published']);
 
+        // Bug 2 Fix: Batch-fetch ALL seasons once and group by dramaId.
+        // Previously hardcoded /season-1 — now emits every real season number.
+        $allSeasons = $db->find('seasons');
+        $seasonsByDramaId = [];
+        foreach ($allSeasons as $season) {
+            $did = (string)($season['dramaId'] ?? '');
+            if ($did !== '') {
+                $seasonsByDramaId[$did][] = $season;
+            }
+        }
+
         header('Content-Type: application/xml');
         echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
         foreach ($dramas as $drama) {
-            $slug = self::permalinkSlug($drama);
+            $slug    = self::permalinkSlug($drama);
             $lastmod = self::formatDate($drama['updatedAt'] ?? '');
+
+            // Drama root page
             echo "  <url>\n";
             echo "    <loc>" . self::$siteUrl . "/drama/{$slug}</loc>\n";
             echo "    <lastmod>{$lastmod}</lastmod>\n";
             echo "    <changefreq>weekly</changefreq>\n";
             echo "    <priority>0.8</priority>\n";
             echo "  </url>\n";
-            echo "  <url>\n";
-            echo "    <loc>" . self::$siteUrl . "/drama/{$slug}/season-1</loc>\n";
-            echo "    <lastmod>{$lastmod}</lastmod>\n";
-            echo "    <changefreq>weekly</changefreq>\n";
-            echo "    <priority>0.6</priority>\n";
-            echo "  </url>\n";
+
+            // Emit each real season page (e.g. /season-1, /season-2, /season-3 ...)
+            $dramaId = (string)($drama['_id'] ?? '');
+            $seasons = $seasonsByDramaId[$dramaId] ?? [];
+            if (empty($seasons)) {
+                // Fallback: if no seasons found, at least index season-1
+                echo "  <url>\n";
+                echo "    <loc>" . self::$siteUrl . "/drama/{$slug}/season-1</loc>\n";
+                echo "    <lastmod>{$lastmod}</lastmod>\n";
+                echo "    <changefreq>weekly</changefreq>\n";
+                echo "    <priority>0.7</priority>\n";
+                echo "  </url>\n";
+            } else {
+                foreach ($seasons as $season) {
+                    $sNum     = (int)($season['seasonNumber'] ?? 1);
+                    $sLastmod = self::formatDate($season['updatedAt'] ?? $drama['updatedAt'] ?? '');
+                    echo "  <url>\n";
+                    echo "    <loc>" . self::$siteUrl . "/drama/{$slug}/season-{$sNum}</loc>\n";
+                    echo "    <lastmod>{$sLastmod}</lastmod>\n";
+                    echo "    <changefreq>weekly</changefreq>\n";
+                    echo "    <priority>0.7</priority>\n";
+                    echo "  </url>\n";
+                }
+            }
         }
         echo '</urlset>';
     }
 
     public static function getEpisodesSitemap() {
         $db = Database::getInstance();
-        $episodes = $db->find('episodes');
+
+        // Bug 1 Fix: Batch-fetch all data upfront into in-memory hash maps.
+        // Previously this ran 2 DB queries per episode (N+1), causing Googlebot
+        // timeouts on large episode lists. Now: exactly 3 total DB calls.
+        $allDramas   = $db->find('dramas', ['status' => 'Published']);
+        $allSeasons  = $db->find('seasons');
+        $allEpisodes = $db->find('episodes');
+
+        // Build O(1) lookup maps keyed by _id string
+        $dramaMap = [];
+        foreach ($allDramas as $d) {
+            $dramaMap[(string)($d['_id'] ?? '')] = $d;
+        }
+        $seasonMap = [];
+        foreach ($allSeasons as $s) {
+            $seasonMap[(string)($s['_id'] ?? '')] = $s;
+        }
 
         header('Content-Type: application/xml');
         echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-        foreach ($episodes as $ep) {
-            $drama = $db->findOne('dramas', ['_id' => $ep['dramaId']]);
-            $season = $db->findOne('seasons', ['_id' => $ep['seasonId']]);
-            if ($drama && $season) {
-                $slug = self::permalinkSlug($drama);
-                $lastmod = self::formatDate($ep['updatedAt'] ?? '');
-                $seasonNum = $season['seasonNumber'] ?? 1;
-                $epNum = $ep['episodeNumber'] ?? 1;
-                echo "  <url>\n";
-                echo "    <loc>" . self::$siteUrl . "/drama/{$slug}/season-{$seasonNum}/episode-{$epNum}</loc>\n";
-                echo "    <lastmod>{$lastmod}</lastmod>\n";
-                echo "    <changefreq>monthly</changefreq>\n";
-                echo "    <priority>0.5</priority>\n";
-                echo "  </url>\n";
-            }
+        foreach ($allEpisodes as $ep) {
+            $dramaId  = (string)($ep['dramaId']  ?? '');
+            $seasonId = (string)($ep['seasonId'] ?? '');
+
+            // O(1) in-memory lookup — no DB query inside the loop
+            $drama  = $dramaMap[$dramaId]  ?? null;
+            $season = $seasonMap[$seasonId] ?? null;
+
+            if (!$drama || !$season) continue;
+
+            $slug      = self::permalinkSlug($drama);
+            $lastmod   = self::formatDate($ep['updatedAt'] ?? $ep['createdAt'] ?? '');
+            $seasonNum = (int)($season['seasonNumber'] ?? 1);
+            $epNum     = (int)($ep['episodeNumber']    ?? 1);
+
+            echo "  <url>\n";
+            echo "    <loc>" . self::$siteUrl . "/drama/{$slug}/season-{$seasonNum}/episode-{$epNum}</loc>\n";
+            echo "    <lastmod>{$lastmod}</lastmod>\n";
+            echo "    <changefreq>monthly</changefreq>\n";
+            echo "    <priority>0.6</priority>\n";
+            echo "  </url>\n";
         }
         echo '</urlset>';
     }

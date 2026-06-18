@@ -26,12 +26,12 @@ export async function generateMetadata({ params }) {
         description: media.metaDescription || `${media.description || media.title} Sinhala and English subtitle downloads.`,
         keywords: media.seoKeywords || (media.title ? [media.title.toLowerCase()] : []),
         alternates: {
-          canonical: `https://ksubzone.com/movie/${slug}`,
+          canonical: `https://www.ksubzone.com/movie/${slug}`,
         },
         openGraph: {
           title: media.metaTitle || media.title,
           description: media.metaDescription || media.description,
-          url: `https://ksubzone.com/movie/${slug}`,
+          url: `https://www.ksubzone.com/movie/${slug}`,
           images: media.poster ? [{ url: media.poster }] : [],
           type: 'video.movie',
         },

@@ -14,12 +14,12 @@ export async function generateMetadata() {
         description: seo.homeDescription || 'Download synchronized Sinhala and English subtitles for Korean dramas and movies.',
         keywords: seo.keywords || 'ksubzone, k-drama subtitles, sinhala subtitles, korean movies',
         alternates: {
-          canonical: brand.primaryUrl || 'https://ksubzone.com',
+          canonical: brand.primaryUrl || 'https://www.ksubzone.com',
         },
         openGraph: {
           title: seo.homeTitle || brand.siteName || 'KSubZone',
           description: seo.homeDescription,
-          url: brand.primaryUrl || 'https://ksubzone.com',
+          url: brand.primaryUrl || 'https://www.ksubzone.com',
           siteName: brand.siteName || 'KSubZone',
           images: seo.ogImage ? [{ url: seo.ogImage }] : [],
           type: 'website',

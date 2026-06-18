@@ -406,7 +406,7 @@ export default function Detail({ type = 'Movie', initialData }) {
         title={media.metaTitle || `${media.title} Sinhala & English Subtitles | KSubZone`}
         description={media.metaDescription || `${media.description || media.title} Sinhala and English subtitle downloads.`}
         keywords={media.seoKeywords || (media.title ? [media.title.toLowerCase()] : [])}
-        canonical={`https://ksubzone.com/${type.toLowerCase()}/${mediaPermalink}`}
+        canonical={`https://www.ksubzone.com/${type.toLowerCase()}/${mediaPermalink}`}
         image={media.poster}
         schemaMarkup={media.schemaMarkup}
       />

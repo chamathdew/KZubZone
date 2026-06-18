@@ -410,7 +410,7 @@ export default function ArticleDetail({ initialData }) {
         title={article.metaTitle || `${article.title} | KSubZone Articles`}
         description={article.metaDescription || article.excerpt}
         keywords={article.seoKeywords || article.tags || []}
-        canonical={`https://ksubzone.com/articles/${article.slug}`}
+        canonical={`https://www.ksubzone.com/articles/${article.slug}`}
         image={article.coverImage}
       />
 

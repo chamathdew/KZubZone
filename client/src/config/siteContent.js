@@ -6,7 +6,7 @@ export const defaultSiteContent = {
     logoText: 'KSUBZONE',
     logoUrl: '/main-logo.svg',
     faviconUrl: '/favicon.svg',
-    primaryUrl: 'https://ksubzone.com'
+    primaryUrl: 'https://www.ksubzone.com'
   },
   seo: {
     homeTitle: 'KSubZone - Sinhala & English K-Drama Subtitles',

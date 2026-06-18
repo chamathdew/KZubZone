@@ -54,7 +54,7 @@ export default function Articles({ initialData }) {
         title="KSubZone Articles - K-Drama Guides, Reviews & Sinhala Subtitle Notes"
         description="Read Korean drama articles, watch guides, character analysis, Sinhala subtitle notes, and movie recommendations on KSubZone."
         keywords={['kdrama articles', 'korean drama guides', 'sinhala subtitles', 'ksubzone articles']}
-        canonical="https://ksubzone.com/articles"
+        canonical="https://www.ksubzone.com/articles"
         image={featuredArticle?.image}
       />
 

@@ -214,7 +214,7 @@ export default function Home({
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": brand.siteName || "KSubZone",
-    "url": brand.primaryUrl || "https://ksubzone.com",
+    "url": brand.primaryUrl || "https://www.ksubzone.com",
     "description": seo.homeDescription || "Premium Korean Entertainment Platform. Search and download Sinhala and English subtitles."
   };
 
@@ -226,7 +226,7 @@ export default function Home({
         title={seo.homeTitle || `${brand.siteName || 'KSubZone'} - ${brand.tagline || 'K-Drama & Movie Subtitles'}`}
         description={seo.homeDescription}
         keywords={seoKeywords}
-        canonical={brand.primaryUrl || 'https://ksubzone.com'}
+        canonical={brand.primaryUrl || 'https://www.ksubzone.com'}
         image={seo.ogImage || slideItems[0]?.banner}
         schemaMarkup={homeSchema}
       />
