@@ -849,13 +849,24 @@ class TmdbController {
             ],
             'trending' => [
                 'label' => 'Trending Korean Dramas',
-                'endpoint' => 'trending/tv/week',
-                'params' => []
+                'endpoint' => 'discover/tv',
+                'params' => [
+                    'sort_by' => 'popularity.desc',
+                    'with_origin_country' => 'KR',
+                    'with_original_language' => 'ko',
+                    'first_air_date.gte' => date('Y-m-d', strtotime('-365 days'))
+                ]
             ],
             'airing' => [
                 'label' => 'Currently Airing Korean Dramas',
-                'endpoint' => 'tv/on_the_air',
-                'params' => []
+                'endpoint' => 'discover/tv',
+                'params' => [
+                    'sort_by' => 'popularity.desc',
+                    'with_origin_country' => 'KR',
+                    'with_original_language' => 'ko',
+                    'air_date.gte' => date('Y-m-d', strtotime('-14 days')),
+                    'air_date.lte' => date('Y-m-d', strtotime('+14 days'))
+                ]
             ]
         ];
 
