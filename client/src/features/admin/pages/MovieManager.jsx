@@ -151,7 +151,6 @@ export default function MovieManager() {
       trailer,
       tmdbRating: Number(tmdbRating),
       imdbRating: Number(imdbRating),
-      isTrending,
       status,
       isHistorical
     };
@@ -200,11 +199,6 @@ export default function MovieManager() {
             <span className="font-extrabold text-slate-200 block text-sm">{movie.title}</span>
             <span className="text-[10px] text-slate-500 font-mono mt-0.5">{movie.director || 'Unknown Director'}</span>
             <div className="flex gap-1.5 items-center mt-1.5 flex-wrap">
-              {movie.isTrending && (
-                <span className="px-1.5 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[9px] font-bold uppercase tracking-wider">
-                  Trending
-                </span>
-              )}
               {movie.isHistorical && (
                 <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
                   Historical
@@ -508,15 +502,6 @@ export default function MovieManager() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isTrending}
-                  onChange={(e) => setIsTrending(e.target.checked)}
-                  className="w-4 h-4 accent-brand-primary rounded bg-luxury-950 border-white/10"
-                />
-                Show this movie in Trending
-              </label>
               <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
                 <input
                   type="checkbox"

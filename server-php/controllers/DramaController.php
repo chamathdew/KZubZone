@@ -87,18 +87,19 @@ class DramaController {
         }
 
         if ($trending === 'true') {
-            $filter['isTrending'] = true;
+            // Trending is now calculated by views automatically rather than a manual filter flag
+            $sort = 'views';
         }
 
         if (!empty($rating)) {
             $filter['imdbRating'] = ['$gte' => (float)$rating];
         }
 
-        $sortOptions = ['createdAt' => -1];
+        $sortOptions = ['updatedAt' => -1];
         if ($sort === 'oldest') {
             $sortOptions = ['releaseDate' => 1];
         } elseif ($sort === 'newest') {
-            $sortOptions = ['releaseDate' => -1];
+            $sortOptions = ['updatedAt' => -1];
         } elseif ($sort === 'rating') {
             $sortOptions = ['imdbRating' => -1, 'tmdbRating' => -1];
         } elseif ($sort === 'popular' || $sort === 'views') {
@@ -455,6 +456,7 @@ class DramaController {
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
+        self::bumpDramaUpdatedAt($dramaId);
         $drama = $db->findOne('dramas', ['_id' => $dramaId]);
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
@@ -482,6 +484,7 @@ class DramaController {
         \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
+            self::bumpDramaUpdatedAt($season['dramaId']);
             $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
             if ($drama && !empty($drama['slug'])) {
                 \Utils\Revalidate::media('drama', $drama['slug']);
@@ -515,6 +518,7 @@ class DramaController {
         \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
+            self::bumpDramaUpdatedAt($season['dramaId']);
             $drama = $db->findOne('dramas', ['_id' => $season['dramaId']]);
             if ($drama && !empty($drama['slug'])) {
                 \Utils\Revalidate::media('drama', $drama['slug']);
@@ -587,6 +591,7 @@ class DramaController {
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
+        self::bumpDramaUpdatedAt($dramaId);
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
         }
@@ -613,6 +618,7 @@ class DramaController {
         \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
+            self::bumpDramaUpdatedAt($episode['dramaId']);
             $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
             if ($drama && !empty($drama['slug'])) {
                 \Utils\Revalidate::media('drama', $drama['slug']);
@@ -643,6 +649,7 @@ class DramaController {
         \Utils\Cache::flush();
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
+            self::bumpDramaUpdatedAt($episode['dramaId']);
             $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
             if ($drama && !empty($drama['slug'])) {
                 \Utils\Revalidate::media('drama', $drama['slug']);
@@ -1035,6 +1042,16 @@ class DramaController {
                 'seasonStatus' => $seasonStatus,
                 'latestUploaderRole' => $latestUploaderRole
             ];
+        }
+    }
+
+    public static function bumpDramaUpdatedAt($dramaId) {
+        try {
+            $db = Database::getInstance();
+            $now = date('Y-m-d H:i:s');
+            $db->updateOne('dramas', ['_id' => $dramaId], ['updatedAt' => $now]);
+        } catch (\Exception $e) {
+            error_log("Failed to bump drama updatedAt: " . $e->getMessage());
         }
     }
 }

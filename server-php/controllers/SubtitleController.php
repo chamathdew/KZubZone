@@ -557,11 +557,15 @@ class SubtitleController {
         try {
             $db = Database::getInstance();
             $mediaTypeClean = strtolower($mediaType);
+            $now = date('Y-m-d H:i:s');
             
             \Utils\Cache::flush();
             if ($mediaTypeClean === 'episode') {
                 $episode = $db->findOne('episodes', ['_id' => $mediaId]);
                 if ($episode) {
+                    // Bump parent drama updatedAt to push to newly updated list
+                    $db->updateOne('dramas', ['_id' => $episode['dramaId']], ['updatedAt' => $now]);
+                    
                     $drama = $db->findOne('dramas', ['_id' => $episode['dramaId']]);
                     if ($drama && !empty($drama['slug'])) {
                         \Utils\Revalidate::media('drama', $drama['slug']);
@@ -573,6 +577,9 @@ class SubtitleController {
                     \Utils\Revalidate::media('movie', $movie['slug']);
                 }
             } else { // 'drama' or fallback
+                // Bump drama updatedAt to push to newly updated list
+                $db->updateOne('dramas', ['_id' => $mediaId], ['updatedAt' => $now]);
+                
                 $drama = $db->findOne('dramas', ['_id' => $mediaId]);
                 if ($drama && !empty($drama['slug'])) {
                     \Utils\Revalidate::media('drama', $drama['slug']);

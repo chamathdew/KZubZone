@@ -203,7 +203,7 @@ export default function DramaManager() {
       slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || undefined,
       releaseDate: releaseDate ? releaseDate : null,
       runtime: Number(runtime), country, language, director, trailer,
-      tmdbRating: Number(tmdbRating), imdbRating: Number(imdbRating), isTrending, status, isHistorical
+      tmdbRating: Number(tmdbRating), imdbRating: Number(imdbRating), status, isHistorical
     };
 
     try {
@@ -377,11 +377,6 @@ export default function DramaManager() {
             <span className="font-extrabold text-slate-200 block text-sm">{drama.title}</span>
             <span className="text-[10px] text-slate-500 font-mono mt-0.5">{drama.director || 'Unknown Director'}</span>
             <div className="flex gap-1.5 items-center mt-1.5 flex-wrap">
-              {drama.isTrending && (
-                <span className="px-1.5 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20 text-brand-secondary text-[9px] font-bold uppercase tracking-wider">
-                  Trending
-                </span>
-              )}
               {drama.isHistorical && (
                 <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
                   Historical
@@ -618,10 +613,6 @@ export default function DramaManager() {
             </div>
 
             <div className="flex gap-4 pt-2">
-              <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
-                <input type="checkbox" checked={isTrending} onChange={e => setIsTrending(e.target.checked)} className="w-4 h-4 accent-brand-primary rounded bg-luxury-950 border-white/10" />
-                Show this drama in Trending
-              </label>
               <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
                 <input type="checkbox" checked={isHistorical} onChange={e => setIsHistorical(e.target.checked)} className="w-4 h-4 accent-brand-primary rounded bg-luxury-950 border-white/10" />
                 Mark as Historical Drama
