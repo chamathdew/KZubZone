@@ -555,6 +555,53 @@ export default function SrtCleaner() {
     }
   };
 
+  const handleCleanAll = () => {
+    const pendingFiles = files.filter(f => !f.isCleaned && !f.isCleaning && !f.isPolishing);
+    if (pendingFiles.length === 0) {
+      toast.error('No pending files to clean in queue.');
+      return;
+    }
+    toast.info(`Cleaning ${pendingFiles.length} file(s) in queue...`);
+    pendingFiles.forEach(f => {
+      cleanFile(f.id);
+    });
+  };
+
+  const handleDownloadAll = () => {
+    const cleanedFiles = files.filter(f => f.isCleaned);
+    if (cleanedFiles.length === 0) {
+      toast.error('No cleaned files to download.');
+      return;
+    }
+    toast.success(`Starting download for ${cleanedFiles.length} file(s)...`);
+    cleanedFiles.forEach((f, idx) => {
+      setTimeout(() => {
+        triggerDownloadForFile(f);
+      }, idx * 300);
+    });
+  };
+
+  const handleClearQueue = () => {
+    setFiles([]);
+    setActiveId(null);
+    toast.success('Queue cleared.');
+  };
+
+  const handleApplyActiveSettingsToAll = () => {
+    if (!activeId) {
+      toast.error('Please select a file first.');
+      return;
+    }
+    const activeConfig = files.find(f => f.id === activeId)?.options;
+    if (!activeConfig) return;
+
+    setFiles(prev => prev.map(f => ({
+      ...f,
+      options: { ...activeConfig }
+    })));
+    toast.success('Configuration applied to all files in queue.');
+  };
+
   // One-click Smart Auto-clean configuration for a specific file
   const handleRunSmartBotForFile = (id) => {
     setFiles(prev => prev.map(f => {
@@ -700,6 +747,38 @@ export default function SrtCleaner() {
                 </div>
               </div>
 
+              {/* Batch Actions Bar */}
+              {files.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCleanAll}
+                    disabled={files.every(f => f.isCleaned || f.isCleaning || f.isPolishing)}
+                    className="flex-grow h-10 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-brand-primary/10"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" /> Clean All ({files.filter(f => !f.isCleaned).length})
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={handleDownloadAll}
+                    disabled={!files.some(f => f.isCleaned)}
+                    className="flex-grow h-10 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/10"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download All ({files.filter(f => f.isCleaned).length})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleClearQueue}
+                    className="h-10 px-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center justify-center gap-1"
+                    title="Clear Queue"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Reset
+                  </button>
+                </div>
+              )}
+
               {/* Files list */}
               {files.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-xs border border-white/5 bg-white/[0.01] rounded-2xl">
@@ -820,18 +899,30 @@ export default function SrtCleaner() {
               {activeFile ? (
                 <>
                   {/* File Indicator Header */}
-                  <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4 text-left">
+                  <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
                     <div className="min-w-0">
                       <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest block">Configure Settings For:</span>
-                      <h3 className="text-xs font-bold text-white truncate pr-2">{activeFile.name}</h3>
+                      <h3 className="text-xs font-bold text-white truncate pr-2" title={activeFile.name}>{activeFile.name}</h3>
                     </div>
                     
-                    <button 
-                      onClick={() => handleRunSmartBotForFile(activeFile.id)}
-                      className="px-4 py-2 bg-gradient-to-r from-brand-secondary to-brand-primary hover:brightness-110 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5 flex-shrink-0"
-                    >
-                      <Bot className="w-3.5 h-3.5" /> Smart Auto-Clean
-                    </button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button 
+                        type="button"
+                        onClick={handleApplyActiveSettingsToAll}
+                        className="px-3.5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                        title="Apply current settings to all subtitles in queue"
+                      >
+                        <Settings className="w-3.5 h-3.5" /> Apply to All
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => handleRunSmartBotForFile(activeFile.id)}
+                        className="px-3.5 py-2 bg-gradient-to-r from-brand-secondary to-brand-primary hover:brightness-110 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                      >
+                        <Bot className="w-3.5 h-3.5" /> Smart Auto-Clean
+                      </button>
+                    </div>
                   </div>
 
                   {/* 3. Essential Cleanup (Manual) */}

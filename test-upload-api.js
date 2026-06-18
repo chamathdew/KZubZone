@@ -20,10 +20,10 @@ function signJwt(payload, secret) {
   return `${base64Header}.${base64Payload}.${base64Signature}`;
 }
 
-const secret = 'ksubzone_super_secret_jwt_key_2024_change_in_production';
+const secret = 'ksubzone_secret_key_2026';
 const payload = {
-  id: '1a4e353e215c3cbb816f6c26', // Chamath_Dew ID
-  role: 'user',
+  id: '4c01da04d4752d8ca352e7e0', // SuperAdmin ID
+  role: 'admin',
   exp: Math.floor(Date.now() / 1000) + 3600
 };
 const token = signJwt(payload, secret);
@@ -36,14 +36,14 @@ fs.writeFileSync(subPath, '1\n00:00:01,000 --> 00:00:04,000\nTest Subtitle\n');
 const boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW';
 
 const fields = {
-  mediaId: 'some-media-id',
+  mediaId: '2ef75a5bc51c0f308b9838e7',
   mediaType: 'Episode',
   language: 'Sinhala',
   version: '1.0',
   releaseNotes: 'test notes',
   seasonNumber: '1',
-  episodeNumber: '3',
-  seasonStatus: 'Complete'
+  episodeNumber: '6',
+  seasonStatus: 'Ongoing'
 };
 
 let bodyParts = [];
@@ -59,7 +59,7 @@ bodyParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
 const body = Buffer.concat(bodyParts);
 
 console.log('Sending request to local PHP server...');
-fetch('http://127.0.0.1:5000/api/subtitles/upload', {
+fetch('http://127.0.0.1:5000/api/admin/subtitles/upload', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${token}`,
