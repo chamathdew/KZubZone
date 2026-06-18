@@ -111,10 +111,26 @@ export default function Watch({ initialDramaData }) {
       
       {/* Episode dynamic SEO tags & schema */}
       <SeoTags
-        title={`${drama.title} Season ${seasonNumber} Episode ${episodeNumber} Subtitles | KSubZone`}
-        description={activeEpisodeDoc.episodeDescription || `Download Sinhala and English subtitles for ${drama.title} S${seasonNumber}E${episodeNumber}.`}
+        title={`${drama.title} S${String(seasonNumber).padStart(2, '0')}E${String(episodeNumber).padStart(2, '0')}${activeEpisodeDoc.episodeTitle ? ` "${activeEpisodeDoc.episodeTitle}"` : ''} Sinhala Subtitles | KSubZone`}
+        description={activeEpisodeDoc.episodeDescription || `Download Sinhala and English subtitles for ${drama.title} S${String(seasonNumber).padStart(2, '0')}E${String(episodeNumber).padStart(2, '0')}.`}
         canonical={`https://www.ksubzone.com/drama/${dramaPermalink}/season-${seasonNumber}/episode-${episodeNumber}`}
-        schemaMarkup={activeEpisodeDoc.episodeSchemaMarkup}
+        schemaMarkup={activeEpisodeDoc.episodeSchemaMarkup && Object.keys(activeEpisodeDoc.episodeSchemaMarkup).length > 0 ? activeEpisodeDoc.episodeSchemaMarkup : {
+          "@context": "https://schema.org",
+          "@type": "TVEpisode",
+          "name": activeEpisodeDoc.episodeTitle || `Episode ${episodeNumber}`,
+          "episodeNumber": episodeNumber,
+          "description": activeEpisodeDoc.episodeDescription || `Download Sinhala and English subtitles for ${drama.title} S${String(seasonNumber).padStart(2, '0')}E${String(episodeNumber).padStart(2, '0')}.`,
+          "datePublished": activeEpisodeDoc.airDate || null,
+          "partOfSeason": {
+            "@type": "TVSeason",
+            "seasonNumber": seasonNumber
+          },
+          "partOfSeries": {
+            "@type": "TVSeries",
+            "name": drama.title,
+            "sameAs": `https://www.ksubzone.com/drama/${dramaPermalink}`
+          }
+        }}
       />
 
       {/* Top Breadcrumb Bar */}

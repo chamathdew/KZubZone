@@ -55,6 +55,42 @@ export async function generateMetadata({ params }) {
 export default async function DramaDetailPage({ params }) {
   const { slug } = params;
   const initialData = await getDrama(slug);
+  const media = initialData?.drama;
 
-  return <Detail type="Drama" initialData={initialData} />;
+  const breadcrumbs = media ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "KSubZone",
+        "item": "https://www.ksubzone.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Dramas",
+        "item": "https://www.ksubzone.com/dramas"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": media.title,
+        "item": `https://www.ksubzone.com/drama/${slug}`
+      }
+    ]
+  } : null;
+
+  return (
+    <>
+      {breadcrumbs && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+        />
+      )}
+      <Detail type="Drama" initialData={initialData} />
+    </>
+  );
 }

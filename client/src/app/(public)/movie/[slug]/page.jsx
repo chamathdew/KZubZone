@@ -55,6 +55,42 @@ export async function generateMetadata({ params }) {
 export default async function MovieDetailPage({ params }) {
   const { slug } = params;
   const initialData = await getMovie(slug);
+  const media = initialData?.movie;
 
-  return <Detail type="Movie" initialData={initialData} />;
+  const breadcrumbs = media ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "KSubZone",
+        "item": "https://www.ksubzone.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Movies",
+        "item": "https://www.ksubzone.com/movies"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": media.title,
+        "item": `https://www.ksubzone.com/movie/${slug}`
+      }
+    ]
+  } : null;
+
+  return (
+    <>
+      {breadcrumbs && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+        />
+      )}
+      <Detail type="Movie" initialData={initialData} />
+    </>
+  );
 }
