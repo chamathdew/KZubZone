@@ -34,8 +34,8 @@ export default function ManagementLayout({ children }) {
     }
   }, [hasMounted, loading, admin, user, isLoginPage, router]);
 
-  // SSR guard & Session verification loading state
-  if (!hasMounted || (loading && !isLoginPage)) {
+  // SSR guard: Always show initial loading until mounted to prevent hydration mismatches
+  if (!hasMounted) {
     return (
       <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center">
         <div className="w-8 h-8 border-[3px] border-brand-primary border-t-transparent rounded-full animate-spin" />
@@ -43,11 +43,11 @@ export default function ManagementLayout({ children }) {
     );
   }
 
-  const hasAdminTokenInStorage = !!tokenService.getAdminToken();
   const isAuthorized = admin || (user && user.hasDashboardAccess);
 
-  // Only block if genuinely no token at all
-  if (!isLoginPage && !hasAdminTokenInStorage && !isAuthorized) {
+  // Show full-screen spinner if the page is a protected management page and we do not have an authorized session.
+  // If we have a cached session (isAuthorized is true), we can render the dashboard immediately while the API validates in the background.
+  if (!isLoginPage && !isAuthorized) {
     return (
       <div className="h-screen w-screen bg-luxury-950 flex items-center justify-center">
         <div className="w-8 h-8 border-[3px] border-brand-primary border-t-transparent rounded-full animate-spin" />
