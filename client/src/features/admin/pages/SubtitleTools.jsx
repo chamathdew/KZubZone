@@ -383,7 +383,7 @@ export default function SubtitleTools() {
       translateStatusMsg: 'Initializing AI translation...'
     });
 
-    const chunkSize = 40; // Optimal chunk size for Gemini API to not timeout
+    const chunkSize = translationEngine === 'gemini' ? 40 : 150; // Optimal chunk size (smaller for Gemini timeouts, larger for Google Translate efficiency)
     const totalSubs = file.processedSubs.length;
     const totalChunks = Math.ceil(totalSubs / chunkSize);
     const updatedSubs = [...file.processedSubs];
@@ -400,6 +400,11 @@ export default function SubtitleTools() {
 
         const chunkSrtText = stringifySRT(chunk);
         
+        // Add a delay between requests to avoid rate limits (HTTP 429)
+        if (c > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
         // Post to backend translation API
         const response = await apiClient.post('/api/admin/ai/translate', {
           srtContent: chunkSrtText,

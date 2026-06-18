@@ -156,30 +156,67 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
     private static function googleTranslateFree($text, $sl = 'en', $tl = 'si') {
         $url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=" . $sl . "&tl=" . $tl . "&dt=t&q=" . urlencode($text);
         
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        $maxRetries = 5;
+        $retryDelay = 1.0; // delay in seconds
         
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($error) {
-            throw new \Exception("Google Translate cURL Error: " . $error);
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+            
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($error) {
+                if ($attempt === $maxRetries) {
+                    throw new \Exception("Google Translate cURL Error: " . $error);
+                }
+                usleep((int)($retryDelay * 1000000));
+                $retryDelay *= 2;
+                continue;
+            }
+            
+            if ($httpCode === 429) {
+                if ($attempt === $maxRetries) {
+                    throw new \Exception("Google Translate rate limit exceeded (HTTP 429). Please wait a moment and try again.");
+                }
+                // Wait slightly longer on rate limiting (429)
+                usleep((int)($retryDelay * 1.5 * 1000000));
+                $retryDelay *= 2.5;
+                continue;
+            }
+            
+            if ($httpCode !== 200) {
+                if ($attempt === $maxRetries) {
+                    throw new \Exception("Unexpected HTTP Status Code from Google Translate API: " . $httpCode);
+                }
+                usleep((int)($retryDelay * 1000000));
+                $retryDelay *= 2;
+                continue;
+            }
+            
+            $json = json_decode($response, true);
+            if (!is_array($json) || !isset($json[0])) {
+                if ($attempt === $maxRetries) {
+                    throw new \Exception("Unexpected response format from Google Translate API");
+                }
+                usleep((int)($retryDelay * 1000000));
+                $retryDelay *= 2;
+                continue;
+            }
+            
+            $translatedText = '';
+            foreach ($json[0] as $sentences) {
+                $translatedText .= $sentences[0] ?? '';
+            }
+            return $translatedText;
         }
         
-        $json = json_decode($response, true);
-        if (!is_array($json) || !isset($json[0])) {
-            throw new \Exception("Unexpected response from Google Translate API");
-        }
-        
-        $translatedText = '';
-        foreach ($json[0] as $sentences) {
-            $translatedText .= $sentences[0] ?? '';
-        }
-        return $translatedText;
+        throw new \Exception("Google Translate failed after " . $maxRetries . " retries.");
     }
 
     // Translate SRT with grouping chunk logic to stay within Google Translate length boundaries
@@ -205,6 +242,9 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
                 
                 $currentGroup = [];
                 $currentLength = 0;
+                
+                // Add a small delay between group translations to be polite and avoid rate limiting
+                usleep(500000); // 0.5s
             }
             
             $currentGroup[] = $block;
@@ -259,19 +299,23 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
                 ]);
                 return;
             } catch (\Exception $e) {
-                http_response_code(500);
+                if (stripos($e->getMessage(), '429') !== false || stripos($e->getMessage(), 'rate limit') !== false) {
+                    http_response_code(429);
+                } else {
+                    http_response_code(500);
+                }
                 echo json_encode(['error' => $e->getMessage()]);
                 return;
             }
         }
 
         $systemPrompt = "You are a professional subtitle translator. Your task is to translate the provided SRT subtitle file from English to Sinhala.
-CRITICAL RULES:
-1. DO NOT change the numeric sequence.
-2. DO NOT change the timestamps.
-3. ONLY translate the dialogue text into natural Sinhala.
-4. Keep the exact same formatting (empty lines between subtitle blocks).
-5. Output ONLY the valid SRT content, no explanations or markdown wrappers.";
+        CRITICAL RULES:
+        1. DO NOT change the numeric sequence.
+        2. DO NOT change the timestamps.
+        3. ONLY translate the dialogue text into natural Sinhala.
+        4. Keep the exact same formatting (empty lines between subtitle blocks).
+        5. Output ONLY the valid SRT content, no explanations or markdown wrappers.";
 
         try {
             // For large SRT files, we'd normally split into chunks. For this demo/feature, we'll try to translate up to 8000 tokens at once.
@@ -283,7 +327,11 @@ CRITICAL RULES:
             ]);
 
         } catch (\Exception $e) {
-            http_response_code(500);
+            if (stripos($e->getMessage(), '429') !== false || stripos($e->getMessage(), 'rate limit') !== false || stripos($e->getMessage(), 'exhausted') !== false) {
+                http_response_code(429);
+            } else {
+                http_response_code(500);
+            }
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
@@ -333,7 +381,11 @@ CRITICAL RULES:
             ]);
 
         } catch (\Exception $e) {
-            http_response_code(500);
+            if (stripos($e->getMessage(), '429') !== false || stripos($e->getMessage(), 'rate limit') !== false || stripos($e->getMessage(), 'exhausted') !== false) {
+                http_response_code(429);
+            } else {
+                http_response_code(500);
+            }
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
