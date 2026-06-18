@@ -535,18 +535,37 @@ class Database {
         if (in_array($field, ['_id', 'createdAt', 'updatedAt'])) {
             return $this->driver === 'pgsql' ? "\"{$field}\"" : $field;
         }
+
+        $parts = explode('.', $field);
+        $lastPart = end($parts);
+        $numericFields = [
+            'viewCount', 'imdbRating', 'tmdbRating', 'runtime', 'tmdbId', 
+            'episodeNumber', 'seasonNumber', 'subtitleCount', 'downloadCount'
+        ];
+        $isNumeric = in_array($lastPart, $numericFields);
+
         if ($this->driver === 'pgsql') {
             // PostgreSQL: use ->> for text extraction from JSON/JSONB
-            $parts = explode('.', $field);
             if (count($parts) === 1) {
-                return "\"data\"->>'{$field}'";
+                $expr = "\"data\"->>'{$field}'";
+            } else {
+                $jsonPath = '{' . implode(',', $parts) . '}';
+                $expr = "\"data\" #>> '{$jsonPath}'";
             }
-            $jsonPath = '{' . implode(',', $parts) . '}';
-            return "\"data\" #>> '{$jsonPath}'";
+            if ($isNumeric) {
+                $castType = in_array($lastPart, ['imdbRating', 'tmdbRating']) ? 'NUMERIC' : 'INTEGER';
+                return "CAST(COALESCE(NULLIF({$expr}, ''), '0') AS {$castType})";
+            }
+            return $expr;
         }
         $path = '$.' . str_replace('.', '$.', $field);
         if ($this->driver === 'mysql') {
-            return "JSON_UNQUOTE(JSON_EXTRACT(data, '{$path}'))";
+            $expr = "JSON_UNQUOTE(JSON_EXTRACT(data, '{$path}'))";
+            if ($isNumeric) {
+                $castType = in_array($lastPart, ['imdbRating', 'tmdbRating']) ? 'DECIMAL(10,2)' : 'SIGNED';
+                return "CAST(NULLIF({$expr}, '') AS {$castType})";
+            }
+            return $expr;
         }
         return "json_extract(data, '{$path}')";
     }
