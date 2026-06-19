@@ -4,7 +4,7 @@ export const defaultSiteContent = {
     shortName: 'KDV',
     tagline: 'K-Drama & Movie Subtitles',
     logoText: 'KSUBZONE',
-    logoUrl: '/main-logo.svg',
+    logoUrl: '/main-logo.webp',
     faviconUrl: '/favicon.svg',
     primaryUrl: 'https://www.ksubzone.com'
   },

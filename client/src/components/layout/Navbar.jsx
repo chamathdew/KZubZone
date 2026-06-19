@@ -132,7 +132,7 @@ export default function Navbar() {
           {/* LOGO */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
             <img
-              src={resolveLogoUrl(brand.logoUrl) || "/main-logo.svg"}
+              src={resolveLogoUrl(brand.logoUrl) || "/main-logo.webp"}
               alt={brand.siteName || 'KSubZone'}
               className="h-9 w-auto object-contain"
             />

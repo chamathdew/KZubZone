@@ -53,13 +53,17 @@ export default function SeoTags({
     upsertMeta('name', 'robots', 'index, follow');
 
     // 3. Canonical URL
-    upsertLink('canonical', canonical || window.location.href);
+    let fallbackCanonical = '';
+    if (typeof window !== 'undefined') {
+      fallbackCanonical = 'https://www.ksubzone.com' + window.location.pathname + window.location.search + window.location.hash;
+    }
+    upsertLink('canonical', canonical || fallbackCanonical);
 
     // 4. Open Graph Meta Tags
     upsertMeta('property', 'og:title', title);
     upsertMeta('property', 'og:description', description);
     upsertMeta('property', 'og:type', type);
-    upsertMeta('property', 'og:url', canonical || window.location.href);
+    upsertMeta('property', 'og:url', canonical || fallbackCanonical);
     if (image) {
       upsertMeta('property', 'og:image', image);
     }

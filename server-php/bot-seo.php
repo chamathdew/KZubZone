@@ -203,9 +203,7 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
         if ($media) {
             // Check if image is relative path, convert to absolute
             if (strpos($image, 'http') !== 0) {
-                $host = $_SERVER['HTTP_HOST'] ?? 'www.ksubzone.com';
-                $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-                $image = $protocol . '://' . $host . (strpos($image, '/') === 0 ? '' : '/') . $image;
+                $image = 'https://www.ksubzone.com' . (strpos($image, '/') === 0 ? '' : '/') . $image;
             }
 
             // Replace meta tags in HTML (supporting self-closing tags with whitespace like />)
@@ -222,9 +220,7 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
             $html = preg_replace('/<meta\s+property="twitter:image"\s+content=".*?"\s*\/?>/is', '<meta property="twitter:image" content="'.$image.'" />', $html);
 
             // Add canonical tag
-            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-            $host = $_SERVER['HTTP_HOST'] ?? 'www.ksubzone.com';
-            $canonicalUrl = $protocol . '://' . $host . $uri;
+            $canonicalUrl = 'https://www.ksubzone.com' . $uri;
             $html = preg_replace('/<\/head>/i', '<link rel="canonical" href="' . htmlspecialchars($canonicalUrl) . '" />' . "\n</head>", $html);
 
             // Inject TVEpisode schema for episode page, otherwise inject main media schema (Movie / TVSeries)

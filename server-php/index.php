@@ -95,6 +95,17 @@ function getSanitizedSiteContent($db) {
     $setting = $db->findOne('settings', ['key' => 'siteContent']);
     $value = $setting['value'] ?? \Utils\SiteContentDefaults::get();
     
+    $modified = false;
+
+    // Standardize primaryUrl to start with https://
+    if (isset($value['brand']['primaryUrl'])) {
+        $url = trim($value['brand']['primaryUrl']);
+        if (!empty($url) && strpos($url, 'http://') !== 0 && strpos($url, 'https://') !== 0) {
+            $value['brand']['primaryUrl'] = 'https://' . $url;
+            $modified = true;
+        }
+    }
+    
     // Check if the JSON contains old naming patterns (KDramaVerse, KDramaUniverse)
     $valueJson = json_encode($value);
     if (stripos($valueJson, 'kdramaverse') !== false || stripos($valueJson, 'kdramauniverse') !== false) {
@@ -104,7 +115,10 @@ function getSanitizedSiteContent($db) {
             $valueJson
         );
         $value = json_decode($valueJson, true);
-        
+        $modified = true;
+    }
+    
+    if ($modified) {
         // Write the sanitized value back to the database to update it permanently
         try {
             if ($setting && isset($setting['_id'])) {

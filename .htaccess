@@ -2,8 +2,9 @@
   RewriteEngine On
   RewriteBase /
 
-  # Redirect non-www to www (HTTPS)
-  RewriteCond %{HTTP_HOST} ^ksubzone\.com [NC]
+  # Force HTTPS and www redirect
+  RewriteCond %{HTTPS} off [OR]
+  RewriteCond %{HTTP_HOST} ^ksubzone\.com$ [NC]
   RewriteRule ^(.*)$ https://www.ksubzone.com/$1 [R=301,L]
 
   # Pass the Authorization header to PHP
