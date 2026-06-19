@@ -81,8 +81,8 @@ export default function AdminNotifications() {
             const isOngoing = drama.subtitleSummary?.seasonStatus === 'Ongoing';
 
             episodes.forEach((ep) => {
-              // Skip future episodes that haven't aired yet
-              if (ep.airDate && new Date(ep.airDate) > now) {
+              // Skip future episodes that haven't aired yet or episodes without an air date
+              if (!ep.airDate || new Date(ep.airDate) > now) {
                 return;
               }
 

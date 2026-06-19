@@ -679,7 +679,7 @@ function SystemHealthRow({ health }) {
 // ─── Episode Alerts ───────────────────────────────────────────────────────────
 function EpisodeAlerts({ episodes }) {
   if (!episodes || episodes.length === 0) return null;
-  const urgentCount = episodes.filter(ep => !ep.hasSubtitles).length;
+  const urgentCount = episodes.filter(ep => !ep.hasSubtitles && !ep.isUpcoming).length;
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={3}
       className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.06] via-transparent to-orange-500/[0.03] overflow-hidden">
@@ -737,9 +737,15 @@ function EpisodeAlerts({ episodes }) {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {!ep.hasSubtitles ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/12 border border-red-500/20 text-red-300 text-[9px] font-bold">
-                    <AlertTriangle className="w-2.5 h-2.5" /> Add Subs
-                  </span>
+                  ep.isUpcoming ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/12 border border-violet-500/20 text-violet-300 text-[9px] font-bold">
+                      Not Aired
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/12 border border-red-500/20 text-red-300 text-[9px] font-bold">
+                      <AlertTriangle className="w-2.5 h-2.5" /> Add Subs
+                    </span>
+                  )
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/12 border border-emerald-500/20 text-emerald-300 text-[9px] font-bold">
                     <CheckCircle className="w-2.5 h-2.5" /> Ready
