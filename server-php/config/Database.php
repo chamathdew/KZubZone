@@ -838,7 +838,7 @@ class Database {
             }
 
             $merged['updatedAt'] = $now;
-            unset($merged['_id'], $merged['createdAt'], $merged['updatedAt']);
+            unset($merged['_id'], $merged['createdAt']);
 
             if ($this->driver === 'pgsql') {
                 $stmt = $this->pdo->prepare("UPDATE \"{$collection}\" SET \"data\" = :data, \"updatedAt\" = :updated WHERE \"_id\" = :id");

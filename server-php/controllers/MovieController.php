@@ -376,27 +376,42 @@ class MovieController {
             return;
         }
 
-        // Re-generate SEO package if title or description changes
-        if (!empty($updates['title']) || !empty($updates['description'])) {
-            $title = $updates['title'] ?? $movie['title'];
-            $desc = $updates['description'] ?? $movie['description'] ?? '';
+        // Re-generate SEO package only when title or description has actually changed
+        $incomingTitle = $updates['title'] ?? '';
+        $incomingDesc  = $updates['description'] ?? '';
+        $titleChanged  = !empty($incomingTitle) && $incomingTitle !== ($movie['title'] ?? '');
+        $descChanged   = !empty($incomingDesc)  && $incomingDesc  !== ($movie['description'] ?? '');
+
+        if ($titleChanged || $descChanged) {
+            $title = $incomingTitle ?: $movie['title'];
+            $desc  = $incomingDesc  ?: ($movie['description'] ?? '');
             $seoContent = AiSeoController::generateSeoForTitle($title, $desc, 'Movie', [
-                'genres' => $updates['keywords'] ?? $movie['keywords'] ?? [],
+                'genres'      => $updates['keywords']    ?? $movie['keywords']    ?? [],
                 'releaseDate' => $updates['releaseDate'] ?? $movie['releaseDate'] ?? null,
-                'director' => $updates['director'] ?? $movie['director'] ?? '',
-                'cast' => array_map(function($c) { return is_array($c) ? ($c['name'] ?? '') : (is_string($c) ? $c : ''); }, $updates['cast'] ?? $movie['cast'] ?? [])
+                'director'    => $updates['director']    ?? $movie['director']    ?? '',
+                'cast'        => array_map(function($c) {
+                    return is_array($c) ? ($c['name'] ?? '') : (is_string($c) ? $c : '');
+                }, $updates['cast'] ?? $movie['cast'] ?? [])
             ]);
             $updates = array_merge($updates, $seoContent);
         }
 
-        $db->updateOne('movies', ['_id' => $id], $updates);
+        try {
+            $db->updateOne('movies', ['_id' => $id], $updates);
+        } catch (\Exception $e) {
+            error_log('MovieController::updateMovie DB error for ID ' . $id . ': ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['message' => 'Database error while saving movie: ' . $e->getMessage()]);
+            return;
+        }
+
         $updatedMovie = $db->findOne('movies', ['_id' => $id]);
 
-        // Invalidate cache and trigger revalidation
-        \Utils\Cache::flush();
-        \Utils\Revalidate::path('/');
+        // Invalidate cache and trigger revalidation (best-effort, non-blocking)
+        try { \Utils\Cache::flush(); } catch (\Exception $e) { /* ignore cache errors */ }
+        try { \Utils\Revalidate::path('/'); } catch (\Exception $e) {}
         if ($updatedMovie && !empty($updatedMovie['slug'])) {
-            \Utils\Revalidate::media('movie', $updatedMovie['slug']);
+            try { \Utils\Revalidate::media('movie', $updatedMovie['slug']); } catch (\Exception $e) {}
         }
 
         header('Content-Type: application/json');
