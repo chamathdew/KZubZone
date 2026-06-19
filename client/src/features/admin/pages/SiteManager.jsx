@@ -430,7 +430,7 @@ export default function SiteManager() {
                       </span>
                     )}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-white">{brand.logoText || brand.siteName}</p>
+                      <p className="truncate text-sm font-black text-white font-bentto">{brand.logoText || brand.siteName}</p>
                       <p className="truncate text-[10px] text-slate-500">{brand.tagline}</p>
                     </div>
                   </div>

@@ -77,7 +77,7 @@ export default function AdminLogin() {
             )}
           </div>
           <h1 className="text-3xl font-extrabold text-white mt-4 tracking-tight">
-            {brand.logoText || brand.siteName || 'KSubZone'} <span className="text-brand-primary font-medium">Control</span>
+            <span className="font-bentto">{brand.logoText || brand.siteName || 'KSubZone'}</span> <span className="text-brand-primary font-medium">Control</span>
           </h1>
           <p className="text-slate-400 text-sm mt-2">{brand.tagline || 'Sign in to access management panels'}</p>
         </div>
