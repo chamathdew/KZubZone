@@ -901,7 +901,16 @@ class Database {
             $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
             $stmt = $this->pdo->prepare("DELETE FROM {$table}" . $where);
             foreach ($params as $key => $val) {
-                $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                if ($this->driver === 'pgsql') {
+                    $type = is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR;
+                    if (is_bool($val)) {
+                        $val = $val ? 'true' : 'false';
+                    } elseif ($val !== null) {
+                        $val = (string)$val;
+                    }
+                } else {
+                    $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                }
                 $stmt->bindValue($key, $val, $type);
             }
             $stmt->execute();
@@ -931,7 +940,16 @@ class Database {
             $sql = "SELECT COUNT(*) as cnt FROM {$table}" . $where;
             $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $val) {
-                $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                if ($this->driver === 'pgsql') {
+                    $type = is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR;
+                    if (is_bool($val)) {
+                        $val = $val ? 'true' : 'false';
+                    } elseif ($val !== null) {
+                        $val = (string)$val;
+                    }
+                } else {
+                    $type = is_int($val) ? \PDO::PARAM_INT : (is_bool($val) ? \PDO::PARAM_BOOL : (is_null($val) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+                }
                 $stmt->bindValue($key, $val, $type);
             }
             $stmt->execute();

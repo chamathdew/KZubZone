@@ -856,9 +856,9 @@ class DramaController {
         $latestUploaderRole = null;
         if (!empty($allSubtitles)) {
             usort($allSubtitles, function($a, $b) {
-                $t1 = isset($a['createdAt']) ? strtotime($a['createdAt']) : 0;
-                $t2 = isset($b['createdAt']) ? strtotime($b['createdAt']) : 0;
-                return $t2 - $t1;
+                $t1 = isset($a['createdAt']) && is_string($a['createdAt']) ? (strtotime($a['createdAt']) ?: 0) : 0;
+                $t2 = isset($b['createdAt']) && is_string($b['createdAt']) ? (strtotime($b['createdAt']) ?: 0) : 0;
+                return $t2 <=> $t1;
             });
             $latestUploaderRole = $allSubtitles[0]['uploaderRole'] ?? null;
         }
@@ -1047,9 +1047,9 @@ class DramaController {
             $latestUploaderRole = null;
             if (!empty($dramaSubs)) {
                 usort($dramaSubs, function($a, $b) {
-                    $t1 = isset($a['createdAt']) ? strtotime($a['createdAt']) : 0;
-                    $t2 = isset($b['createdAt']) ? strtotime($b['createdAt']) : 0;
-                    return $t2 - $t1;
+                    $t1 = isset($a['createdAt']) && is_string($a['createdAt']) ? (strtotime($a['createdAt']) ?: 0) : 0;
+                    $t2 = isset($b['createdAt']) && is_string($b['createdAt']) ? (strtotime($b['createdAt']) ?: 0) : 0;
+                    return $t2 <=> $t1;
                 });
                 $latestUploaderRole = $dramaSubs[0]['uploaderRole'] ?? null;
             }

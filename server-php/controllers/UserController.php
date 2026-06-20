@@ -164,7 +164,9 @@ class UserController {
 
         // Sort descending by updatedAt
         usort($continueWatching, function($a, $b) {
-            return strtotime($b['updatedAt']) - strtotime($a['updatedAt']);
+            $t1 = isset($a['updatedAt']) && is_string($a['updatedAt']) ? (strtotime($a['updatedAt']) ?: 0) : 0;
+            $t2 = isset($b['updatedAt']) && is_string($b['updatedAt']) ? (strtotime($b['updatedAt']) ?: 0) : 0;
+            return $t2 <=> $t1;
         });
 
         // Limit to 20

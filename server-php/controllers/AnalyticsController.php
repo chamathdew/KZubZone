@@ -97,7 +97,9 @@ class AnalyticsController {
 
         // Sort topContent by viewCount DESC
         usort($topContent, function($a, $b) {
-            return ($b['viewCount'] ?? 0) - ($a['viewCount'] ?? 0);
+            $c1 = (int)($a['viewCount'] ?? 0);
+            $c2 = (int)($b['viewCount'] ?? 0);
+            return $c2 <=> $c1;
         });
 
         // Episode subtitle notifications:
@@ -266,7 +268,9 @@ class AnalyticsController {
 
         // Sort descending by count
         usort($searches, function($a, $b) {
-            return $b['count'] - $a['count'];
+            $c1 = (int)($a['count'] ?? 0);
+            $c2 = (int)($b['count'] ?? 0);
+            return $c2 <=> $c1;
         });
 
         // Limit to 15 searches
