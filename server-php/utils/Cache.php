@@ -177,10 +177,24 @@ class Cache {
         }
 
         try {
-            return self::$redis->flushAll();
+            // Managed/Cloud Redis providers block flushAll/flushDB commands.
+            // Retrieve all matched keys under current application prefix and delete them individually.
+            $keys = self::$redis->keys('*');
+            if (is_array($keys) && !empty($keys)) {
+                foreach ($keys as $key) {
+                    self::$redis->del($key);
+                }
+            }
+            return true;
         } catch (\Exception $e) {
             error_log("Redis flush error: " . $e->getMessage());
-            return false;
+            // Fallback to flushAll in case KEYS is blocked but flushAll is allowed
+            try {
+                return self::$redis->flushAll();
+            } catch (\Exception $ex) {
+                error_log("Redis flushAll fallback error: " . $ex->getMessage());
+                return false;
+            }
         }
     }
 }

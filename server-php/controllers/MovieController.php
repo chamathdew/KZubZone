@@ -356,6 +356,9 @@ class MovieController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        if ($inserted && !empty($inserted['_id'])) {
+            \Utils\Cache::delete("movie_detail_" . $inserted['_id']);
+        }
         \Utils\Revalidate::path('/');
         if ($inserted && !empty($inserted['slug'])) {
             \Utils\Revalidate::media('movie', $inserted['slug']);
@@ -408,7 +411,10 @@ class MovieController {
         $updatedMovie = $db->findOne('movies', ['_id' => $id]);
 
         // Invalidate cache and trigger revalidation (best-effort, non-blocking)
-        try { \Utils\Cache::flush(); } catch (\Exception $e) { /* ignore cache errors */ }
+        try { 
+            \Utils\Cache::flush(); 
+            \Utils\Cache::delete("movie_detail_" . $id);
+        } catch (\Exception $e) { /* ignore cache errors */ }
         try { \Utils\Revalidate::path('/'); } catch (\Exception $e) {}
         if ($updatedMovie && !empty($updatedMovie['slug'])) {
             try { \Utils\Revalidate::media('movie', $updatedMovie['slug']); } catch (\Exception $e) {}
@@ -436,6 +442,7 @@ class MovieController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        \Utils\Cache::delete("movie_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($movie && !empty($movie['slug'])) {
             \Utils\Revalidate::media('movie', $movie['slug']);

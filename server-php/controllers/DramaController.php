@@ -339,6 +339,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        if ($inserted && !empty($inserted['_id'])) {
+            \Utils\Cache::delete("drama_detail_" . $inserted['_id']);
+        }
         \Utils\Revalidate::path('/');
         if ($inserted && !empty($inserted['slug'])) {
             \Utils\Revalidate::media('drama', $inserted['slug']);
@@ -391,6 +394,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        \Utils\Cache::delete("drama_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($updatedDrama && !empty($updatedDrama['slug'])) {
             \Utils\Revalidate::media('drama', $updatedDrama['slug']);
@@ -422,6 +426,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        \Utils\Cache::delete("drama_detail_" . $id);
         \Utils\Revalidate::path('/');
         if ($drama && !empty($drama['slug'])) {
             \Utils\Revalidate::media('drama', $drama['slug']);
@@ -455,6 +460,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        \Utils\Cache::delete("drama_detail_" . $dramaId);
         \Utils\Revalidate::path('/');
         self::bumpDramaUpdatedAt($dramaId);
         $drama = $db->findOne('dramas', ['_id' => $dramaId]);
@@ -482,6 +488,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        if ($season && !empty($season['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $season['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
             self::bumpDramaUpdatedAt($season['dramaId']);
@@ -516,6 +525,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        if ($season && !empty($season['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $season['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($season && !empty($season['dramaId'])) {
             self::bumpDramaUpdatedAt($season['dramaId']);
@@ -590,6 +602,7 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        \Utils\Cache::delete("drama_detail_" . $dramaId);
         \Utils\Revalidate::path('/');
         self::bumpDramaUpdatedAt($dramaId);
         if ($drama && !empty($drama['slug'])) {
@@ -616,6 +629,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        if ($episode && !empty($episode['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
             self::bumpDramaUpdatedAt($episode['dramaId']);
@@ -647,6 +663,9 @@ class DramaController {
 
         // Invalidate cache and trigger revalidation
         \Utils\Cache::flush();
+        if ($episode && !empty($episode['dramaId'])) {
+            \Utils\Cache::delete("drama_detail_" . $episode['dramaId']);
+        }
         \Utils\Revalidate::path('/');
         if ($episode && !empty($episode['dramaId'])) {
             self::bumpDramaUpdatedAt($episode['dramaId']);

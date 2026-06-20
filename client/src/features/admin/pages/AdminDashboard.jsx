@@ -15,6 +15,7 @@ import {
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import StatCard from '@/features/admin/components/StatCard';
 import { Pulse, CardSkeleton } from '@/features/admin/components/Skeleton';
+import { useToast } from '@/features/admin/components/Toast';
 
 // ─── Animation Variants ──────────────────────────────────────────────────────
 const fadeUp = {
@@ -765,6 +766,22 @@ function EpisodeAlerts({ episodes }) {
 
 // ─── Quick Actions ─────────────────────────────────────────────────────────────
 function QuickActions() {
+  const toast = useToast();
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const handleClearCache = async () => {
+    if (clearingCache) return;
+    setClearingCache(true);
+    try {
+      const res = await apiClient.get('/api/clear-cache-xyz');
+      toast.success(res.data || 'Redis cache flushed successfully!');
+    } catch (err) {
+      toast.error(err.response?.data || err.message || 'Failed to flush cache');
+    } finally {
+      setClearingCache(false);
+    }
+  };
+
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={9}
       className="rounded-2xl border border-white/[0.06] bg-gradient-to-br from-luxury-900 to-luxury-950 overflow-hidden">
@@ -796,6 +813,14 @@ function QuickActions() {
           <span className="flex-1">Subtitle Queue</span>
           <ArrowUpRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition flex-shrink-0" />
         </Link>
+        <button
+          onClick={handleClearCache}
+          disabled={clearingCache}
+          className="group w-full flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] text-slate-200 font-bold text-xs border border-white/[0.06] rounded-xl transition uppercase tracking-wider min-h-[44px] px-4 disabled:opacity-50 cursor-pointer"
+        >
+          <RefreshCw className={`w-4 h-4 text-slate-400 flex-shrink-0 ${clearingCache ? 'animate-spin' : ''}`} />
+          <span className="flex-1 text-left">{clearingCache ? 'Clearing...' : 'Clear System Cache'}</span>
+        </button>
         <Link href="/" target="_blank"
           className="group w-full flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] text-slate-200 font-bold text-xs border border-white/[0.06] rounded-xl transition uppercase tracking-wider min-h-[44px] px-4">
           <Globe className="w-4 h-4 text-slate-400 flex-shrink-0" />

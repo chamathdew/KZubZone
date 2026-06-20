@@ -1,5 +1,4 @@
-import { Inter, Outfit } from 'next/font/google';
-import localFont from 'next/font/local';
+import { Inter, Outfit, Montserrat } from 'next/font/google';
 import Providers from './Providers';
 import dynamic from 'next/dynamic';
 import Script from 'next/script';
@@ -21,9 +20,10 @@ const outfit = Outfit({
   display: 'swap',
 });
 
-const milker = localFont({
-  src: '../../public/fonts/Milker.otf',
+const montserrat = Montserrat({
+  subsets: ['latin'],
   variable: '--font-milker',
+  weight: ['900'],
   display: 'swap',
 });
 
@@ -54,7 +54,7 @@ export default async function RootLayout({ children }) {
   }
 
   return (
-    <html lang="en" className={`dark ${inter.variable} ${outfit.variable} ${milker.variable}`}>
+    <html lang="en" className={`dark ${inter.variable} ${outfit.variable} ${montserrat.variable}`}>
       <body className="bg-luxury-950 text-slate-100 font-sans selection:bg-brand-primary selection:text-white antialiased overflow-x-hidden">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-5YK4V61YQ6"
