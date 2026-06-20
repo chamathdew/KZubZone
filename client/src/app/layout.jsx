@@ -21,9 +21,9 @@ const outfit = Outfit({
   display: 'swap',
 });
 
-const bentto = localFont({
-  src: '../../public/fonts/Bentto-PersonalUse.otf',
-  variable: '--font-bentto',
+const milker = localFont({
+  src: '../../public/fonts/Milker.otf',
+  variable: '--font-milker',
   display: 'swap',
 });
 
@@ -54,7 +54,7 @@ export default async function RootLayout({ children }) {
   }
 
   return (
-    <html lang="en" className={`dark ${inter.variable} ${outfit.variable} ${bentto.variable}`}>
+    <html lang="en" className={`dark ${inter.variable} ${outfit.variable} ${milker.variable}`}>
       <body className="bg-luxury-950 text-slate-100 font-sans selection:bg-brand-primary selection:text-white antialiased overflow-x-hidden">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-5YK4V61YQ6"

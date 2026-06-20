@@ -36,7 +36,7 @@ export default function Footer() {
                     <Clapperboard className="h-7 w-7 text-brand-primary" />
                   </span>
                 )}
-                <span className="text-2xl font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-bentto">
+                <span className="text-2xl font-black uppercase tracking-wider bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-accent bg-clip-text text-transparent font-milker">
                   {brand.logoText || brand.siteName || 'KSUBZONE'}
                 </span>
               </Link>

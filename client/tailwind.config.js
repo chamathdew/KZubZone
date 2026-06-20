@@ -23,7 +23,7 @@ export default {
       fontFamily: {
         sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
         display: ['var(--font-outfit)', 'Outfit', 'system-ui', 'sans-serif'],
-        bentto: ['var(--font-bentto)', 'system-ui', 'sans-serif'],
+        milker: ['var(--font-milker)', 'system-ui', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',
