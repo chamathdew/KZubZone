@@ -41,16 +41,33 @@ apiClient.interceptors.response.use(
     const status = error.response ? error.response.status : null;
     
     if (status === 401 || status === 403) {
-      // Clear only the expired role token based on URL
-      const url = error.config?.url || '';
-      const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');
+      const responseData = error.response?.data;
+      const isJson = error.response?.headers?.['content-type']?.includes('application/json');
       
-      if (isAdminRoute) {
-        tokenService.removeAdminToken();
-        window.dispatchEvent(new Event('admin-session-expired'));
-      } else {
-        tokenService.removeUserToken();
-        window.dispatchEvent(new Event('user-session-expired'));
+      let isAuthError = true; // Fail-safe default
+      
+      if (responseData && isJson) {
+        const errorMessage = typeof responseData === 'object'
+          ? (responseData?.message || responseData?.error || '')
+          : '';
+        isAuthError = !errorMessage || /auth|token|expired|session|unauthorized|access denied|suspended/i.test(errorMessage);
+      } else if (responseData && typeof responseData === 'string' && responseData.trim().startsWith('<')) {
+        // HTML response (e.g. from firewall or server error page) is NOT a genuine auth JSON error
+        isAuthError = false;
+      }
+      
+      if (isAuthError) {
+        // Clear only the expired role token based on URL
+        const url = error.config?.url || '';
+        const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');
+        
+        if (isAdminRoute) {
+          tokenService.removeAdminToken();
+          window.dispatchEvent(new Event('admin-session-expired'));
+        } else {
+          tokenService.removeUserToken();
+          window.dispatchEvent(new Event('user-session-expired'));
+        }
       }
     }
     
