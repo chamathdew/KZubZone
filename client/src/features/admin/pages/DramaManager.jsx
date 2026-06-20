@@ -93,7 +93,7 @@ export default function DramaManager() {
   const fetchDramas = async (selectedStatus = filterStatus, silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await apiClient.get(`/api/media/dramas?status=${selectedStatus}&limit=200`);
+      const res = await apiClient.get(`/api/admin/dramas?status=${selectedStatus}&limit=200`);
       const list = res.data.dramas || res.data || [];
       const fetched = Array.isArray(list) ? list : [];
       setDramas(fetched);

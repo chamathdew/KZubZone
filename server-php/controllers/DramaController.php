@@ -53,10 +53,14 @@ class DramaController {
         $isHistorical = $_GET['isHistorical'] ?? null;
 
         $filter = [];
-        if ($status && $status !== 'All') {
-            $filter['status'] = $status;
-        } elseif (!$status) {
+        if (!\Middleware\AuthMiddleware::isAdmin()) {
             $filter['status'] = 'Published';
+        } else {
+            if ($status && $status !== 'All') {
+                $filter['status'] = $status;
+            } elseif (!$status) {
+                $filter['status'] = 'Published';
+            }
         }
 
         if ($isHistorical === 'true') {
