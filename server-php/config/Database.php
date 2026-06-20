@@ -237,7 +237,20 @@ class Database {
         $schemaVersion = '2026_v3_imports';
         $flagFile = dirname(__FILE__) . '/.db_initialized_' . $this->driver;
         
-        if (file_exists($flagFile) && trim(@file_get_contents($flagFile)) === $schemaVersion) {
+        $tablesExist = true;
+        try {
+            if ($this->driver === 'pgsql') {
+                $stmt = $this->pdo->query("SELECT 1 FROM information_schema.tables WHERE table_name = 'movies' LIMIT 1");
+                $tablesExist = $stmt->fetch() !== false;
+            } elseif ($this->driver === 'sqlite') {
+                $stmt = $this->pdo->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='movies' LIMIT 1");
+                $tablesExist = $stmt->fetch() !== false;
+            }
+        } catch (\Exception $e) {
+            $tablesExist = false;
+        }
+
+        if (file_exists($flagFile) && trim(@file_get_contents($flagFile)) === $schemaVersion && $tablesExist) {
             return;
         }
 
@@ -946,7 +959,7 @@ class Database {
         } else {
             $sqlField = $this->sqlField($field);
             if ($this->driver === 'pgsql') {
-                $sql = "SELECT SUM(CAST(COALESCE({$sqlField}, '0') AS INTEGER)) as total FROM \"{$collection}\"";
+                $sql = "SELECT SUM({$sqlField}) as total FROM \"{$collection}\"";
             } else {
                 $sql = "SELECT SUM(CAST(coalesce({$sqlField}, 0) AS INTEGER)) as total FROM {$collection}";
             }
