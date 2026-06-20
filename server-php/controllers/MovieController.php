@@ -270,10 +270,12 @@ class MovieController {
         $cacheKey = "movie_detail_" . $movie['_id'];
         $cached = \Utils\Cache::get($cacheKey);
         if ($cached !== false) {
-            // Background view increment
+            // Background view increment — only count unique visitors once per day
             try {
-                $views = ($movie['viewCount'] ?? 0) + 1;
-                $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
+                if (\Utils\VisitorGuard::shouldCount((string)$movie['_id'])) {
+                    $views = ($movie['viewCount'] ?? 0) + 1;
+                    $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
+                }
             } catch (\Exception $e) {
                 // Ignore view count write-lock errors to keep page load stable
             }
@@ -283,11 +285,13 @@ class MovieController {
             return;
         }
 
-        // Increment views (wrapped in try-catch to prevent DB locking crashes)
+        // Increment views — only count unique visitors once per day
         try {
-            $views = ($movie['viewCount'] ?? 0) + 1;
-            $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
-            $movie['viewCount'] = $views;
+            if (\Utils\VisitorGuard::shouldCount((string)$movie['_id'])) {
+                $views = ($movie['viewCount'] ?? 0) + 1;
+                $db->updateOne('movies', ['_id' => $movie['_id']], ['viewCount' => $views]);
+                $movie['viewCount'] = $views;
+            }
         } catch (\Exception $e) {
             // Ignore view count write-lock errors to keep page load stable
         }

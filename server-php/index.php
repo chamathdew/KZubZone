@@ -78,11 +78,11 @@ if (strpos($uri, '/uploads/') === 0) {
     }
 }
 
-// Dynamic visitor hit logger for pages (non-api/uploads requests)
+// Dynamic visitor hit logger for pages (non-api/uploads requests).
+// Uses VisitorGuard to skip bots and deduplicate same-IP same-day visits.
 if ($method === 'GET' && strpos($uri, '/api/') !== 0) {
     try {
-        $db = \Config\Database::getInstance();
-        if ($db->getDriver() !== 'sqlite') {
+        if (\Utils\VisitorGuard::shouldCount()) {
             \Controllers\AnalyticsController::logPageVisit();
         }
     } catch (\Exception $e) {

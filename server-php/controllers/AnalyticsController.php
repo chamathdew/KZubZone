@@ -219,7 +219,7 @@ class AnalyticsController {
         $db = Database::getInstance();
         $record = self::getOrCreateRecord();
 
-        $logs = $record['trafficLogs'] ?? [];
+        $logs    = $record['trafficLogs'] ?? [];
         $logIndex = -1;
         foreach ($logs as $idx => $log) {
             if ($log['date'] === $todayStr) {
@@ -229,17 +229,26 @@ class AnalyticsController {
         }
 
         if ($logIndex > -1) {
-            $logs[$logIndex]['views'] += 1;
+            // Both views and uniqueVisitors increment together because
+            // VisitorGuard already deduplicates — each call here = 1 unique visit.
+            $logs[$logIndex]['views']          = ($logs[$logIndex]['views']          ?? 0) + 1;
+            $logs[$logIndex]['uniqueVisitors'] = ($logs[$logIndex]['uniqueVisitors'] ?? 0) + 1;
         } else {
             $logs[] = ['date' => $todayStr, 'views' => 1, 'uniqueVisitors' => 1];
         }
 
         $db->updateOne('analytics', ['_id' => $record['_id']], ['trafficLogs' => $logs]);
 
-        // When called via API endpoint (not just middleware hook)
+        // When called via the explicit API endpoint (not just middleware hook)
         if (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/analytics/visit') !== false) {
-            header('Content-Type: application/json');
-            echo json_encode(['message' => 'Visit logged successfully']);
+            // Respect VisitorGuard for the explicit API endpoint too
+            if (\Utils\VisitorGuard::shouldCount('api_visit')) {
+                header('Content-Type: application/json');
+                echo json_encode(['message' => 'Visit logged successfully']);
+            } else {
+                header('Content-Type: application/json');
+                echo json_encode(['message' => 'Already counted today']);
+            }
         }
     }
 

@@ -163,10 +163,12 @@ class DramaController {
         $cacheKey = "drama_detail_" . $drama['_id'];
         $cached = \Utils\Cache::get($cacheKey);
         if ($cached !== false) {
-            // Background view increment
+            // Background view increment — only count unique visitors once per day
             try {
-                $views = ($drama['viewCount'] ?? 0) + 1;
-                $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
+                if (\Utils\VisitorGuard::shouldCount((string)$drama['_id'])) {
+                    $views = ($drama['viewCount'] ?? 0) + 1;
+                    $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
+                }
             } catch (\Exception $e) {
                 // Ignore view count write-lock errors to keep page load stable
             }
@@ -176,11 +178,13 @@ class DramaController {
             return;
         }
 
-        // Increment views (wrapped in try-catch to prevent DB locking crashes)
+        // Increment views — only count unique visitors once per day
         try {
-            $views = ($drama['viewCount'] ?? 0) + 1;
-            $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
-            $drama['viewCount'] = $views;
+            if (\Utils\VisitorGuard::shouldCount((string)$drama['_id'])) {
+                $views = ($drama['viewCount'] ?? 0) + 1;
+                $db->updateOne('dramas', ['_id' => $drama['_id']], ['viewCount' => $views]);
+                $drama['viewCount'] = $views;
+            }
         } catch (\Exception $e) {
             // Ignore view count write-lock errors to keep page load stable
         }
