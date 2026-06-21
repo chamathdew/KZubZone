@@ -38,6 +38,7 @@ $filesToCopy = @(
     "controllers\SeoController.php",
     "controllers\SubtitleController.php",
     "controllers\TmdbController.php",
+    "utils\AiService.php",
     "utils\Cache.php",
     "utils\SiteContentDefaults.php"
 )
