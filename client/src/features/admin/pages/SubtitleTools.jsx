@@ -409,6 +409,8 @@ export default function SubtitleTools() {
         const response = await apiClient.post('/api/admin/ai/translate', {
           srtContent: chunkSrtText,
           engine: translationEngine
+        }, {
+          timeout: 120000 // 2 minutes custom timeout
         });
 
         const translatedChunkText = response.data.translatedSrt;

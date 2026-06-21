@@ -5,7 +5,7 @@ const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/+$/, '
 
 const apiClient = axios.create({
   baseURL: backendUrl || '/',
-  timeout: 15000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

@@ -171,6 +171,8 @@ export default function SubtitleManager() {
       const res = await apiClient.post('/api/admin/ai/translate', {
         srtContent: aiSourceText,
         engine: translationEngine
+      }, {
+        timeout: 120000 // 2 minutes custom timeout
       });
       setAiTranslatedText(res.data.translatedSrt);
       toast.success(translationEngine === 'gemini' ? 'Gemini translated SRT successfully.' : 'Google translated SRT successfully.');

@@ -494,6 +494,8 @@ export default function SrtCleaner() {
 
             const response = await apiClient.post('/api/admin/ai/polish', {
               srtContent: chunkSrtText
+            }, {
+              timeout: 120000 // 2 minutes custom timeout
             });
 
             const polishedChunkText = response.data.polishedSrt;
