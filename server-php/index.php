@@ -527,6 +527,11 @@ $routes = [
     ]],
 
     // Admin Movie CRUD
+    ['GET', '/api/admin/movies', [
+        'Middleware\AuthMiddleware::protectAdmin',
+        function() { \Middleware\AuthMiddleware::hasPermission('manage_movies'); },
+        'Controllers\MovieController::getAllMovies'
+    ]],
     ['POST', '/api/admin/movies', [
         'Middleware\AuthMiddleware::protectAdmin',
         function() { \Middleware\AuthMiddleware::hasPermission('manage_movies'); },

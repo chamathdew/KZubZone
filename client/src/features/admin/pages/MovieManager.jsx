@@ -65,7 +65,7 @@ export default function MovieManager() {
   const fetchMovies = async (selectedStatus = filterStatus, silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await apiClient.get(`/api/media/movies?status=${selectedStatus}&limit=100`);
+      const res = await apiClient.get(`/api/admin/movies?status=${selectedStatus}&limit=100`);
       const list = res.data.movies || res.data || [];
       const fetched = Array.isArray(list) ? list : [];
       setMovies(fetched);
