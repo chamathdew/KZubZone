@@ -12,10 +12,10 @@ namespace Utils;
 class VisitorGuard {
 
     /** Directory where per-visitor marker files are stored. */
-    private static string $storeDir = __DIR__ . '/../temp/visitors';
+    private static $storeDir = __DIR__ . '/../temp/visitors';
 
     /** Known bot/crawler User-Agent substrings (case-insensitive). */
-    private static array $botSignatures = [
+    private static $botSignatures = [
         'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
         'yandexbot', 'sogou', 'exabot', 'facebot', 'ia_archiver',
         'msnbot', 'teoma', 'alexa', 'scoutjet', 'nutch', 'seznambot',
@@ -77,7 +77,7 @@ class VisitorGuard {
     /**
      * Records that this visitor has been counted (creates a tiny marker file).
      */
-    public static function markVisited(string $key): void {
+    public static function markVisited(string $key) {
         self::ensureStoreDir();
         $file = self::$storeDir . DIRECTORY_SEPARATOR . $key;
         @file_put_contents($file, '1');
@@ -130,7 +130,7 @@ class VisitorGuard {
     }
 
     /** Creates the visitor store directory if it does not exist. */
-    private static function ensureStoreDir(): void {
+    private static function ensureStoreDir() {
         if (!is_dir(self::$storeDir)) {
             @mkdir(self::$storeDir, 0755, true);
         }

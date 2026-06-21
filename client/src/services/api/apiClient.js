@@ -42,18 +42,30 @@ apiClient.interceptors.response.use(
     
     if (status === 401 || status === 403) {
       const responseData = error.response?.data;
-      const isJson = error.response?.headers?.['content-type']?.includes('application/json');
       
       let isAuthError = true; // Fail-safe default
       
-      if (responseData && isJson) {
-        const errorMessage = typeof responseData === 'object'
-          ? (responseData?.message || responseData?.error || '')
-          : '';
-        isAuthError = !errorMessage || /auth|token|expired|session|unauthorized|access denied|suspended/i.test(errorMessage);
-      } else if (responseData && typeof responseData === 'string' && responseData.trim().startsWith('<')) {
-        // HTML response (e.g. from firewall or server error page) is NOT a genuine auth JSON error
-        isAuthError = false;
+      if (responseData) {
+        let errorMessage = '';
+        if (typeof responseData === 'object') {
+          errorMessage = responseData?.message || responseData?.error || '';
+        } else if (typeof responseData === 'string') {
+          if (responseData.trim().startsWith('<')) {
+            // HTML response (e.g. from firewall or server error page) is NOT a genuine auth JSON error
+            isAuthError = false;
+          } else {
+            try {
+              const parsed = JSON.parse(responseData);
+              errorMessage = parsed?.message || parsed?.error || '';
+            } catch (e) {
+              errorMessage = responseData;
+            }
+          }
+        }
+        
+        if (errorMessage) {
+          isAuthError = /auth|token|expired|session|unauthorized|access denied|suspended/i.test(errorMessage);
+        }
       }
       
       if (isAuthError) {

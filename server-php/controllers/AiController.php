@@ -20,6 +20,7 @@ class AiController {
         $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
         if (isset($siteContent['ai']['enableChatbot']) && !$siteContent['ai']['enableChatbot']) {
             http_response_code(403);
+            header('Content-Type: application/json');
             echo json_encode(['error' => 'AI Chatbot is disabled by the administrator.']);
             return;
         }
@@ -73,6 +74,7 @@ Always be polite and helpful. If they ask for downloads, remind them they can fi
         $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
         if (isset($siteContent['ai']['enableSmartSearch']) && !$siteContent['ai']['enableSmartSearch']) {
             http_response_code(403);
+            header('Content-Type: application/json');
             echo json_encode(['error' => 'AI Smart Search is disabled by the administrator.']);
             return;
         }
@@ -274,6 +276,7 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
         $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
         if (isset($siteContent['ai']['enableTranslation']) && !$siteContent['ai']['enableTranslation']) {
             http_response_code(403);
+            header('Content-Type: application/json');
             echo json_encode(['error' => 'AI Subtitle Translation is disabled by the administrator.']);
             return;
         }
@@ -304,6 +307,7 @@ Return ONLY a comma-separated list of keywords, nothing else. Examples: 'CEO, ro
                 } else {
                     http_response_code(500);
                 }
+                header('Content-Type: application/json');
                 echo json_encode(['error' => $e->getMessage()]);
                 return;
             }
@@ -346,6 +350,7 @@ Output ONLY the translated SRT content. Nothing else.";
             } else {
                 http_response_code(500);
             }
+            header('Content-Type: application/json');
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
@@ -364,6 +369,7 @@ Output ONLY the translated SRT content. Nothing else.";
         $siteContent = $setting['value'] ?? \Utils\SiteContentDefaults::get();
         if (isset($siteContent['ai']['enableTranslation']) && !$siteContent['ai']['enableTranslation']) {
             http_response_code(403);
+            header('Content-Type: application/json');
             echo json_encode(['error' => 'AI Subtitle Polishing is disabled by the administrator.']);
             return;
         }

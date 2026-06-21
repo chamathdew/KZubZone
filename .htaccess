@@ -2,9 +2,18 @@
   RewriteEngine On
   RewriteBase /
 
-  # Force HTTPS and www redirect
-  RewriteCond %{HTTPS} off [OR]
+  # Force WWW redirect
   RewriteCond %{HTTP_HOST} ^ksubzone\.com$ [NC]
+  RewriteRule ^(.*)$ https://www.ksubzone.com/$1 [R=301,L]
+
+  # Force HTTPS redirect (Cloudflare Flexible SSL friendly)
+  # Redirect if visitor is on HTTP behind Cloudflare
+  RewriteCond %{HTTP:X-Forwarded-Proto} ^http$ [NC]
+  RewriteRule ^(.*)$ https://www.ksubzone.com/$1 [R=301,L]
+
+  # Redirect if visitor is on HTTP directly
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} ^$
   RewriteRule ^(.*)$ https://www.ksubzone.com/$1 [R=301,L]
 
   # Pass the Authorization header to PHP

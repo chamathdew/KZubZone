@@ -19,6 +19,7 @@
     "sqlite3": "^6.0.1"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0"
+    "bcrypt": "^6.0.0",
+    "pg": "^8.22.0"
   }
 }

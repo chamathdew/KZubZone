@@ -50,6 +50,7 @@ if (strpos($uri, '/api/') === 0) {
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
     header("Cache-Control: post-check=0, pre-check=0", false);
     header("Pragma: no-cache");
+    header("Content-Type: application/json; charset=utf-8");
 }
 
 // Static upload file serving fallback
@@ -200,6 +201,9 @@ $routes = [
                 'writeTestError' => $writeTestError
             ]
         ]);
+    }],
+    ['GET', '/api/debug-log.php', function() {
+        require_once __DIR__ . '/debug-log.php';
     }],
     ['GET', '/api/reveal-db-secret-x7v9w2', function() {
         header('Content-Type: application/json');

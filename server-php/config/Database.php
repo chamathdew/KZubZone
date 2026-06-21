@@ -211,7 +211,7 @@ class Database {
 
             if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
                 $host = 'aws-1-ap-south-1.pooler.supabase.com';
-                $port = 6543;
+                $port = 5432;
                 if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
                     $user = $user . '.ejvczjiueysbiewzsuin';
                 }

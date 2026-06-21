@@ -18,4 +18,7 @@ NODE_ENV=production
 # ── Supabase File Storage (subtitle uploads) ─────────────
 SUPABASE_URL=https://ejvczjiueysbiewzsuin.supabase.co
 SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqdmN6aml1ZXlzYmlld3pzdWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTA4NzM4MiwiZXhwIjoyMDk2NjYzMzgyfQ.cRqR7KIUYsV_nHgKdW5us_Ky3Tu_5gwJf9FYkYxIt8M
-SUPABASE_BUCKET=Ksubzone
+# ── Next.js Revalidation ──────────────────────────────────
+NEXT_JS_URL=https://www.ksubzone.com
+REVALIDATION_TOKEN=ksubzone_reval_secret_2026
+

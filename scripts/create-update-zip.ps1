@@ -18,22 +18,16 @@ if (Test-Path $zipPath)  { Remove-Item $zipPath  -Force }
 if (Test-Path $tempDir)  { Remove-Item $tempDir  -Recurse -Force }
 New-Item -ItemType Directory -Path $tempDir | Out-Null
 
-# ── 1. Root .htaccess ──────────────────────────────────────────────────
-$htaccess = Join-Path $root ".htaccess"
-Copy-Item $htaccess $tempDir
-Write-Host "Included: .htaccess (root)"
-
-# ── 2. server-php folder ───────────────────────────────────────────────
+# ── 1. Copy server-php contents directly to temp build root ───────────────
 $serverPhpSrc = Join-Path $root "server-php"
-$serverPhpDst = Join-Path $tempDir "server-php"
-Copy-Item $serverPhpSrc $serverPhpDst -Recurse
-Write-Host "Copied: server-php/"
+Copy-Item "$serverPhpSrc\*" $tempDir -Recurse -Force
+Write-Host "Copied contents of server-php/ directly to build root"
 
-# Strip sensitive / environment-specific files
+# Strip sensitive / environment-specific files from the root of tempDir
 $excludes = @(
-    (Join-Path $serverPhpDst "ksubzone.sqlite"),
-    (Join-Path $serverPhpDst ".env"),
-    (Join-Path $serverPhpDst "config\backup_config.json")
+    (Join-Path $tempDir "ksubzone.sqlite"),
+    (Join-Path $tempDir ".env"),
+    (Join-Path $tempDir "config\backup_config.json")
 )
 foreach ($f in $excludes) {
     if (Test-Path $f) {
@@ -42,16 +36,17 @@ foreach ($f in $excludes) {
     }
 }
 
-# Clear uploads content (keep folder so structure is preserved on server)
-$uploadsDir = Join-Path $serverPhpDst "uploads"
+# Clear uploads contents if any
+$uploadsDir = Join-Path $tempDir "uploads"
 if (Test-Path $uploadsDir) {
     Get-ChildItem $uploadsDir | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host " - Cleared: uploads/ contents"
 }
 
-# ── 3. Zip ─────────────────────────────────────────────────────────────
-Write-Host "Creating zip..."
-Compress-Archive -Path "$tempDir\*" -DestinationPath $zipPath -Force
+# ── 2. Zip ─────────────────────────────────────────────────────────────
+Write-Host "Creating zip using tar..."
+# Use tar to preserve POSIX-compliant permissions when extracted on Linux hosts
+tar -a -c -f $zipPath -C $tempDir .
 
 # Cleanup temp
 Remove-Item $tempDir -Recurse -Force
@@ -61,6 +56,6 @@ Write-Host ""
 Write-Host "SUCCESS: backend-update.zip ($sizeMB MB) ready at:" -ForegroundColor Green
 Write-Host "  $zipPath"
 Write-Host ""
-Write-Host "Upload this zip to your cPanel and extract it into public_html/" -ForegroundColor Yellow
-Write-Host "It will update: .htaccess + all server-php/ files" -ForegroundColor Yellow
+Write-Host "Upload this zip to cPanel and extract it DIRECTLY into public_html/api/" -ForegroundColor Yellow
+Write-Host "It will update the API files directly." -ForegroundColor Yellow
 Write-Host "(Your .env and ksubzone.sqlite are SAFE - not included)" -ForegroundColor Green
