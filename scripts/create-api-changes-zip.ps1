@@ -33,6 +33,7 @@ $filesToCopy = @(
     "controllers\AiController.php",
     "controllers\AiSeoController.php",
     "controllers\AnalyticsController.php",
+    "controllers\AuthController.php",
     "controllers\DramaController.php",
     "controllers\MovieController.php",
     "controllers\SeoController.php",

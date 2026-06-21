@@ -75,11 +75,21 @@ export default function Auth() {
     setError('');
     try {
       const res = await apiClient.post('/api/auth/register', { username, email, password });
-      setVerifyEmailAddr(res.data.email);
-      setDemoVerifyCode(res.data.verificationCode); // Demo help
-      setVerifyCode(res.data.verificationCode);
-      setInfo('A verification code was sent to your email.');
-      setMode('verification');
+      if (res.data.token) {
+        // Clear admin session to prevent concurrent mixed roles in single browser
+        tokenService.removeAdminToken();
+        setAdmin(null);
+
+        tokenService.setUserToken(res.data.token);
+        setUser(res.data.user);
+        router.push('/');
+      } else {
+        setVerifyEmailAddr(res.data.email);
+        setDemoVerifyCode(res.data.verificationCode); // Demo help
+        setVerifyCode(res.data.verificationCode);
+        setInfo('A verification code was sent to your email.');
+        setMode('verification');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed.');
     } finally {

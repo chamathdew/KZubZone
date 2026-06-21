@@ -45,8 +45,8 @@ class AuthController {
             'email' => $email,
             'password' => $hashedPassword,
             'avatar' => '',
-            'isVerified' => false,
-            'verificationToken' => $verificationToken,
+            'isVerified' => true,
+            'verificationToken' => null,
             'favorites' => [],
             'watchlist' => [],
             'continueWatching' => [],
@@ -55,7 +55,7 @@ class AuthController {
         ];
 
         try {
-            $db->insertOne('users', $user);
+            $savedUser = $db->insertOne('users', $user);
         } catch (\Exception $e) {
             http_response_code(500);
             header('Content-Type: application/json');
@@ -66,11 +66,19 @@ class AuthController {
             return;
         }
 
+        $token = self::generateToken($savedUser['_id'], 'user');
+
         header('Content-Type: application/json');
         echo json_encode([
-            'message' => 'Registration successful. Please verify your email with the 6-digit code.',
-            'email' => $email,
-            'verificationCode' => $verificationToken
+            'message' => 'Registration successful.',
+            'token' => $token,
+            'user' => [
+                'id' => $savedUser['_id'],
+                'username' => $savedUser['username'],
+                'email' => $savedUser['email'],
+                'avatar' => $savedUser['avatar'] ?? '',
+                'isVerified' => true
+            ]
         ]);
     }
 
