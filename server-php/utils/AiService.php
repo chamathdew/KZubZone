@@ -45,41 +45,74 @@ class AiService {
                 "temperature" => $temperature,
                 "topK" => 40,
                 "topP" => 0.95,
-                "maxOutputTokens" => 8192
+                "maxOutputTokens" => 8192,
+                "thinkingConfig" => [
+                    "thinkingBudget" => 0
+                ]
             ]
         ];
 
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json'
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        // Ignore SSL verification for local dev if needed
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        $maxRetries = 5;
+        $retryDelay = 2.0; // initial retry delay in seconds
+        
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json'
+            ]);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            // Ignore SSL verification for local dev if needed
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
 
-        if ($error) {
-            throw new \Exception("cURL Error: " . $error);
+            if ($error) {
+                if ($attempt === $maxRetries) {
+                    throw new \Exception("cURL Error: " . $error);
+                }
+                usleep((int)($retryDelay * 1000000));
+                $retryDelay *= 2.0;
+                continue;
+            }
+
+            $data = json_decode($response, true);
+
+            if ($httpCode === 429) {
+                if ($attempt === $maxRetries) {
+                    $errorMessage = $data['error']['message'] ?? 'Unknown API error (429 rate limit)';
+                    throw new \Exception("Gemini API Error (429): " . $errorMessage);
+                }
+                // Wait on rate limiting (429) and retry with exponential backoff plus jitter
+                $jitter = rand(1, 1000) / 1000.0;
+                usleep((int)(($retryDelay + $jitter) * 1000000));
+                $retryDelay *= 2.0;
+                continue;
+            }
+
+            if ($httpCode !== 200) {
+                // If it's a transient 5xx error, we could retry too
+                if ($httpCode >= 500 && $attempt < $maxRetries) {
+                    usleep((int)($retryDelay * 1000000));
+                    $retryDelay *= 2.0;
+                    continue;
+                }
+                $errorMessage = $data['error']['message'] ?? 'Unknown API error';
+                throw new \Exception("Gemini API Error ({$httpCode}): " . $errorMessage);
+            }
+
+            if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                return $data['candidates'][0]['content']['parts'][0]['text'];
+            }
+
+            throw new \Exception("Unexpected response format from Gemini API");
         }
 
-        $data = json_decode($response, true);
-
-        if ($httpCode !== 200) {
-            $errorMessage = $data['error']['message'] ?? 'Unknown API error';
-            throw new \Exception("Gemini API Error ({$httpCode}): " . $errorMessage);
-        }
-
-        if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-            return $data['candidates'][0]['content']['parts'][0]['text'];
-        }
-
-        throw new \Exception("Unexpected response format from Gemini API");
+        throw new \Exception("Failed to generate content from Gemini API after {$maxRetries} attempts.");
     }
 }
