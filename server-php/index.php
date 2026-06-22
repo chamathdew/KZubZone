@@ -170,7 +170,7 @@ $routes = [
         $dbError = null;
         try {
             $db = \Config\Database::getInstance();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $dbError = $e->getMessage();
         }
         
@@ -188,7 +188,7 @@ $routes = [
                 // Try writing a temporary value to check if DB is locked/read-only
                 $db->updateOne('settings', ['key' => 'health_write_test'], ['value' => time()]);
                 $writeTestOk = true;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $writeTestError = $e->getMessage();
             }
         }
