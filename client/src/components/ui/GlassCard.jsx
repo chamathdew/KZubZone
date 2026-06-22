@@ -99,6 +99,11 @@ export default function GlassCard({ item, type, priority = false }) {
           <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-20">
             {/* Left: Episode progress and/or New tag stacked vertically */}
             <div className="flex flex-col items-start gap-1 flex-shrink-0">
+              {item.status === 'Upcoming' && (
+                <span className="h-5 px-1.5 inline-flex items-center justify-center rounded-full border border-indigo-500/40 bg-indigo-500/25 backdrop-blur-md text-indigo-200 text-[9px] font-black uppercase tracking-wider">
+                  Upcoming
+                </span>
+              )}
               {mediaType === 'drama' && hasSubtitles && (
                 <span className={`h-5 px-1.5 inline-flex items-center justify-center rounded-full border backdrop-blur-md text-[9px] font-black uppercase tracking-wider ${
                   subtitleSummary.seasonStatus === 'Complete'

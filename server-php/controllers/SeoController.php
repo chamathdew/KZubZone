@@ -48,7 +48,7 @@ class SeoController {
 
     public static function getMoviesSitemap() {
         $db = Database::getInstance();
-        $movies = $db->find('movies', ['status' => 'Published']);
+        $movies = $db->find('movies', ['status' => ['$in' => ['Published', 'Upcoming']]]);
 
         header('Content-Type: application/xml');
         echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
@@ -68,7 +68,7 @@ class SeoController {
 
     public static function getDramasSitemap() {
         $db = Database::getInstance();
-        $dramas = $db->find('dramas', ['status' => 'Published']);
+        $dramas = $db->find('dramas', ['status' => ['$in' => ['Published', 'Upcoming']]]);
 
         // Bug 2 Fix: Batch-fetch ALL seasons once and group by dramaId.
         // Previously hardcoded /season-1 — now emits every real season number.
@@ -129,7 +129,7 @@ class SeoController {
         // Bug 1 Fix: Batch-fetch all data upfront into in-memory hash maps.
         // Previously this ran 2 DB queries per episode (N+1), causing Googlebot
         // timeouts on large episode lists. Now: exactly 3 total DB calls.
-        $allDramas   = $db->find('dramas', ['status' => 'Published']);
+        $allDramas   = $db->find('dramas', ['status' => ['$in' => ['Published', 'Upcoming']]]);
         $allSeasons  = $db->find('seasons');
         $allEpisodes = $db->find('episodes');
 

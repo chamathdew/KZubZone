@@ -22,12 +22,12 @@ class MovieController {
         $filter = [];
         
         if (!\Middleware\AuthMiddleware::isAdmin()) {
-            $filter['status'] = 'Published';
+            $filter['status'] = ['$in' => ['Published', 'Upcoming']];
         } else {
             if ($status && $status !== 'All') {
                 $filter['status'] = $status;
             } elseif (!$status) {
-                $filter['status'] = 'Published';
+                $filter['status'] = ['$in' => ['Published', 'Upcoming']];
             }
         }
 
@@ -154,12 +154,19 @@ class MovieController {
         // 8. Popular dramas (status: Published, sort: viewCount DESC, limit 12)
         $popularDramas = $db->find('dramas', $statusFilter, ['sort' => ['viewCount' => -1], 'limit' => 12]);
 
+        // 9. Upcoming movies (status: Upcoming, sort: releaseDate ASC, limit 12)
+        $upcomingMovies = $db->find('movies', ['status' => 'Upcoming'], ['sort' => ['releaseDate' => 1], 'limit' => 12]);
+
+        // 10. Upcoming dramas (status: Upcoming, sort: releaseDate ASC, limit 12)
+        $upcomingDramas = $db->find('dramas', ['status' => 'Upcoming'], ['sort' => ['releaseDate' => 1], 'limit' => 12]);
+
         // Batch append subtitle summaries to all fetched drama lists
         $allDramas = [];
         foreach ($latestDramas as $d) { $allDramas[$d['_id']] = $d; }
         foreach ($historicalDramas as $d) { $allDramas[$d['_id']] = $d; }
         foreach ($trendingDramas as $d) { $allDramas[$d['_id']] = $d; }
         foreach ($popularDramas as $d) { $allDramas[$d['_id']] = $d; }
+        foreach ($upcomingDramas as $d) { $allDramas[$d['_id']] = $d; }
         
         $allDramasArray = array_values($allDramas);
         DramaController::appendSubtitleSummariesToDramas($allDramasArray);
@@ -192,6 +199,11 @@ class MovieController {
             $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
         }
         unset($d);
+        foreach ($upcomingDramas as &$d) {
+            $d['isNew'] = $dramaMetadata[$d['_id']]['isNew'];
+            $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
+        }
+        unset($d);
 
         // Batch append metadata to all fetched movie lists
         $allMovies = [];
@@ -199,6 +211,7 @@ class MovieController {
         foreach ($historicalMovies as $m) { $allMovies[$m['_id']] = $m; }
         foreach ($trendingMovies as $m) { $allMovies[$m['_id']] = $m; }
         foreach ($popularMovies as $m) { $allMovies[$m['_id']] = $m; }
+        foreach ($upcomingMovies as $m) { $allMovies[$m['_id']] = $m; }
         
         $allMoviesArray = array_values($allMovies);
         self::appendMetadataToMovies($allMoviesArray);
@@ -236,6 +249,12 @@ class MovieController {
             $m['subtitleSummary'] = $movieMetadata[$m['_id']]['subtitleSummary'];
         }
         unset($m);
+        foreach ($upcomingMovies as &$m) {
+            $m['isNew'] = $movieMetadata[$m['_id']]['isNew'];
+            $m['subtitleCount'] = $movieMetadata[$m['_id']]['subtitleCount'];
+            $m['subtitleSummary'] = $movieMetadata[$m['_id']]['subtitleSummary'];
+        }
+        unset($m);
 
         $catalogData = [
             'latestMovies' => $latestMovies,
@@ -245,7 +264,9 @@ class MovieController {
             'trendingMovies' => $trendingMovies,
             'trendingDramas' => $trendingDramas,
             'popularMovies' => $popularMovies,
-            'popularDramas' => $popularDramas
+            'popularDramas' => $popularDramas,
+            'upcomingMovies' => $upcomingMovies,
+            'upcomingDramas' => $upcomingDramas
         ];
 
         // Cache for 2 hours (7200 seconds)
@@ -267,7 +288,8 @@ class MovieController {
             return;
         }
 
-        if (($movie['status'] ?? 'Published') !== 'Published' && !\Middleware\AuthMiddleware::isAdmin()) {
+        $mStatus = $movie['status'] ?? 'Published';
+        if ($mStatus !== 'Published' && $mStatus !== 'Upcoming' && !\Middleware\AuthMiddleware::isAdmin()) {
             http_response_code(404);
             echo json_encode(['message' => 'Movie not found']);
             return;

@@ -253,6 +253,8 @@ export default function MovieManager() {
         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
           val === 'Published' 
             ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
+            : val === 'Upcoming'
+            ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400'
             : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
         }`}>
           {val || 'Draft'}
@@ -317,7 +319,7 @@ export default function MovieManager() {
 
           {/* Status Filter Tabs */}
           <div className="flex gap-2 mb-6 bg-luxury-900/50 p-1.5 rounded-xl border border-white/5 w-fit">
-            {['All', 'Published', 'Draft'].map((s) => (
+            {['All', 'Published', 'Upcoming', 'Draft'].map((s) => (
               <button
                 key={s}
                 type="button"
@@ -415,6 +417,7 @@ export default function MovieManager() {
                   className="w-full px-3.5 py-2.5 bg-luxury-950 border border-white/10 rounded-xl text-slate-200 text-xs outline-none focus:border-brand-primary transition"
                 >
                   <option value="Published">Published</option>
+                  <option value="Upcoming">Upcoming</option>
                   <option value="Draft">Draft</option>
                 </select>
               </div>

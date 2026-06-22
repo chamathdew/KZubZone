@@ -111,6 +111,13 @@ export default function Home({
       .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
       .slice(0, 12);
 
+    const upcomingTitles = [
+      ...withType(homeCatalog.upcomingDramas, 'drama'),
+      ...withType(homeCatalog.upcomingMovies, 'movie')
+    ]
+      .sort((a, b) => new Date(a.releaseDate || 0) - new Date(b.releaseDate || 0))
+      .slice(0, 12);
+
     return [
       {
         id: 'trending',
@@ -119,6 +126,14 @@ export default function Home({
         icon: Flame,
         link: '/search?category=all&trending=true&sort=views',
         items: trendingTitles.length > 0 ? trendingTitles : popularTitles
+      },
+      {
+        id: 'upcoming',
+        title: 'Upcoming',
+        description: 'Anticipated upcoming TV series and movies.',
+        icon: Calendar,
+        link: '/search?category=all&status=Upcoming&sort=newest',
+        items: upcomingTitles
       },
       {
         id: 'latest-movies',

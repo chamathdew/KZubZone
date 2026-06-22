@@ -54,12 +54,12 @@ class DramaController {
 
         $filter = [];
         if (!\Middleware\AuthMiddleware::isAdmin()) {
-            $filter['status'] = 'Published';
+            $filter['status'] = ['$in' => ['Published', 'Upcoming']];
         } else {
             if ($status && $status !== 'All') {
                 $filter['status'] = $status;
             } elseif (!$status) {
-                $filter['status'] = 'Published';
+                $filter['status'] = ['$in' => ['Published', 'Upcoming']];
             }
         }
 
@@ -160,7 +160,8 @@ class DramaController {
             return;
         }
 
-        if (($drama['status'] ?? 'Published') !== 'Published' && !\Middleware\AuthMiddleware::isAdmin()) {
+        $dStatus = $drama['status'] ?? 'Published';
+        if ($dStatus !== 'Published' && $dStatus !== 'Upcoming' && !\Middleware\AuthMiddleware::isAdmin()) {
             http_response_code(404);
             echo json_encode(['message' => 'Drama not found']);
             return;
