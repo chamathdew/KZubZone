@@ -18,9 +18,11 @@ $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
 $isGenrePage = false;
 $isCategoryPage = false;
+$isHubPage = false;
 $genreType = '';
 $genreSlug = '';
 $categorySlug = '';
+$hubType = '';
 
 if (preg_match('#^/(drama|movie)/genre/([a-z0-9-]+)#i', $uri, $genreMatches)) {
     $isGenrePage = true;
@@ -29,11 +31,14 @@ if (preg_match('#^/(drama|movie)/genre/([a-z0-9-]+)#i', $uri, $genreMatches)) {
 } elseif (preg_match('#^/articles/category/([a-z0-9-]+)#i', $uri, $categoryMatches)) {
     $isCategoryPage = true;
     $categorySlug = $categoryMatches[1];
+} elseif (preg_match('#^/(articles|dramas|movies|search)/?$#i', $uri, $hubMatches)) {
+    $isHubPage = true;
+    $hubType = strtolower($hubMatches[1]);
 }
 
 $isMediaOrArticle = preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches);
 
-if ($isGenrePage || $isCategoryPage || $isMediaOrArticle) {
+if ($isGenrePage || $isCategoryPage || $isMediaOrArticle || $isHubPage) {
     if ($isMediaOrArticle) {
         $routeType = strtolower($matches[1]);
         $slug = $matches[2];
@@ -221,6 +226,91 @@ if ($isGenrePage || $isCategoryPage || $isMediaOrArticle) {
             $fallbackHtml .= "</ul>";
 
             $media = ['_id' => 'category-page']; // dummy object to trigger HTML injection
+        } elseif ($isHubPage) {
+            $items = [];
+            if ($hubType === 'articles') {
+                $items = $db->find('articles', ['status' => 'Published']);
+                $title = htmlspecialchars("K-Drama & Movie Articles, Guides & Reviews | KSubZone");
+                $rawDesc = "Read the latest Korean drama reviews, guides, character studies, Sinhala subtitle notes, and movie recommendations on KSubZone.";
+            } elseif ($hubType === 'dramas') {
+                $items = $db->find('dramas', ['status' => 'Published']);
+                $title = htmlspecialchars("Latest Korean TV Series & Dramas with Sinhala Subtitles | KSubZone");
+                $rawDesc = "Browse and download Sinhala and English subtitles for the latest Korean TV shows and dramas. Find episode guides and casting details on KSubZone.";
+            } elseif ($hubType === 'movies') {
+                $items = $db->find('movies', ['status' => 'Published']);
+                $title = htmlspecialchars("Korean Movies with Sinhala Subtitles | KSubZone");
+                $rawDesc = "Browse and download Sinhala and English subtitles for Korean films. Search movie synopsis, reviews, and high-quality subtitle files on KSubZone.";
+            } elseif ($hubType === 'search') {
+                $dramas = $db->find('dramas', ['status' => 'Published'], ['limit' => 50]);
+                $movies = $db->find('movies', ['status' => 'Published'], ['limit' => 50]);
+                $items = array_merge($dramas, $movies);
+                $title = htmlspecialchars("Search K-Dramas & Movies | KSubZone Subtitle Catalog");
+                $rawDesc = "Search the KSubZone catalog for Korean dramas, TV shows, and movies with Sinhala subtitles. Find high-quality subtitles easily.";
+            }
+
+            $desc = htmlspecialchars($rawDesc);
+            $image = 'https://www.ksubzone.com/assets/default-share.jpg';
+
+            // 4. Set schemas
+            $itemListElements = [];
+            $idx = 1;
+            foreach ($items as $item) {
+                if ($hubType === 'articles') {
+                    $itemUrl = "https://www.ksubzone.com/articles/" . htmlspecialchars($item['slug'] ?? '');
+                } else {
+                    $itemType = isset($item['runtime']) ? 'movie' : 'drama';
+                    $itemSlug = \Utils\Slug::normalizePermalinkSlug($item['slug'] ?? '');
+                    $itemUrl = "https://www.ksubzone.com/{$itemType}/" . $itemSlug;
+                }
+                $itemListElements[] = [
+                    "@type" => "ListItem",
+                    "position" => $idx++,
+                    "url" => $itemUrl,
+                    "name" => $item['title'] ?? ''
+                ];
+            }
+            $itemListSchema = [
+                "@context" => "https://schema.org",
+                "@type" => "ItemList",
+                "name" => "{$hubType} catalog",
+                "itemListElement" => $itemListElements
+            ];
+
+            $breadcrumbs = [
+                "@context" => "https://schema.org",
+                "@type" => "BreadcrumbList",
+                "itemListElement" => [
+                    [
+                        "@type" => "ListItem",
+                        "position" => 1,
+                        "name" => "KSubZone",
+                        "item" => "https://www.ksubzone.com"
+                    ],
+                    [
+                        "@type" => "ListItem",
+                        "position" => 2,
+                        "name" => ucwords($hubType),
+                        "item" => "https://www.ksubzone.com/{$hubType}"
+                    ]
+                ]
+            ];
+
+            // 5. Build fallback HTML
+            $fallbackHtml = "<h1>{$title}</h1>\n<p>{$rawDesc}</p>\n<ul>\n";
+            foreach ($items as $item) {
+                if ($hubType === 'articles') {
+                    $itemUrl = "https://www.ksubzone.com/articles/" . htmlspecialchars($item['slug'] ?? '');
+                    $fallbackHtml .= "  <li><a href=\"{$itemUrl}\">" . htmlspecialchars($item['title'] ?? '') . "</a> - " . htmlspecialchars($item['metaDescription'] ?? $item['excerpt'] ?? '') . "</li>\n";
+                } else {
+                    $itemType = isset($item['runtime']) ? 'movie' : 'drama';
+                    $itemSlug = \Utils\Slug::normalizePermalinkSlug($item['slug'] ?? '');
+                    $itemUrl = "https://www.ksubzone.com/{$itemType}/" . $itemSlug;
+                    $fallbackHtml .= "  <li><a href=\"{$itemUrl}\">" . htmlspecialchars($item['title'] ?? '') . "</a> - " . htmlspecialchars($item['metaDescription'] ?? $item['description'] ?? '') . "</li>\n";
+                }
+            }
+            $fallbackHtml .= "</ul>";
+
+            $media = ['_id' => 'hub-page']; // dummy object to trigger HTML injection
         } else {
             if ($routeType === 'articles') {
                 $article = $db->findOne('articles', ['slug' => $slug]);
