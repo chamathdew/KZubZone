@@ -405,13 +405,42 @@ export default function SubtitleTools() {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // Post to backend translation API
-        const response = await apiClient.post('/api/admin/ai/translate', {
-          srtContent: chunkSrtText,
-          engine: translationEngine
-        }, {
-          timeout: 120000 // 2 minutes custom timeout
-        });
+        // Post to backend translation API with automatic retry and exponential backoff for rate limits
+        let response;
+        let retries = 5;
+        let backoffDelay = 6000; // 6 seconds initial delay
+
+        for (let attempt = 1; attempt <= retries; attempt++) {
+          try {
+            response = await apiClient.post('/api/admin/ai/translate', {
+              srtContent: chunkSrtText,
+              engine: translationEngine
+            }, {
+              timeout: 120000
+            });
+            break; // Success, break out of retry loop
+          } catch (apiErr) {
+            const status = apiErr.response?.status;
+            const isRateLimit = status === 429 || (apiErr.message && apiErr.message.includes('429')) || (apiErr.response?.data?.error && apiErr.response.data.error.includes('429'));
+            
+            if (isRateLimit && attempt < retries) {
+              const currentDelay = backoffDelay * attempt + Math.floor(Math.random() * 2000); // Backoff + jitter
+              updateFileState(fileId, {
+                translateStatusMsg: `Rate limit hit (429). Retrying chunk ${c + 1}/${totalChunks} (attempt ${attempt + 1}/${retries}) in ${Math.round(currentDelay / 1000)}s...`
+              });
+              await new Promise(resolve => setTimeout(resolve, currentDelay));
+            } else if (!status && attempt < retries) {
+              // Network/Timeout error retry
+              const currentDelay = 3000 * attempt;
+              updateFileState(fileId, {
+                translateStatusMsg: `Network error. Retrying chunk ${c + 1}/${totalChunks} (attempt ${attempt + 1}/${retries}) in ${Math.round(currentDelay / 1000)}s...`
+              });
+              await new Promise(resolve => setTimeout(resolve, currentDelay));
+            } else {
+              throw apiErr; // Permanent error or exceeded max retries
+            }
+          }
+        }
 
         const translatedChunkText = response.data.translatedSrt;
         const parsedTranslatedChunk = parseSRT(translatedChunkText);
