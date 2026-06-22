@@ -40,6 +40,8 @@ class SeoController {
         echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-dramas.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-episodes.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-articles.xml</loc></sitemap>' . "\n";
+        echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-genres.xml</loc></sitemap>' . "\n";
+        echo '  <sitemap><loc>' . self::$siteUrl . '/sitemap-categories.xml</loc></sitemap>' . "\n";
         echo '  <sitemap><loc>' . self::$siteUrl . '/news-sitemap.xml</loc></sitemap>' . "\n";
         echo '</sitemapindex>';
     }
@@ -259,6 +261,90 @@ class SeoController {
             echo "    <lastmod>{$lastmod}</lastmod>\n";
             echo "    <changefreq>weekly</changefreq>\n";
             echo "    <priority>0.7</priority>\n";
+            echo "  </url>\n";
+        }
+        echo '</urlset>';
+    }
+
+    public static function getGenresSitemap() {
+        $db = Database::getInstance();
+        $genres = $db->find('genres');
+        $dramas = $db->find('dramas', ['status' => 'Published']);
+        $movies = $db->find('movies', ['status' => 'Published']);
+
+        // Find which genres are actually used in published items
+        $usedGenres = [];
+        foreach ($dramas as $drama) {
+            if (!empty($drama['keywords'])) {
+                foreach ($drama['keywords'] as $kw) {
+                    $usedGenres[strtolower(trim($kw))] = true;
+                }
+            }
+        }
+        foreach ($movies as $movie) {
+            if (!empty($movie['keywords'])) {
+                foreach ($movie['keywords'] as $kw) {
+                    $usedGenres[strtolower(trim($kw))] = true;
+                }
+            }
+        }
+
+        header('Content-Type: application/xml');
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $today = date('Y-m-d');
+        foreach ($genres as $genre) {
+            $slug = $genre['slug'] ?? '';
+            $name = $genre['name'] ?? '';
+            if (empty($slug) || empty($name)) continue;
+
+            // Only emit if this genre is actually used by at least one published title
+            if (isset($usedGenres[strtolower(trim($name))])) {
+                $escapedSlug = htmlspecialchars($slug);
+                // Emit drama genre route
+                echo "  <url>\n";
+                echo "    <loc>" . self::$siteUrl . "/drama/genre/{$escapedSlug}</loc>\n";
+                echo "    <lastmod>{$today}</lastmod>\n";
+                echo "    <changefreq>weekly</changefreq>\n";
+                echo "    <priority>0.6</priority>\n";
+                echo "  </url>\n";
+
+                // Emit movie genre route
+                echo "  <url>\n";
+                echo "    <loc>" . self::$siteUrl . "/movie/genre/{$escapedSlug}</loc>\n";
+                echo "    <lastmod>{$today}</lastmod>\n";
+                echo "    <changefreq>weekly</changefreq>\n";
+                echo "    <priority>0.6</priority>\n";
+                echo "  </url>\n";
+            }
+        }
+        echo '</urlset>';
+    }
+
+    public static function getCategoriesSitemap() {
+        $db = Database::getInstance();
+        $articles = $db->find('articles', ['status' => 'Published']);
+
+        // Collect unique categories in published articles
+        $usedCategories = [];
+        foreach ($articles as $article) {
+            if (!empty($article['category'])) {
+                $cat = trim($article['category']);
+                $usedCategories[strtolower($cat)] = $cat;
+            }
+        }
+
+        header('Content-Type: application/xml');
+        echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $today = date('Y-m-d');
+        foreach ($usedCategories as $cat) {
+            $slug = htmlspecialchars(Slug::slugify($cat));
+            echo "  <url>\n";
+            echo "    <loc>" . self::$siteUrl . "/articles/category/{$slug}</loc>\n";
+            echo "    <lastmod>{$today}</lastmod>\n";
+            echo "    <changefreq>weekly</changefreq>\n";
+            echo "    <priority>0.6</priority>\n";
             echo "  </url>\n";
         }
         echo '</urlset>';

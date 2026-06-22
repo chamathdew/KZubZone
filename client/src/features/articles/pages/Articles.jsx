@@ -78,19 +78,24 @@ export default function Articles({ initialData }) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 flex flex-col gap-10">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`h-9 px-4 rounded-xl border text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition ${
-                  activeCategory === category
-                    ? 'bg-brand-primary border-brand-primary text-white shadow-lg shadow-brand-primary/20'
-                    : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-white hover:border-brand-primary/30'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+            {categories.map((category) => {
+              const slug = category === 'All' ? '' : category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+              const href = slug ? `/articles/category/${slug}` : '/articles';
+              const isActive = activeCategory === category;
+              return (
+                <Link
+                  key={category}
+                  href={href}
+                  className={`inline-flex items-center h-9 px-4 rounded-xl border text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition ${
+                    isActive
+                      ? 'bg-brand-primary border-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                      : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-white hover:border-brand-primary/30'
+                  }`}
+                >
+                  {category}
+                </Link>
+              );
+            })}
           </div>
 
           <div className="hidden md:flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 h-10 text-xs text-slate-400">

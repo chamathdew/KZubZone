@@ -16,10 +16,28 @@ $html = file_exists($indexPath) ? file_get_contents($indexPath) : '<!DOCTYPE htm
 
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
-// Only process if it's a media page (watch, drama, movie) or article page
-if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)) {
-    $routeType = strtolower($matches[1]);
-    $slug = $matches[2];
+$isGenrePage = false;
+$isCategoryPage = false;
+$genreType = '';
+$genreSlug = '';
+$categorySlug = '';
+
+if (preg_match('#^/(drama|movie)/genre/([a-z0-9-]+)#i', $uri, $genreMatches)) {
+    $isGenrePage = true;
+    $genreType = strtolower($genreMatches[1]);
+    $genreSlug = $genreMatches[2];
+} elseif (preg_match('#^/articles/category/([a-z0-9-]+)#i', $uri, $categoryMatches)) {
+    $isCategoryPage = true;
+    $categorySlug = $categoryMatches[1];
+}
+
+$isMediaOrArticle = preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches);
+
+if ($isGenrePage || $isCategoryPage || $isMediaOrArticle) {
+    if ($isMediaOrArticle) {
+        $routeType = strtolower($matches[1]);
+        $slug = $matches[2];
+    }
     
     // Bootstrap DB
     spl_autoload_register(function ($class) {
@@ -51,65 +69,223 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
         $episode = null;
         $episodeSchema = null;
         $breadcrumbs = null;
+        $itemListSchema = null;
+        $rawDesc = '';
 
-        if ($routeType === 'articles') {
-            $article = $db->findOne('articles', ['slug' => $slug]);
-            if ($article) {
-                $title = htmlspecialchars($article['metaTitle'] ?: ($article['title'] . ' - KSubZone'));
-                $rawDesc = $article['metaDescription'] ?: $article['excerpt'] ?: strip_tags($article['content'] ?? '');
-                $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
-                $image = htmlspecialchars($article['coverImage'] ?: 'https://www.ksubzone.com/assets/default-share.jpg');
-                $media = $article;
+        if ($isGenrePage) {
+            // 1. Resolve genre slug to proper TMDB genre name
+            $genreObj = $db->findOne('genres', ['slug' => $genreSlug]);
+            $genreName = $genreObj ? $genreObj['name'] : ucwords(str_replace('-', ' ', $genreSlug));
+
+            // 2. Fetch movies or dramas belonging to this genre
+            $collection = ($genreType === 'movie') ? 'movies' : 'dramas';
+            $items = $db->find($collection, [
+                'status' => 'Published',
+                'keywords' => ['$in' => [$genreName]]
+            ]);
+
+            // 3. Set metadata
+            $title = htmlspecialchars("Best {$genreName} Korean " . ($genreType === 'movie' ? 'Movies' : 'Dramas') . " (Sinhala Subtitles) | KSubZone");
+            $rawDesc = "Download Sinhala and English subtitles for the best {$genreName} Korean " . ($genreType === 'movie' ? 'movies' : 'dramas') . " on KSubZone. Explore full cast, summaries, and subtitle files.";
+            $desc = htmlspecialchars($rawDesc);
+            $image = 'https://www.ksubzone.com/assets/default-share.jpg';
+
+            // 4. Set schemas
+            $itemListElements = [];
+            $idx = 1;
+            foreach ($items as $item) {
+                $itemSlug = \Utils\Slug::normalizePermalinkSlug($item['slug'] ?? '');
+                $itemUrl = "https://www.ksubzone.com/{$genreType}/" . $itemSlug;
+                $itemListElements[] = [
+                    "@type" => "ListItem",
+                    "position" => $idx++,
+                    "url" => $itemUrl,
+                    "name" => $item['title'] ?? ''
+                ];
             }
+            $itemListSchema = [
+                "@context" => "https://schema.org",
+                "@type" => "ItemList",
+                "name" => "{$genreName} " . ($genreType === 'movie' ? 'Movies' : 'Dramas'),
+                "itemListElement" => $itemListElements
+            ];
+
+            $breadcrumbs = [
+                "@context" => "https://schema.org",
+                "@type" => "BreadcrumbList",
+                "itemListElement" => [
+                    [
+                        "@type" => "ListItem",
+                        "position" => 1,
+                        "name" => "KSubZone",
+                        "item" => "https://www.ksubzone.com"
+                    ],
+                    [
+                        "@type" => "ListItem",
+                        "position" => 2,
+                        "name" => $genreType === 'movie' ? "Movies" : "Dramas",
+                        "item" => "https://www.ksubzone.com/" . ($genreType === 'movie' ? "movies" : "dramas")
+                    ],
+                    [
+                        "@type" => "ListItem",
+                        "position" => 3,
+                        "name" => $genreName,
+                        "item" => "https://www.ksubzone.com/{$genreType}/genre/{$genreSlug}"
+                    ]
+                ]
+            ];
+
+            // 5. Build fallback HTML
+            $fallbackHtml = "<h1>{$title}</h1>\n<p>{$rawDesc}</p>\n<ul>\n";
+            foreach ($items as $item) {
+                $itemSlug = \Utils\Slug::normalizePermalinkSlug($item['slug'] ?? '');
+                $itemUrl = "https://www.ksubzone.com/{$genreType}/" . $itemSlug;
+                $fallbackHtml .= "  <li><a href=\"{$itemUrl}\">" . htmlspecialchars($item['title'] ?? '') . "</a> - " . htmlspecialchars($item['metaDescription'] ?? $item['description'] ?? '') . "</li>\n";
+            }
+            $fallbackHtml .= "</ul>";
+
+            $media = ['_id' => 'genre-page']; // dummy object to trigger HTML injection
+        } elseif ($isCategoryPage) {
+            // 1. Resolve category name dynamically
+            $categoryName = ucwords(str_replace('-', ' ', $categorySlug));
+            $articlesList = $db->find('articles', ['status' => 'Published']);
+            foreach ($articlesList as $art) {
+                if (!empty($art['category']) && \Utils\Slug::slugify($art['category']) === $categorySlug) {
+                    $categoryName = $art['category'];
+                    break;
+                }
+            }
+
+            // 2. Fetch articles
+            $items = $db->find('articles', [
+                'status' => 'Published',
+                'category' => $categoryName
+            ]);
+
+            // 3. Set metadata
+            $title = htmlspecialchars("K-Drama {$categoryName} Articles & Guides | KSubZone");
+            $rawDesc = "Read K-drama {$categoryName} articles, reviews, character guides, and Sinhala subtitle watch notes on KSubZone.";
+            $desc = htmlspecialchars($rawDesc);
+            $image = 'https://www.ksubzone.com/assets/default-share.jpg';
+
+            // 4. Set schemas
+            $itemListElements = [];
+            $idx = 1;
+            foreach ($items as $item) {
+                $itemUrl = "https://www.ksubzone.com/articles/" . htmlspecialchars($item['slug'] ?? '');
+                $itemListElements[] = [
+                    "@type" => "ListItem",
+                    "position" => $idx++,
+                    "url" => $itemUrl,
+                    "name" => $item['title'] ?? ''
+                ];
+            }
+            $itemListSchema = [
+                "@context" => "https://schema.org",
+                "@type" => "ItemList",
+                "name" => "{$categoryName} Articles",
+                "itemListElement" => $itemListElements
+            ];
+
+            $breadcrumbs = [
+                "@context" => "https://schema.org",
+                "@type" => "BreadcrumbList",
+                "itemListElement" => [
+                    [
+                        "@type" => "ListItem",
+                        "position" => 1,
+                        "name" => "KSubZone",
+                        "item" => "https://www.ksubzone.com"
+                    ],
+                    [
+                        "@type" => "ListItem",
+                        "position" => 2,
+                        "name" => "Articles",
+                        "item" => "https://www.ksubzone.com/articles"
+                    ],
+                    [
+                        "@type" => "ListItem",
+                        "position" => 3,
+                        "name" => $categoryName,
+                        "item" => "https://www.ksubzone.com/articles/category/{$categorySlug}"
+                    ]
+                ]
+            ];
+
+            // 5. Build fallback HTML
+            $fallbackHtml = "<h1>{$title}</h1>\n<p>{$rawDesc}</p>\n<ul>\n";
+            foreach ($items as $item) {
+                $itemUrl = "https://www.ksubzone.com/articles/" . htmlspecialchars($item['slug'] ?? '');
+                $fallbackHtml .= "  <li><a href=\"{$itemUrl}\">" . htmlspecialchars($item['title'] ?? '') . "</a> - " . htmlspecialchars($item['metaDescription'] ?? $item['excerpt'] ?? '') . "</li>\n";
+            }
+            $fallbackHtml .= "</ul>";
+
+            $media = ['_id' => 'category-page']; // dummy object to trigger HTML injection
         } else {
-            if (($routeType === 'drama' || $routeType === 'watch') && preg_match('#/season-([0-9]+)/episode-([0-9]+)#i', $uri, $epMatches)) {
-                $isEpisodePage = true;
-                $seasonNumber = (int)$epMatches[1];
-                $episodeNumber = (int)$epMatches[2];
-            }
+            if ($routeType === 'articles') {
+                $article = $db->findOne('articles', ['slug' => $slug]);
+                if ($article) {
+                    $title = htmlspecialchars($article['metaTitle'] ?: ($article['title'] . ' - KSubZone'));
+                    $rawDesc = $article['metaDescription'] ?: $article['excerpt'] ?: strip_tags($article['content'] ?? '');
+                    $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
+                    $image = htmlspecialchars($article['coverImage'] ?: 'https://www.ksubzone.com/assets/default-share.jpg');
+                    $media = $article;
+                }
+            } else {
+                if (($routeType === 'drama' || $routeType === 'watch') && preg_match('#/season-([0-9]+)/episode-([0-9]+)#i', $uri, $epMatches)) {
+                    $isEpisodePage = true;
+                    $seasonNumber = (int)$epMatches[1];
+                    $episodeNumber = (int)$epMatches[2];
+                }
 
-            $media = $db->findOne('dramas', ['slug' => $slug]);
-            if (!$media) {
-                $media = $db->findOne('movies', ['slug' => $slug]);
-                $isMovie = true;
-            }
-            
-            if ($media) {
-                if ($isEpisodePage && !$isMovie) {
-                    $season = $db->findOne('seasons', ['dramaId' => $media['_id'], 'seasonNumber' => $seasonNumber]);
-                    if ($season) {
-                        $episode = $db->findOne('episodes', [
-                            'dramaId' => $media['_id'],
-                            'seasonId' => $season['_id'],
-                            'episodeNumber' => $episodeNumber
-                        ]);
-                    }
-                    
-                    if ($episode) {
-                        $title = htmlspecialchars($media['title'] . ' S' . sprintf('%02d', $seasonNumber) . 'E' . sprintf('%02d', $episodeNumber) . (!empty($episode['episodeTitle']) ? ' "' . $episode['episodeTitle'] . '"' : '') . ' Sinhala Subtitles | KSubZone');
-                        $rawDesc = $episode['episodeDescription'] ?: 'Download Sinhala and English subtitles for ' . $media['title'] . ' S' . sprintf('%02d', $seasonNumber) . 'E' . sprintf('%02d', $episodeNumber) . '.';
-                        $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
-                        $image = htmlspecialchars($episode['episodeThumbnail'] ?: $media['posterPath'] ?: $media['backdropPath'] ?: 'https://www.ksubzone.com/assets/default-share.jpg');
+                $media = $db->findOne('dramas', ['slug' => $slug]);
+                if (!$media) {
+                    $media = $db->findOne('movies', ['slug' => $slug]);
+                    $isMovie = true;
+                }
+                
+                if ($media) {
+                    if ($isEpisodePage && !$isMovie) {
+                        $season = $db->findOne('seasons', ['dramaId' => $media['_id'], 'seasonNumber' => $seasonNumber]);
+                        if ($season) {
+                            $episode = $db->findOne('episodes', [
+                                'dramaId' => $media['_id'],
+                                'seasonId' => $season['_id'],
+                                'episodeNumber' => $episodeNumber
+                            ]);
+                        }
                         
-                        $episodeSchema = $episode['episodeSchemaMarkup'] ?? null;
-                        if (empty($episodeSchema) || !is_array($episodeSchema)) {
-                            $episodeSchema = [
-                                "@context" => "https://schema.org",
-                                "@type" => "TVEpisode",
-                                "name" => $episode['episodeTitle'] ?: "Episode " . $episodeNumber,
-                                "episodeNumber" => $episodeNumber,
-                                "description" => $rawDesc,
-                                "datePublished" => $episode['airDate'] ?? null,
-                                "partOfSeason" => [
-                                    "@type" => "TVSeason",
-                                    "seasonNumber" => $seasonNumber
-                                ],
-                                "partOfSeries" => [
-                                    "@type" => "TVSeries",
-                                    "name" => $media['title'],
-                                    "sameAs" => "https://www.ksubzone.com/drama/" . $media['slug']
-                                ]
-                            ];
+                        if ($episode) {
+                            $title = htmlspecialchars($media['title'] . ' S' . sprintf('%02d', $seasonNumber) . 'E' . sprintf('%02d', $episodeNumber) . (!empty($episode['episodeTitle']) ? ' "' . $episode['episodeTitle'] . '"' : '') . ' Sinhala Subtitles | KSubZone');
+                            $rawDesc = $episode['episodeDescription'] ?: 'Download Sinhala and English subtitles for ' . $media['title'] . ' S' . sprintf('%02d', $seasonNumber) . 'E' . sprintf('%02d', $episodeNumber) . '.';
+                            $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
+                            $image = htmlspecialchars($episode['episodeThumbnail'] ?: $media['posterPath'] ?: $media['backdropPath'] ?: 'https://www.ksubzone.com/assets/default-share.jpg');
+                            
+                            $episodeSchema = $episode['episodeSchemaMarkup'] ?? null;
+                            if (empty($episodeSchema) || !is_array($episodeSchema)) {
+                                $episodeSchema = [
+                                    "@context" => "https://schema.org",
+                                    "@type" => "TVEpisode",
+                                    "name" => $episode['episodeTitle'] ?: "Episode " . $episodeNumber,
+                                    "episodeNumber" => $episodeNumber,
+                                    "description" => $rawDesc,
+                                    "datePublished" => $episode['airDate'] ?? null,
+                                    "partOfSeason" => [
+                                        "@type" => "TVSeason",
+                                        "seasonNumber" => $seasonNumber
+                                    ],
+                                    "partOfSeries" => [
+                                        "@type" => "TVSeries",
+                                        "name" => $media['title'],
+                                        "sameAs" => "https://www.ksubzone.com/drama/" . $media['slug']
+                                    ]
+                                ];
+                            }
+                        } else {
+                            $title = htmlspecialchars($media['metaTitle'] ?? ($media['title'] . ' - KSubZone'));
+                            $rawDesc = $media['metaDescription'] ?? $media['synopsis'] ?? 'Watch ' . $media['title'] . ' on KSubZone with synchronized multi-language subtitles.';
+                            $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
+                            $image = htmlspecialchars($media['posterPath'] ?? $media['backdropPath'] ?? 'https://www.ksubzone.com/assets/default-share.jpg');
                         }
                     } else {
                         $title = htmlspecialchars($media['metaTitle'] ?? ($media['title'] . ' - KSubZone'));
@@ -117,17 +293,12 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
                         $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
                         $image = htmlspecialchars($media['posterPath'] ?? $media['backdropPath'] ?? 'https://www.ksubzone.com/assets/default-share.jpg');
                     }
-                } else {
-                    $title = htmlspecialchars($media['metaTitle'] ?? ($media['title'] . ' - KSubZone'));
-                    $rawDesc = $media['metaDescription'] ?? $media['synopsis'] ?? 'Watch ' . $media['title'] . ' on KSubZone with synchronized multi-language subtitles.';
-                    $desc = htmlspecialchars(mb_substr($rawDesc, 0, 160) . (mb_strlen($rawDesc) > 160 ? '...' : ''));
-                    $image = htmlspecialchars($media['posterPath'] ?? $media['backdropPath'] ?? 'https://www.ksubzone.com/assets/default-share.jpg');
                 }
             }
         }
 
         // Build BreadcrumbList Schema
-        if ($media) {
+        if ($media && !$isGenrePage && !$isCategoryPage) {
             $listElements = [
                 [
                     "@type" => "ListItem",
@@ -223,10 +394,13 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
             $canonicalUrl = 'https://www.ksubzone.com' . $uri;
             $html = preg_replace('/<\/head>/i', '<link rel="canonical" href="' . htmlspecialchars($canonicalUrl) . '" />' . "\n</head>", $html);
 
-            // Inject TVEpisode schema for episode page, otherwise inject main media schema (Movie / TVSeries)
+            // Inject TVEpisode schema for episode page, otherwise inject main media schema (Movie / TVSeries) or ItemList schema
             if (!empty($episodeSchema)) {
                 $epSchemaScript = '<script type="application/ld+json">' . json_encode($episodeSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
                 $html = preg_replace('/<\/head>/i', $epSchemaScript . "\n</head>", $html);
+            } else if (!empty($itemListSchema)) {
+                $itemSchemaScript = '<script type="application/ld+json">' . json_encode($itemListSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+                $html = preg_replace('/<\/head>/i', $itemSchemaScript . "\n</head>", $html);
             } else if (!empty($media['schemaMarkup']) && is_array($media['schemaMarkup'])) {
                 $mainSchema = json_encode($media['schemaMarkup'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 $mainSchemaScript = '<script type="application/ld+json">' . $mainSchema . '</script>';
@@ -270,13 +444,15 @@ if (preg_match('#^/(watch|drama|movie|articles)/([a-z0-9-]+)#i', $uri, $matches)
                 }
             }
 
-            // Create fallback visible content for search indexing bots
-            $fallbackHtml = "<h1>{$title}</h1>\n<p>{$rawDesc}</p>";
-            if (!empty($media['posterPath'] ?? '')) {
-                $fallbackHtml .= "\n<img src=\"" . htmlspecialchars($media['posterPath']) . "\" alt=\"" . htmlspecialchars($media['title'] ?? '') . "\" />";
-            }
-            if ($routeType === 'articles') {
-                $fallbackHtml .= "\n<div>" . ($media['content'] ?? '') . "</div>";
+            if (!$isGenrePage && !$isCategoryPage) {
+                // Create fallback visible content for search indexing bots
+                $fallbackHtml = "<h1>{$title}</h1>\n<p>{$rawDesc}</p>";
+                if (!empty($media['posterPath'] ?? '')) {
+                    $fallbackHtml .= "\n<img src=\"" . htmlspecialchars($media['posterPath']) . "\" alt=\"" . htmlspecialchars($media['title'] ?? '') . "\" />";
+                }
+                if ($routeType === 'articles') {
+                    $fallbackHtml .= "\n<div>" . ($media['content'] ?? '') . "</div>";
+                }
             }
             
             // Inject fallback visible HTML in the container for non-JS / crawler indexing

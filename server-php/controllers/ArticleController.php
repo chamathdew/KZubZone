@@ -60,7 +60,17 @@ class ArticleController {
         }
 
         if (!empty($category) && $category !== 'All') {
-            $filter['category'] = $category;
+            $dbInstance = Database::getInstance();
+            $categoryName = $category;
+            // Fetch articles to resolve slug dynamically
+            $allArticles = $dbInstance->find('articles', ['status' => 'Published']);
+            foreach ($allArticles as $art) {
+                if (!empty($art['category']) && Slug::slugify($art['category']) === $category) {
+                    $categoryName = $art['category'];
+                    break;
+                }
+            }
+            $filter['category'] = $categoryName;
         }
 
         if ($featured === 'true') {

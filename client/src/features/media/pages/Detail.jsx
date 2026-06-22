@@ -504,6 +504,25 @@ export default function Detail({ type = 'Movie', initialData }) {
                 <p className="text-lg font-semibold text-slate-400 mt-1">{media.originalTitle}</p>
               )}
 
+              {/* Clickable Genre Badges */}
+              {media.keywords && media.keywords.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {media.keywords.map((kw, idx) => {
+                    const slug = (kw || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/, '');
+                    const path = type.toLowerCase() === 'drama' ? `/drama/genre/${slug}` : `/movie/genre/${slug}`;
+                    return (
+                      <Link
+                        key={idx}
+                        href={path}
+                        className="inline-flex items-center px-3 py-1 bg-white/[0.03] hover:bg-brand-primary/15 border border-white/10 hover:border-brand-primary/30 rounded-full text-xs text-slate-300 hover:text-white font-bold transition duration-200"
+                      >
+                        {kw}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Tag Metadata Row */}
               <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-xs font-semibold text-slate-400">
                 <span>{media.releaseDate ? new Date(media.releaseDate).getFullYear() : '2026'}</span>

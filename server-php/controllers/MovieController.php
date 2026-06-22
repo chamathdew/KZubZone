@@ -40,7 +40,10 @@ class MovieController {
         }
 
         if (!empty($genre)) {
-            $filter['keywords'] = ['$in' => [$genre]];
+            $dbInstance = Database::getInstance();
+            $genreObj = $dbInstance->findOne('genres', ['slug' => $genre]);
+            $genreName = $genreObj ? $genreObj['name'] : $genre;
+            $filter['keywords'] = ['$in' => [$genreName]];
         }
 
         if (!empty($year)) {

@@ -160,6 +160,8 @@ $routes = [
     ['GET', '/sitemap-dramas.xml', 'Controllers\SeoController::getDramasSitemap'],
     ['GET', '/sitemap-episodes.xml', 'Controllers\SeoController::getEpisodesSitemap'],
     ['GET', '/sitemap-articles.xml', 'Controllers\SeoController::getArticlesSitemap'],
+    ['GET', '/sitemap-genres.xml', 'Controllers\SeoController::getGenresSitemap'],
+    ['GET', '/sitemap-categories.xml', 'Controllers\SeoController::getCategoriesSitemap'],
     ['GET', '/news-sitemap.xml', 'Controllers\SeoController::getNewsSitemap'],
 
     // System health
@@ -469,6 +471,7 @@ $routes = [
 
     // Public Catalog
     ['GET', '/api/media/home', 'Controllers\MovieController::getHomeCatalog'],
+    ['GET', '/api/media/genres', 'Controllers\GenreController::getAllGenres'],
     ['GET', '/api/media/recommendations', 'Controllers\MovieController::getRecommendations'],
     ['GET', '/api/media/movies', 'Controllers\MovieController::getAllMovies'],
     ['GET', '/api/media/movies/([^/]+)', 'Controllers\MovieController::getMovieBySlug'],
