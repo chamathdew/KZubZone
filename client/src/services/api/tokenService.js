@@ -1,7 +1,7 @@
 export const tokenService = {
   getUserToken: () => typeof window !== 'undefined' ? localStorage.getItem('kd_token') : null,
   setUserToken: (token) => {
-    if (typeof window !== 'undefined') localStorage.setItem('kd_token', token);
+    if (typeof window !== 'undefined') localStorage.setItem('kd_token', 'true');
   },
   removeUserToken: () => {
     if (typeof window !== 'undefined') localStorage.removeItem('kd_token');
@@ -9,7 +9,7 @@ export const tokenService = {
   
   getAdminToken: () => typeof window !== 'undefined' ? localStorage.getItem('kd_admin_token') : null,
   setAdminToken: (token) => {
-    if (typeof window !== 'undefined') localStorage.setItem('kd_admin_token', token);
+    if (typeof window !== 'undefined') localStorage.setItem('kd_admin_token', 'true');
   },
   removeAdminToken: () => {
     if (typeof window !== 'undefined') localStorage.removeItem('kd_admin_token');

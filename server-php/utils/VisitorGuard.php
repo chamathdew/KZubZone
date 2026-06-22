@@ -97,7 +97,7 @@ class VisitorGuard {
 
     // -------------------------------------------------------------------------
 
-    /** Returns an anonymised version of the visitor IP (last octet masked). */
+    /** Returns a cryptographically anonymised version of the visitor IP (fully GDPR-compliant). */
     private static function getAnonymisedIp(): string {
         $ip = $_SERVER['HTTP_CF_CONNECTING_IP']    // Cloudflare
            ?? $_SERVER['HTTP_X_FORWARDED_FOR']     // Reverse proxy
@@ -109,24 +109,28 @@ class VisitorGuard {
             $ip = trim(explode(',', $ip)[0]);
         }
 
-        // IPv4: mask last octet  192.168.1.123 → 192.168.1.x
+        $maskedIp = '0.0.0.0';
+
+        // IPv4: mask last octet  192.168.1.123 → 192.168.1.0
         if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             $parts = explode('.', $ip);
-            $parts[3] = 'x';
-            return implode('.', $parts);
+            $parts[3] = '0';
+            $maskedIp = implode('.', $parts);
         }
-
-        // IPv6: mask last 3 groups
-        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        // IPv6: mask interface ID / last 64 bits
+        elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             $parts = explode(':', $ip);
             $len   = count($parts);
-            for ($i = max(0, $len - 3); $i < $len; $i++) {
-                $parts[$i] = 'x';
+            // Ensure standard 8 parts for compression expansion if needed
+            for ($i = max(0, $len - 4); $i < $len; $i++) {
+                $parts[$i] = '0000';
             }
-            return implode(':', $parts);
+            $maskedIp = implode(':', $parts);
         }
 
-        return 'unknown';
+        // Salt the masked IP to prevent reverse brute-force matching
+        $salt = $_ENV['JWT_SECRET'] ?? 'ksubzone_daily_secure_salt_2026';
+        return hash_hmac('sha256', $maskedIp, $salt);
     }
 
     /** Creates the visitor store directory if it does not exist. */

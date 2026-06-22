@@ -152,12 +152,22 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const logoutUser = () => {
+  const logoutUser = async () => {
+    try {
+      await apiClient.post('/api/auth/logout');
+    } catch (err) {
+      console.error('[AuthContext] Logout failed on server:', err);
+    }
     tokenService.removeUserToken();
     setUser(null);
   };
 
-  const logoutAdmin = () => {
+  const logoutAdmin = async () => {
+    try {
+      await apiClient.post('/api/admin/logout');
+    } catch (err) {
+      console.error('[AuthContext] Admin logout failed on server:', err);
+    }
     tokenService.removeAdminToken();
     setAdmin(null);
   };

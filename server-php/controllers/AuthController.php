@@ -11,6 +11,27 @@ class AuthController {
         return JWT::sign(['id' => $id, 'role' => $role], $secret);
     }
 
+    public static function setAuthCookie($name, $token, $expiryDays = 7) {
+        $expiry = $token ? time() + ($expiryDays * 24 * 60 * 60) : time() - 3600;
+        $secure = false;
+        if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || 
+            (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ||
+            (strtolower($_ENV['NODE_ENV'] ?? '') === 'production')) {
+            $secure = true;
+        }
+        
+        $options = [
+            'expires' => $expiry,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ];
+        
+        setcookie($name, $token ?: '', $options);
+    }
+
     public static function register() {
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $username = trim($body['username'] ?? '');
@@ -67,6 +88,8 @@ class AuthController {
         }
 
         $token = self::generateToken($savedUser['_id'], 'user');
+        self::setAuthCookie('kd_token', $token);
+        self::setAuthCookie('kd_admin_token', null);
 
         header('Content-Type: application/json');
         echo json_encode([
@@ -124,6 +147,8 @@ class AuthController {
         }
 
         $token = self::generateToken($user['_id'], 'user');
+        self::setAuthCookie('kd_token', $token);
+        self::setAuthCookie('kd_admin_token', null);
 
         header('Content-Type: application/json');
         echo json_encode([
@@ -181,6 +206,8 @@ class AuthController {
         }
 
         $token = self::generateToken($user['_id'], 'user');
+        self::setAuthCookie('kd_token', $token);
+        self::setAuthCookie('kd_admin_token', null);
 
         header('Content-Type: application/json');
         echo json_encode([
@@ -252,6 +279,8 @@ class AuthController {
         }
 
         $token = self::generateToken($admin['_id'], 'admin');
+        self::setAuthCookie('kd_admin_token', $token);
+        self::setAuthCookie('kd_token', null);
 
         header('Content-Type: application/json');
         echo json_encode([

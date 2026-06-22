@@ -25,8 +25,24 @@ spl_autoload_register(function ($class) {
 use Utils\Dotenv;
 Dotenv::load(__DIR__ . '/.env');
 
-// CORS Policy Handling
-header("Access-Control-Allow-Origin: *");
+// CORS Policy Handling with strict origins and credentials support
+$allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://www.ksubzone.com',
+    'https://ksubzone.com'
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: " . $origin);
+    header("Access-Control-Allow-Credentials: true");
+} else {
+    $isProd = (strtolower($_ENV['NODE_ENV'] ?? '') === 'production');
+    header("Access-Control-Allow-Origin: " . ($isProd ? 'https://www.ksubzone.com' : 'http://localhost:3000'));
+    header("Access-Control-Allow-Credentials: true");
+}
+
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
@@ -202,16 +218,16 @@ $routes = [
             ]
         ]);
     }],
-    ['GET', '/api/debug-log.php', function() {
+    ['GET', '/api/debug-log.php', ['Middleware\AuthMiddleware::protectAdmin', function() {
         require_once __DIR__ . '/debug-log.php';
-    }],
-    ['GET', '/api/reveal-db-secret-x7v9w2', function() {
+    }]],
+    ['GET', '/api/reveal-db-secret-x7v9w2', ['Middleware\AuthMiddleware::protectAdmin', function() {
         header('Content-Type: application/json');
         echo json_encode([
             'databaseUrl' => $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL') ?: 'Not set'
         ]);
-    }],
-    ['GET', '/api/clear-opcache-xyz', function() {
+    }]],
+    ['GET', '/api/clear-opcache-xyz', ['Middleware\AuthMiddleware::protectAdmin', function() {
         header('Content-Type: text/plain');
         if (function_exists('opcache_reset')) {
             if (opcache_reset()) {
@@ -222,8 +238,8 @@ $routes = [
         } else {
             echo "OPcache is not enabled or opcache_reset is disabled.";
         }
-    }],
-    ['GET', '/api/clear-cache-xyz', function() {
+    }]],
+    ['GET', '/api/clear-cache-xyz', ['Middleware\AuthMiddleware::protectAdmin', function() {
         header('Content-Type: text/plain');
         try {
             \Utils\Cache::flush();
@@ -231,8 +247,8 @@ $routes = [
         } catch (\Exception $e) {
             echo "Error flushing cache: " . $e->getMessage();
         }
-    }],
-    ['GET', '/api/logs-xyz', function() {
+    }]],
+    ['GET', '/api/logs-xyz', ['Middleware\AuthMiddleware::protectAdmin', function() {
         header('Content-Type: text/plain');
         $logPaths = [
             dirname(__FILE__) . '/error_log',
@@ -252,8 +268,8 @@ $routes = [
             }
         }
         echo "=== END OF LOGS ===\n";
-    }],
-    ['GET', '/api/stats-info', function() {
+    }]],
+    ['GET', '/api/stats-info', ['Middleware\AuthMiddleware::protectAdmin', function() {
         header('Content-Type: text/plain');
         try {
             $db = \Config\Database::getInstance();
@@ -345,8 +361,8 @@ $routes = [
         } catch (\Exception $e) {
             echo "ERR:" . base64_encode($e->getMessage() . "\n" . $e->getTraceAsString());
         }
-    }],
-    ['GET', '/api/check-postgres-xyz', function() {
+    }]],
+    ['GET', '/api/check-postgres-xyz', ['Middleware\AuthMiddleware::protectAdmin', function() {
         header('Content-Type: text/plain');
         try {
             $db = \Config\Database::getInstance();
@@ -395,7 +411,7 @@ $routes = [
         } catch (\Exception $e) {
             echo "ERROR: " . $e->getMessage() . "\n" . $e->getTraceAsString();
         }
-    }],
+    }]],
     ['GET', '/api/site-content', function() {
         $db = \Config\Database::getInstance();
         header('Content-Type: application/json');
@@ -405,9 +421,15 @@ $routes = [
     // Public Auth
     ['POST', '/api/auth/register', 'Controllers\AuthController::register'],
     ['POST', '/api/auth/verify-email', 'Controllers\AuthController::verifyEmail'],
-    ['POST', '/api/auth/login', 'Controllers\AuthController::login'],
+    ['POST', '/api/auth/login', [function() { \Middleware\RateLimitMiddleware::limit('login', 5, 60); }, 'Controllers\AuthController::login']],
+    ['POST', '/api/auth/logout', [function() {
+        \Controllers\AuthController::setAuthCookie('kd_token', null);
+        header('Content-Type: application/json');
+        echo json_encode(['message' => 'Logged out successfully']);
+    }]],
     ['POST', '/api/auth/forgot-password', 'Controllers\AuthController::forgotPassword'],
     ['POST', '/api/auth/reset-password', 'Controllers\AuthController::resetPassword'],
+
 
     // Protected Profiles
     ['GET', '/api/auth/me', ['Middleware\AuthMiddleware::protectUser', 'Controllers\AuthController::getMe']],
@@ -461,16 +483,16 @@ $routes = [
     ['POST', '/api/media/continue-watching', ['Middleware\AuthMiddleware::protectUser', 'Controllers\UserController::updateContinueWatching']],
 
     // Reviews & Comments
-    ['POST', '/api/media/reviews', ['Middleware\AuthMiddleware::protectUser', 'Controllers\CommentController::addReview']],
+    ['POST', '/api/media/reviews', ['Middleware\AuthMiddleware::protectUser', function() { \Middleware\RateLimitMiddleware::limit('reviews', 5, 60); }, 'Controllers\CommentController::addReview']],
     ['GET', '/api/media/([a-f0-9]+)/reviews', 'Controllers\CommentController::getReviewsForMedia'],
     ['POST', '/api/media/reviews/([a-f0-9]+)/like', ['Middleware\AuthMiddleware::protectUser', 'Controllers\CommentController::likeReview']],
-    ['POST', '/api/media/comments', ['Middleware\AuthMiddleware::protectUser', 'Controllers\CommentController::addComment']],
+    ['POST', '/api/media/comments', ['Middleware\AuthMiddleware::protectUser', function() { \Middleware\RateLimitMiddleware::limit('comments', 10, 60); }, 'Controllers\CommentController::addComment']],
     ['GET', '/api/media/comments/target/([a-f0-9]+)', 'Controllers\CommentController::getCommentsForTarget'],
     ['POST', '/api/media/comments/([a-f0-9]+)/reply', ['Middleware\AuthMiddleware::protectUser', 'Controllers\CommentController::addReply']],
     ['POST', '/api/media/comments/([a-f0-9]+)/like', ['Middleware\AuthMiddleware::protectUser', 'Controllers\CommentController::likeComment']],
 
     // Subtitles
-    ['POST', '/api/subtitles/upload', ['Middleware\AuthMiddleware::protectUser', 'Controllers\SubtitleController::uploadSubtitle']],
+    ['POST', '/api/subtitles/upload', ['Middleware\AuthMiddleware::protectUser', function() { \Middleware\RateLimitMiddleware::limit('subtitle_upload', 3, 60); }, 'Controllers\SubtitleController::uploadSubtitle']],
     ['GET', '/api/subtitles/recent', 'Controllers\SubtitleController::getRecentApprovedSubtitles'],
     ['GET', '/api/subtitles/media/([a-f0-9,]+)', 'Controllers\SubtitleController::getSubtitlesForMedia'],
     ['POST', '/api/subtitles/([a-f0-9]+)/rate', ['Middleware\AuthMiddleware::protectUser', 'Controllers\SubtitleController::rateSubtitle']],
@@ -489,7 +511,12 @@ $routes = [
     ['POST', '/api/admin/ai/polish', ['Middleware\AuthMiddleware::protectAdmin', 'Controllers\AiController::polishSubtitle']],
 
     // Administrative Auth
-    ['POST', '/api/admin/login', 'Controllers\AuthController::adminLogin'],
+    ['POST', '/api/admin/login', [function() { \Middleware\RateLimitMiddleware::limit('admin_login', 5, 60); }, 'Controllers\AuthController::adminLogin']],
+    ['POST', '/api/admin/logout', [function() {
+        \Controllers\AuthController::setAuthCookie('kd_admin_token', null);
+        header('Content-Type: application/json');
+        echo json_encode(['message' => 'Admin logged out successfully']);
+    }]],
     ['GET', '/api/admin/me', ['Middleware\AuthMiddleware::protectAdmin', 'Controllers\AuthController::getAdminMe']],
 
     // Admin Dashboard

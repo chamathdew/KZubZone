@@ -9,6 +9,22 @@ class AuthMiddleware {
     public static $currentAdmin = null;
 
     private static function getBearerToken() {
+        // 1. First, check cookies (httpOnly)
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $isAdminRoute = strpos($uri, '/api/admin/') !== false;
+        
+        $cookieName = $isAdminRoute ? 'kd_admin_token' : 'kd_token';
+        if (isset($_COOKIE[$cookieName])) {
+            return $_COOKIE[$cookieName];
+        }
+        
+        // Secondary fallback to the other cookie
+        $fallbackCookie = $isAdminRoute ? 'kd_token' : 'kd_admin_token';
+        if (isset($_COOKIE[$fallbackCookie])) {
+            return $_COOKIE[$fallbackCookie];
+        }
+
+        // 2. Fallback to Authorization Header
         $authHeader = '';
         if (function_exists('getallheaders')) {
             $headers = getallheaders();

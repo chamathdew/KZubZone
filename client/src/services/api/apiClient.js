@@ -6,6 +6,7 @@ const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/+$/, '
 const apiClient = axios.create({
   baseURL: backendUrl || '/',
   timeout: 60000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -15,6 +16,9 @@ const apiClient = axios.create({
 // Request Interceptor: Automatically inject Authorization token
 apiClient.interceptors.request.use(
   (config) => {
+    // Ensure withCredentials is true for all requests
+    config.withCredentials = true;
+
     // Determine which token to use based on URL path to prevent token pollution
     const url = config.url || '';
     const isAdminRoute = url.startsWith('/api/admin/') || url.includes('/admin');
@@ -24,7 +28,8 @@ apiClient.interceptors.request.use(
       ? tokenService.getAdminToken()
       : tokenService.getUserToken();
       
-    if (token) {
+    // Only inject header if token is an actual JWT (not the 'true' placeholder for cookie mode)
+    if (token && token !== 'true') {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
