@@ -50,6 +50,13 @@ if (Test-Path $uploadsDir) {
     Write-Host " - Cleared uploads folder contents"
 }
 
+# Clean temp folder contents (temporary query caches & visitor log files)
+$tempSubDir = Join-Path $serverPhpDst "temp"
+if (Test-Path $tempSubDir) {
+    Get-ChildItem -Path $tempSubDir | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host " - Cleared temp folder contents (query caches & visitor metrics)"
+}
+
 # 3. Copy client/dist folder (Frontend)
 $clientDistSrc = Join-Path $workspaceRoot "client\dist"
 $clientDistDst = Join-Path $tempDir "client\dist"

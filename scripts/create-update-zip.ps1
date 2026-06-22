@@ -43,6 +43,13 @@ if (Test-Path $uploadsDir) {
     Write-Host " - Cleared: uploads/ contents"
 }
 
+# Clear temp/ contents if any (temporary query caches & visitor log files)
+$tempSubDir = Join-Path $tempDir "temp"
+if (Test-Path $tempSubDir) {
+    Get-ChildItem $tempSubDir | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host " - Cleared: temp/ contents (query caches & visitor metrics)"
+}
+
 # ── 2. Zip ─────────────────────────────────────────────────────────────
 Write-Host "Creating zip using tar..."
 # Use tar to preserve POSIX-compliant permissions when extracted on Linux hosts
