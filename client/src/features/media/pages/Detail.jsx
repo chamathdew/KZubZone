@@ -536,17 +536,57 @@ export default function Detail({ type = 'Movie', initialData }) {
                 <span>{media.viewCount || 0} Views</span>
               </div>
             </div>
-
             {/* AI SEO Unique Rewrite Block */}
             <div className="glass-panel p-6 rounded-3xl border border-white/5 text-slate-300 flex flex-col gap-4 text-xs sm:text-sm">
               <div>
                 <h2 className="font-extrabold text-white text-sm sm:text-base uppercase tracking-wider mb-2">Synopsis</h2>
-                <p className="leading-relaxed">{media.synopsisRewrite || media.description}</p>
+                <p className="leading-relaxed speakable-synopsis">{media.synopsisRewrite || media.description}</p>
               </div>
               <hr className="border-white/5" />
               <div>
                 <h2 className="font-extrabold text-white text-sm uppercase tracking-wider mb-2">Story Deep-Dive</h2>
                 <p className="leading-relaxed text-slate-400">{media.storyOverview}</p>
+              </div>
+            </div>
+
+            {/* Quick Facts & AI Summary Table (GEO Optimized) */}
+            <div className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col gap-4">
+              <h2 className="font-black text-white text-sm sm:text-base uppercase tracking-wider">Quick Facts & Subtitle Details</h2>
+              <div className="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.01]">
+                <table className="min-w-full text-xs text-left divide-y divide-white/5 text-slate-300">
+                  <tbody className="divide-y divide-white/[0.02]">
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider w-1/3">Title</td>
+                      <td className="px-4 py-3 text-white font-semibold">{media.title}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Director</td>
+                      <td className="px-4 py-3 text-white font-semibold">{media.director || 'Unknown'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Release Date</td>
+                      <td className="px-4 py-3 text-white font-semibold">{media.releaseDate ? new Date(media.releaseDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '2026'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Runtime</td>
+                      <td className="px-4 py-3 text-white font-semibold">
+                        {type === 'Drama' ? 'TV Show (Multiple Episodes)' : (media.runtime ? `${media.runtime} Minutes` : 'Feature Length')}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Country</td>
+                      <td className="px-4 py-3 text-white font-semibold uppercase">{media.country || 'South Korea'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Languages Available</td>
+                      <td className="px-4 py-3 text-white font-semibold">Sinhala, English</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider">Community Rating</td>
+                      <td className="px-4 py-3 text-white font-semibold">⭐ {imdbRating > 0 ? `${imdbRating.toFixed(1)}/10 (IMDb)` : 'NR'}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -906,6 +946,43 @@ export default function Detail({ type = 'Movie', initialData }) {
             )}
             </div>
 
+            {/* Visual FAQ Section (AEO / GEO optimized) */}
+            {media.faq && media.faq.length > 0 && (
+              <div className="flex flex-col gap-6 text-left speakable-faq-section">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Knowledge Center</p>
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Frequently Asked Questions</h2>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {media.faq.map((item, idx) => (
+                    <details
+                      key={idx}
+                      className="group rounded-2xl border border-white/5 bg-white/[0.01] p-4 [&_summary::-webkit-details-marker]:hidden cursor-pointer hover:border-brand-primary/20 transition-all duration-300"
+                    >
+                      <summary className="flex items-center justify-between gap-1.5 text-slate-200">
+                        <h3 className="text-sm font-bold text-white leading-snug">{item.question}</h3>
+                        <span className="shrink-0 rounded-full bg-white/5 p-1.5 text-slate-400 group-open:rotate-180 transition duration-300">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4.5 w-4.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </span>
+                      </summary>
+                      <div className="mt-4 leading-relaxed text-xs sm:text-sm text-slate-300 border-t border-white/5 pt-3">
+                        <p>{item.answer}</p>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Discussion Comments */}
             <div className="flex flex-col gap-6 text-left" id="comments">
               <h2 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2.5">
@@ -945,15 +1022,16 @@ export default function Detail({ type = 'Movie', initialData }) {
                   <p className="text-xs text-slate-500 text-center py-4">No comments yet. Start the conversation!</p>
                 ) : (
                   comments.map((comment) => (
-                    <div key={comment._id} className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col gap-3">
+                    <div key={comment._id} className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl flex flex-col gap-3" itemProp="review" itemScope itemType="https://schema.org/Review">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-xs font-black uppercase text-brand-primary">
                             {comment.user?.username ? comment.user.username.slice(0, 2) : 'U'}
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-white">{comment.user?.username || 'User'}</p>
+                            <p className="text-xs font-bold text-white" itemProp="author" itemScope itemType="https://schema.org/Person"><span itemProp="name">{comment.user?.username || 'User'}</span></p>
                             <p className="text-[9px] text-slate-500 mt-0.5">{new Date(comment.createdAt).toLocaleDateString()}</p>
+                            <meta itemProp="datePublished" content={comment.createdAt} />
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -977,7 +1055,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                           </button>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-300 leading-relaxed pl-1">{comment.content}</p>
+                      <p className="text-xs text-slate-300 leading-relaxed pl-1" itemProp="reviewBody">{comment.content}</p>
 
                       {/* Replies List */}
                       {comment.replies && comment.replies.length > 0 && (

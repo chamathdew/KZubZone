@@ -5,15 +5,16 @@ export default async function sitemap() {
   const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 
   const defaultUrls = [
-    { url: baseUrl, lastModified: new Date() },
-    { url: `${baseUrl}/search`, lastModified: new Date() },
-    { url: `${baseUrl}/articles`, lastModified: new Date() },
-    { url: `${baseUrl}/auth`, lastModified: new Date() },
+    { url: baseUrl, lastModified: new Date(), changeFrequency: 'daily', priority: 1.0 },
+    { url: `${baseUrl}/search`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/articles`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 },
+    { url: `${baseUrl}/auth`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.3 },
   ];
 
   let movieUrls = [];
   let dramaUrls = [];
   let articleUrls = [];
+  let genreUrls = [];
 
   try {
     const moviesRes = await fetch(`${backendUrl}/api/media/movies?limit=500`, { next: { revalidate: 3600 } });
@@ -22,6 +23,8 @@ export default async function sitemap() {
       movieUrls = (data.movies || []).map((m) => ({
         url: `${baseUrl}/movie/${permalinkSlug(m)}`,
         lastModified: new Date(m.updatedAt || m.createdAt || Date.now()),
+        changeFrequency: 'weekly',
+        priority: 0.7,
       }));
     }
   } catch (e) {
@@ -35,6 +38,8 @@ export default async function sitemap() {
       dramaUrls = (data.dramas || []).map((d) => ({
         url: `${baseUrl}/drama/${permalinkSlug(d)}`,
         lastModified: new Date(d.updatedAt || d.createdAt || Date.now()),
+        changeFrequency: 'weekly',
+        priority: 0.7,
       }));
     }
   } catch (e) {
@@ -48,11 +53,38 @@ export default async function sitemap() {
       articleUrls = (data.articles || []).map((a) => ({
         url: `${baseUrl}/articles/${a.slug}`,
         lastModified: new Date(a.publishedAt || a.updatedAt || Date.now()),
+        changeFrequency: 'weekly',
+        priority: 0.6,
       }));
     }
   } catch (e) {
     console.error('Sitemap articles fetch failed:', e);
   }
 
-  return [...defaultUrls, ...movieUrls, ...dramaUrls, ...articleUrls];
+  try {
+    const genresRes = await fetch(`${backendUrl}/api/media/genres`, { next: { revalidate: 3600 } });
+    if (genresRes.ok) {
+      const genres = await genresRes.json();
+      (genres || []).forEach((g) => {
+        if (g.slug) {
+          genreUrls.push({
+            url: `${baseUrl}/movie/genre/${g.slug}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.5,
+          });
+          genreUrls.push({
+            url: `${baseUrl}/drama/genre/${g.slug}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.5,
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Sitemap genres fetch failed:', e);
+  }
+
+  return [...defaultUrls, ...movieUrls, ...dramaUrls, ...articleUrls, ...genreUrls];
 }

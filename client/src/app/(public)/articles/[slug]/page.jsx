@@ -55,6 +55,44 @@ export async function generateMetadata({ params }) {
 export default async function ArticleDetailPage({ params }) {
   const { slug } = params;
   const initialData = await getArticle(slug);
+  const article = initialData?.article;
 
-  return <ArticleDetail initialData={initialData} />;
+  const articleSchema = article ? {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": article.title,
+    "image": article.coverImage ? [article.coverImage] : [],
+    "datePublished": article.publishedAt || article.createdAt,
+    "dateModified": article.updatedAt || article.publishedAt || article.createdAt,
+    "description": article.excerpt || article.metaDescription || article.title,
+    "author": {
+      "@type": "Person",
+      "name": "KSubZone Contributor"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "KSubZone",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.ksubzone.com/main-logo.webp"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://www.ksubzone.com/articles/${slug}`
+    }
+  } : null;
+
+  return (
+    <>
+      {articleSchema && (
+        <script
+          type="application/ld+json"
+          id="article-jsonld"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        />
+      )}
+      <ArticleDetail initialData={initialData} />
+    </>
+  );
 }

@@ -82,12 +82,79 @@ export default async function MovieDetailPage({ params }) {
     ]
   } : null;
 
+  const movieSchema = media?.schemaMarkup ? { ...media.schemaMarkup } : null;
+  if (movieSchema) {
+    if (media.poster) {
+      movieSchema.image = media.poster;
+    }
+    if (media.cast && media.cast.length > 0) {
+      movieSchema.actor = media.cast.map(c => ({
+        "@type": "Person",
+        "name": c.name
+      }));
+    }
+    const ratingValue = media.imdbRating || media.tmdbRating || 0;
+    if (ratingValue > 0) {
+      movieSchema.aggregateRating = {
+        "@type": "AggregateRating",
+        "ratingValue": ratingValue.toFixed(1),
+        "bestRating": "10",
+        "ratingCount": media.viewCount ? Math.max(10, Math.floor(media.viewCount / 5)) : 10
+      };
+    }
+  }
+
+  const faqSchema = media?.faq && media.faq.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": media.faq.map(item => ({
+      "@type": "Question",
+      "name": item.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.answer
+      }
+    }))
+  } : null;
+
+  const speakableSchema = media ? {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": `${media.title} Sinhala & English Subtitles`,
+    "speakable": {
+      "@type": "SpeakableSpecification",
+      "cssSelector": [".speakable-synopsis", ".speakable-faq-section"]
+    }
+  } : null;
+
   return (
     <>
       {breadcrumbs && (
         <script
           type="application/ld+json"
+          id="breadcrumbs-jsonld"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+        />
+      )}
+      {movieSchema && (
+        <script
+          type="application/ld+json"
+          id="movie-jsonld"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(movieSchema) }}
+        />
+      )}
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          id="faq-jsonld"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+      {speakableSchema && (
+        <script
+          type="application/ld+json"
+          id="speakable-jsonld"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(speakableSchema) }}
         />
       )}
       <Detail type="Movie" initialData={initialData} />
