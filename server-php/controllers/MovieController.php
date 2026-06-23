@@ -74,7 +74,7 @@ class MovieController {
         if ($sort === 'oldest') {
             $sortOptions = ['releaseDate' => 1];
         } elseif ($sort === 'newest') {
-            $sortOptions = ['releaseDate' => -1];
+            $sortOptions = ['createdAt' => -1];
         } elseif ($sort === 'rating') {
             $sortOptions = ['imdbRating' => -1, 'tmdbRating' => -1];
         } elseif ($sort === 'popular' || $sort === 'views') {
@@ -130,8 +130,8 @@ class MovieController {
         $db = Database::getInstance();
         $statusFilter = ['status' => 'Published'];
 
-        // 1. Latest movies (status: Published, sort: releaseDate DESC, limit 12)
-        $latestMovies = $db->find('movies', $statusFilter, ['sort' => ['releaseDate' => -1], 'limit' => 12]);
+        // 1. Latest movies (status: Published, sort: createdAt DESC, limit 12)
+        $latestMovies = $db->find('movies', $statusFilter, ['sort' => ['createdAt' => -1], 'limit' => 12]);
         
         // 2. Latest dramas (status: Published, sort: updatedAt DESC, limit 12)
         $latestDramas = $db->find('dramas', $statusFilter, ['sort' => ['updatedAt' => -1], 'limit' => 12]);
