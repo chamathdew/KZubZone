@@ -20,8 +20,8 @@ export const defaultSiteContent = {
     adminLabel: 'Admin Panel',
     links: [
       { label: 'Movies', url: '/search?category=movie&sort=newest' },
-      { label: 'TV Series', url: '/search?category=drama&sort=newest' },
-      { label: 'Drama', url: '/search?category=drama&genre=Drama' },
+      { label: 'TV Shows', url: '/search?category=drama&sort=newest' },
+      { label: 'Genres', url: '/genres' },
       { label: 'Articles', url: '/articles' },
       { label: 'Trending', url: '/search?category=all&trending=true&sort=views' }
     ]
