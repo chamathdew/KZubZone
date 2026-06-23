@@ -36,6 +36,7 @@ class AnalyticsController {
 
         $movieViews = $db->sumJsonField('movies', 'viewCount');
         $dramaViews = $db->sumJsonField('dramas', 'viewCount');
+        $totalDownloads = $db->sumJsonField('subtitles', 'downloads');
 
         $analyticsRecord = self::getOrCreateRecord();
 
@@ -198,7 +199,8 @@ class AnalyticsController {
                 'totalSubtitles'    => $totalSubtitles,
                 'totalReviews'      => $totalReviews,
                 'totalViews'        => $totalViews,
-                'totalTrafficViews' => $trafficViews
+                'totalTrafficViews' => $trafficViews,
+                'totalDownloads'    => $totalDownloads
             ],
             'seoHealthScore'   => $analyticsRecord['seoHealthScore'] ?? 98,
             'trafficLogs'      => $analyticsRecord['trafficLogs'] ?? [],

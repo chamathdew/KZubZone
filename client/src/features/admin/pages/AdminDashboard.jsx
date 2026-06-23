@@ -10,7 +10,7 @@ import {
   Award, CheckCircle, BookOpenText, Bell, Clapperboard, CalendarCheck2,
   AlertTriangle, Activity, Zap, ArrowUpRight, BarChart3, Globe,
   Database, Server, Clock, TrendingDown, Minus, Shield, XCircle,
-  BarChart2, ChevronRight, RefreshCw, Check
+  BarChart2, ChevronRight, RefreshCw, Check, Download
 } from 'lucide-react';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import StatCard from '@/features/admin/components/StatCard';
@@ -114,6 +114,7 @@ const METRIC_CARDS = [
   { key: 'totalEpisodes',     label: 'Episodes',     icon: Award,     href: '/management/dramas',    border: 'border-l-sky-500',     iconBg: 'bg-sky-500/15',     iconColor: 'text-sky-400',     spark: '#0ea5e9', grad: 'from-sky-500/[0.07]' },
   { key: 'totalUsers',        label: 'Members',      icon: Users,     href: '/management/users',     border: 'border-l-indigo-500',  iconBg: 'bg-indigo-500/15',  iconColor: 'text-indigo-400',  spark: '#6366f1', grad: 'from-indigo-500/[0.07]' },
   { key: 'totalSubtitles',    label: 'Subtitles',    icon: Languages, href: '/management/subtitles', border: 'border-l-emerald-500', iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', spark: '#10b981', grad: 'from-emerald-500/[0.07]' },
+  { key: 'totalDownloads',    label: 'Downloads',    icon: Download,  href: '/management/subtitles', border: 'border-l-teal-500',     iconBg: 'bg-teal-500/15',    iconColor: 'text-teal-400',    spark: '#14b8a6', grad: 'from-teal-500/[0.07]' },
   { key: 'totalReviews',      label: 'Reviews',      icon: Star,      href: '/management/comments',  border: 'border-l-amber-500',   iconBg: 'bg-amber-500/15',   iconColor: 'text-amber-400',   spark: '#f59e0b', grad: 'from-amber-500/[0.07]' },
   { key: 'totalViews',        label: 'Total Views',  icon: Eye,       href: '/management/dashboard', border: 'border-l-teal-500',    iconBg: 'bg-teal-500/15',    iconColor: 'text-teal-400',    spark: '#14b8a6', grad: 'from-teal-500/[0.07]' },
   { key: 'totalTrafficViews', label: 'Site Traffic', icon: TrendingUp,href: '/management/dashboard', border: 'border-l-rose-500',    iconBg: 'bg-rose-500/15',    iconColor: 'text-rose-400',    spark: '#f43f5e', grad: 'from-rose-500/[0.07]' },
@@ -875,8 +876,8 @@ export default function AdminDashboard() {
               <Pulse className="h-3 w-48" />
             </div>
             {/* Cards skeleton */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 9 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
             {/* Chart + sidebar skeleton */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -947,8 +948,8 @@ export default function AdminDashboard() {
             </motion.div>
           )}
 
-          {/* ── Metric Cards (2-col mobile → 4-col desktop) ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          {/* ── Metric Cards (2-col mobile → 3-col desktop) ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
             {METRIC_CARDS.map((card, idx) => (
               <motion.div key={card.key} variants={fadeUp} initial="hidden" animate="visible" custom={idx * 0.4}>
                 <StatCard
