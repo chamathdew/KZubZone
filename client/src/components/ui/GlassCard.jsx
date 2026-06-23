@@ -128,7 +128,7 @@ export default function GlassCard({ item, type, priority = false }) {
           </div>
 
           {/* Ongoing label — bottom-left floating pill, fades out on hover */}
-          {mediaType === 'drama' && subtitleSummary.seasonStatus === 'Ongoing' && (
+          {mediaType === 'drama' && subtitleSummary.seasonStatus === 'Ongoing' && item.status !== 'Upcoming' && (
             <div className="absolute bottom-3 left-3 z-20 transition-opacity duration-200 group-hover:opacity-0">
               <span className="px-2 py-0.5 bg-emerald-600/80 border border-emerald-500/50 backdrop-blur-md rounded-full text-white text-[9px] font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20">
                 Ongoing

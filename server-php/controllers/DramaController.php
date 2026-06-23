@@ -301,7 +301,7 @@ class DramaController {
         unset($sub);
 
         // Dynamic subtitle summary (passing pre-fetched seasons, episodes, and subtitles to save database queries)
-        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id'], $seasons, $episodes, $allSubtitles);
+        $drama['subtitleSummary'] = self::getSubtitleSummaryForDrama($drama['_id'], $seasons, $episodes, $allSubtitles, $drama['status'] ?? null);
 
         // Map seasonId to seasonNumber for proper ordering across seasons
         $seasonNumberMap = [];
@@ -749,7 +749,7 @@ class DramaController {
         echo json_encode(['message' => 'Episode deleted successfully']);
     }
 
-    public static function getSubtitleSummaryForDrama($dramaId, $seasons = null, $episodes = null, $allSubtitles = null) {
+    public static function getSubtitleSummaryForDrama($dramaId, $seasons = null, $episodes = null, $allSubtitles = null, $dramaStatus = null) {
         $db = Database::getInstance();
         
         // 1. Get all episodes of the drama (use pre-fetched if available)
@@ -775,7 +775,7 @@ class DramaController {
                 'totalSubtitles' => 0,
                 'languages' => [],
                 'progressLabel' => 'No subs',
-                'seasonStatus' => 'Ongoing',
+                'seasonStatus' => $dramaStatus === 'Upcoming' ? 'Upcoming' : 'Ongoing',
                 'latestUploaderRole' => null
             ];
         }
@@ -933,6 +933,10 @@ class DramaController {
             $latestUploaderRole = $allSubtitles[0]['uploaderRole'] ?? null;
         }
         
+        if ($dramaStatus === 'Upcoming') {
+            $seasonStatus = 'Upcoming';
+        }
+        
         return [
             'totalSubtitles' => $totalSubtitles,
             'languages' => $languages,
@@ -1005,7 +1009,7 @@ class DramaController {
                     'totalSubtitles' => 0,
                     'languages' => [],
                     'progressLabel' => 'No subs',
-                    'seasonStatus' => 'Ongoing',
+                    'seasonStatus' => ($drama['status'] ?? '') === 'Upcoming' ? 'Upcoming' : 'Ongoing',
                     'latestUploaderRole' => null
                 ];
                 continue;
@@ -1060,7 +1064,7 @@ class DramaController {
                 }
             }
             
-            $seasonStatus = 'Ongoing';
+            $seasonStatus = ($drama['status'] ?? '') === 'Upcoming' ? 'Upcoming' : 'Ongoing';
             $progressLabel = '';
             
             if (!empty($completedSeasons)) {
