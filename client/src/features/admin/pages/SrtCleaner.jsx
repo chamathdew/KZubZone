@@ -312,9 +312,15 @@ export default function SrtCleaner() {
 
           // SDH Descriptions
           if (config.removeSdh) {
-            text = text.replace(/\[[A-Za-z\s_-]+\]/g, '');
-            text = text.replace(/\([A-Za-z\s_-]+\)/g, '');
-            text = text.replace(/\{[A-Za-z\s_-]+\}/g, '');
+            if (!config.removeSquareBrackets) {
+              text = text.replace(/\[[A-Za-z\s_-]+\]/g, '');
+            }
+            if (!config.removeRoundBrackets) {
+              text = text.replace(/\([A-Za-z\s_-]+\)/g, '');
+            }
+            if (!config.removeCurlyBraces) {
+              text = text.replace(/\{[A-Za-z\s_-]+\}/g, '');
+            }
           }
 
           // Round Brackets
@@ -354,17 +360,21 @@ export default function SrtCleaner() {
               'www.', '.com', '.org', '.net', '.lk', '.info', 'http://', 'https://',
               'subtitles by', 'opensubtitles', 'translated by', 'synchronized by', 'corrected by',
               'support us', 'subtitles downloaded', 'rip', 'remux', 'bluray', 'web-dl',
-              'encode', 'synchronization', 'captioned by', 'join us on'
+              'encode', 'synchronization', 'captioned by', 'join us on', '@adl_drama'
             ];
             
             text = text.split('\n').filter(line => {
               const lLower = line.toLowerCase();
               const isAd = adKeywords.some(keyword => lLower.includes(keyword)) ||
                            lLower.includes('.lk') || lLower.includes('.com') ||
+                           lLower.includes('@adl_drama') ||
                            (lLower.includes('@') && !lLower.includes(' '));
               return !isAd;
             }).join('\n');
           }
+
+          // Always remove the forbidden word @ADL_Drama from the subtitle content
+          text = text.replace(/@ADL_Drama/gi, '');
 
           // Specific Words
           if (config.specificWords) {
@@ -665,6 +675,8 @@ export default function SrtCleaner() {
         const prev = base;
         base = base.replace(/_(KSubZone|KSubZone_branded|cleaned|www\.ksubzone\.com|branded|KSubZonesrt)/gi, '');
         base = base.replace(/-(cleaned|branded)/gi, '');
+        // Remove forbidden word @ADL_Drama (and any surrounding spaces/underscores/hyphens)
+        base = base.replace(/[-_@\s]*ADL_Drama[-_@\s]*/gi, '');
         if (base === prev) break;
       }
       return base.trim().replace(/\.+$/, '');

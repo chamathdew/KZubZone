@@ -257,7 +257,8 @@ class SubtitleQualityCheckerService
             '/t\.me\/[a-z0-9_]+/i',
             '/join.*telegram/i',
             '/subscribe.*channel/i',
-            '/casino|slot|betting|1xbet|melbet|linebet/i'
+            '/casino|slot|betting|1xbet|melbet|linebet/i',
+            '/@?adl_drama/i'
         ];
 
         foreach ($blocks as $idx => $block) {

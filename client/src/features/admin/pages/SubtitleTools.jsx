@@ -85,6 +85,8 @@ const cleanBaseName = (fileName) => {
     const prev = base;
     base = base.replace(/_(KSubZone|KSubZone_branded|cleaned|www\.ksubzone\.com|branded|KSubZonesrt)/gi, '');
     base = base.replace(/-(cleaned|branded)/gi, '');
+    // Remove forbidden word @ADL_Drama (and any surrounding spaces/underscores/hyphens)
+    base = base.replace(/[-_@\s]*ADL_Drama[-_@\s]*/gi, '');
     if (base === prev) break;
   }
   return base.trim().replace(/\.+$/, '');
@@ -184,7 +186,7 @@ export default function SubtitleTools() {
           const competitorKeywords = [
             'baiscope', 'cineru', 'zoom.lk', 'subz.lk', 'sinhalasub',
             'subz.site', 'subzlk', 'baiscopelk', 'zoom', 'බයිස්කෝප්', 'සිනේරු',
-            'cinerulk', 'subz'
+            'cinerulk', 'subz', 'adl_drama', '@adl_drama'
           ];
 
           const detected = [];
