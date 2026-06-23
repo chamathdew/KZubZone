@@ -41,10 +41,10 @@ export const getMediaImage = (item = {}, kind = 'poster') => {
     ? item.banner || item.backdrop || item.backdrops?.[0]
     : item.poster || item.banner || item.backdrop || item.backdrops?.[0];
 
-  // Optimize TMDB image paths to load faster (w780 for backdrop, w500 for poster, w342 for card, w154 for thumb)
+  // Optimize TMDB image paths to load faster (w1280 for backdrop, w500 for poster, w342 for card, w154 for thumb)
   if (source && typeof source === 'string' && source.includes('image.tmdb.org/t/p/')) {
     const sizeMap = {
-      backdrop: 'w780',
+      backdrop: 'w1280', // Upgraded to w1280 for high-resolution premium display on desktops
       poster: 'w500',
       card: 'w342',
       thumb: 'w154'
