@@ -52,15 +52,43 @@ class Slug {
     }
 
     public static function findByPermalinkSlug($db, $collection, $slug) {
-        $slug = self::normalizePermalinkSlug($slug);
+        // 1. Try finding by raw URL-decoded input slug first to support unicode/Sinhala slugs
+        $decoded = rawurldecode($slug);
+        $decoded = preg_split('/[?#]/', $decoded)[0];
+        $decoded = trim($decoded, '/');
+        
+        // Strip movie/drama prefixes if present
+        if (preg_match_all('~(?:^|/)(?:movie|drama)/([^/?#]+)~i', $decoded, $matches) && !empty($matches[1])) {
+            $decoded = end($matches[1]);
+        } elseif (preg_match('~https?://~i', $decoded)) {
+            $parts = preg_split('~https?://[^/]+/(?:movie|drama)/~i', $decoded, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($parts)) {
+                $decoded = end($parts);
+            }
+        }
+        
+        if (!empty($decoded)) {
+            $doc = $db->findOne($collection, ['slug' => $decoded]);
+            if ($doc) {
+                return $doc;
+            }
+            // Try matching lowercase as database collation might be case sensitive or insensitive
+            $doc = $db->findOne($collection, ['slug' => strtolower($decoded)]);
+            if ($doc) {
+                return $doc;
+            }
+        }
 
-        $doc = $db->findOne($collection, ['slug' => $slug]);
+        // 2. Fallback to slugified behavior for backwards compatibility
+        $normalized = self::normalizePermalinkSlug($slug);
+
+        $doc = $db->findOne($collection, ['slug' => $normalized]);
         if ($doc) {
             return $doc;
         }
 
-        $clean = self::cleanSlug($slug);
-        if ($clean !== $slug) {
+        $clean = self::cleanSlug($normalized);
+        if ($clean !== $normalized) {
             $doc = $db->findOne($collection, ['slug' => $clean]);
             if ($doc) {
                 return $doc;

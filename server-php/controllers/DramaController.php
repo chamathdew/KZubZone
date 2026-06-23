@@ -31,10 +31,68 @@ class DramaController {
             'limit' => $limit
         ]);
 
+        $dramasArray = array_values($dramas);
+        $dramaIds = array_map(function($d) { return $d['_id']; }, $dramasArray);
+
+        $seasons = [];
+        $episodes = [];
+        if (!empty($dramaIds)) {
+            $seasons = $db->find('seasons', ['dramaId' => ['$in' => $dramaIds]], ['sort' => ['seasonNumber' => 1]]);
+            $episodes = $db->find('episodes', ['dramaId' => ['$in' => $dramaIds]], ['sort' => ['episodeNumber' => 1]]);
+        }
+
+        $seasonsByDrama = [];
+        foreach ($seasons as $s) {
+            $sDramaId = (string)($s['dramaId'] ?? '');
+            if (!isset($seasonsByDrama[$sDramaId])) {
+                $seasonsByDrama[$sDramaId] = [];
+            }
+            $seasonsByDrama[$sDramaId][] = $s;
+        }
+
+        $episodesByDrama = [];
+        foreach ($episodes as $e) {
+            $eDramaId = (string)($e['dramaId'] ?? '');
+            if (!isset($episodesByDrama[$eDramaId])) {
+                $episodesByDrama[$eDramaId] = [];
+            }
+            $episodesByDrama[$eDramaId][] = $e;
+        }
+
+        foreach ($dramasArray as &$d) {
+            $dId = (string)$d['_id'];
+            $dSeasons = $seasonsByDrama[$dId] ?? [];
+            $dEpisodes = $episodesByDrama[$dId] ?? [];
+
+            $seasonNumberMap = [];
+            foreach ($dSeasons as $s) {
+                $seasonNumberMap[(string)$s['_id']] = (int)($s['seasonNumber'] ?? 1);
+            }
+
+            usort($dEpisodes, function($a, $b) use ($seasonNumberMap) {
+                $aSeasonId = (string)($a['seasonId'] ?? '');
+                $bSeasonId = (string)($b['seasonId'] ?? '');
+                $aSeasonNum = $seasonNumberMap[$aSeasonId] ?? 0;
+                $bSeasonNum = $seasonNumberMap[$bSeasonId] ?? 0;
+
+                if ($aSeasonNum !== $bSeasonNum) {
+                    return $aSeasonNum <=> $bSeasonNum;
+                }
+
+                $aEpNum = (int)($a['episodeNumber'] ?? 0);
+                $bEpNum = (int)($b['episodeNumber'] ?? 0);
+                return $aEpNum <=> $bEpNum;
+            });
+
+            $d['seasons'] = $dSeasons;
+            $d['episodes'] = $dEpisodes;
+        }
+        unset($d);
+
         header('Content-Type: application/json');
         echo json_encode([
-            'total' => count($dramas),
-            'dramas' => array_values($dramas)
+            'total' => count($dramasArray),
+            'dramas' => $dramasArray
         ]);
     }
 

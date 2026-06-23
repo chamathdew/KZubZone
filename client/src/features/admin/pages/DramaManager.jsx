@@ -124,15 +124,39 @@ export default function DramaManager() {
 
   const handleOpenExplorer = async (drama) => {
     setExplorerDrama(drama);
-    setLoadingExpansion(true);
+    
+    const preloadedSeasons = drama.seasons || [];
+    const preloadedEpisodes = drama.episodes || [];
+    
+    if (preloadedSeasons.length > 0) {
+      setExpandedData({
+        seasons: preloadedSeasons,
+        episodes: preloadedEpisodes
+      });
+    } else {
+      setLoadingExpansion(true);
+    }
+
     try {
       const res = await apiClient.get(`/api/media/dramas/${drama.slug}`);
+      const freshSeasons = res.data.seasons || [];
+      const freshEpisodes = res.data.episodes || [];
+      
       setExpandedData({
-        seasons: res.data.seasons || [],
-        episodes: res.data.episodes || []
+        seasons: freshSeasons,
+        episodes: freshEpisodes
       });
+
+      // Update the preloaded data in the dramas catalog list
+      setDramas(prev => prev.map(d => d._id === drama._id ? {
+        ...d,
+        seasons: freshSeasons,
+        episodes: freshEpisodes
+      } : d));
     } catch (err) {
-      toast.error('Failed to load season structure.');
+      if (preloadedSeasons.length === 0) {
+        toast.error('Failed to load season structure.');
+      }
     } finally {
       setLoadingExpansion(false);
     }
@@ -142,10 +166,20 @@ export default function DramaManager() {
     if (!explorerDrama) return;
     try {
       const res = await apiClient.get(`/api/media/dramas/${explorerDrama.slug}?t=${Date.now()}`);
+      const freshSeasons = res.data.seasons || [];
+      const freshEpisodes = res.data.episodes || [];
+      
       setExpandedData({
-        seasons: res.data.seasons || [],
-        episodes: res.data.episodes || []
+        seasons: freshSeasons,
+        episodes: freshEpisodes
       });
+
+      // Update the preloaded data in the dramas catalog list as well
+      setDramas(prev => prev.map(d => d._id === explorerDrama._id ? {
+        ...d,
+        seasons: freshSeasons,
+        episodes: freshEpisodes
+      } : d));
     } catch (err) {
       console.error(err);
     }
