@@ -584,7 +584,7 @@ class Database {
     }
 
     // Helper: Translate Mongo query array to SQLite SQL WHERE clause
-    private function buildWhere($filter, &$params) {
+    private function buildWhere($filter, &$params, $collection = '') {
         if (empty($filter)) return "";
         $clauses = [];
         foreach ($filter as $k => $v) {
@@ -592,14 +592,45 @@ class Database {
             
             if ($k === '$text') {
                 if (isset($v['$search'])) {
-                    $searchVal = '%' . $v['$search'] . '%';
-                    $p = $paramName . "_search";
-                    $titleField = $this->sqlField('title');
-                    $origField = $this->sqlField('originalTitle');
-                    $descField = $this->sqlField('description');
-                    $likeOp = $this->driver === 'pgsql' ? 'ILIKE' : 'LIKE';
-                    $clauses[] = "({$titleField} {$likeOp} {$p} OR {$origField} {$likeOp} {$p} OR {$descField} {$likeOp} {$p})";
-                    $params[$p] = $searchVal;
+                    $searchQuery = trim($v['$search']);
+                    if ($searchQuery !== '') {
+                        $words = preg_split('/\s+/', $searchQuery);
+                        $wordClauses = [];
+                        $likeOp = $this->driver === 'pgsql' ? 'ILIKE' : 'LIKE';
+                        
+                        // Select fields based on collection type
+                        if ($collection === 'articles') {
+                            $fields = ['title', 'excerpt', 'content'];
+                        } else {
+                            $fields = ['title', 'originalTitle', 'description'];
+                        }
+                        
+                        $sqlFields = [];
+                        foreach ($fields as $field) {
+                            $sqlFields[] = $this->sqlField($field);
+                        }
+                        
+                        foreach ($words as $idx => $word) {
+                            $word = trim($word);
+                            if ($word === '') continue;
+                            
+                            $p = $paramName . "_search_" . $idx;
+                            
+                            // Build OR clause for all fields for this word
+                            $fieldClauses = [];
+                            foreach ($sqlFields as $sqlF) {
+                                $fieldClauses[] = "{$sqlF} {$likeOp} {$p}";
+                            }
+                            $wordClauses[] = "(" . implode(" OR ", $fieldClauses) . ")";
+                            $params[$p] = '%' . $word . '%';
+                        }
+                        
+                        if (!empty($wordClauses)) {
+                            $clauses[] = "(" . implode(" AND ", $wordClauses) . ")";
+                        }
+                    } else {
+                        $clauses[] = "1 = 1";
+                    }
                 }
                 continue;
             }
@@ -701,7 +732,7 @@ class Database {
             return $results;
         } else {
             $params = [];
-            $where = $this->buildWhere($filter, $params);
+            $where = $this->buildWhere($filter, $params, $collection);
             $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
             $sql = "SELECT * FROM {$table}" . $where;
 
@@ -897,7 +928,7 @@ class Database {
             return $res->getDeletedCount();
         } else {
             $params = [];
-            $where = $this->buildWhere($filter, $params);
+            $where = $this->buildWhere($filter, $params, $collection);
             $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
             $stmt = $this->pdo->prepare("DELETE FROM {$table}" . $where);
             foreach ($params as $key => $val) {
@@ -935,7 +966,7 @@ class Database {
             }
         } else {
             $params = [];
-            $where = $this->buildWhere($filter, $params);
+            $where = $this->buildWhere($filter, $params, $collection);
             $table = ($this->driver === 'pgsql') ? "\"{$collection}\"" : $collection;
             $sql = "SELECT COUNT(*) as cnt FROM {$table}" . $where;
             $stmt = $this->pdo->prepare($sql);

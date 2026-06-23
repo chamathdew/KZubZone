@@ -36,8 +36,10 @@ export default function Search() {
   const initialTrending = searchParams.get('trending') === 'true';
   const initialIsHistorical = searchParams.get('isHistorical') === 'true';
   const [searchText, setSearchText] = useState(initialQuery);
+  const [debouncedSearchText, setDebouncedSearchText] = useState(initialQuery);
   const [category, setCategory] = useState(initialCategory); // all, drama or movie
   const [genre, setGenre] = useState(initialGenre);
+  const [debouncedGenre, setDebouncedGenre] = useState(initialGenre);
   const [year, setYear] = useState('');
   const [country, setCountry] = useState('');
   const [rating, setRating] = useState('');
@@ -51,13 +53,31 @@ export default function Search() {
   // Sync state if query param changes externally
   useEffect(() => {
     setSearchText(initialQuery);
+    setDebouncedSearchText(initialQuery);
     setCategory(initialCategory);
     setGenre(initialGenre);
+    setDebouncedGenre(initialGenre);
     setSortBy(initialSort);
     setTrendingOnly(initialTrending);
     setIsHistorical(initialIsHistorical);
     setPage(1);
   }, [initialQuery, initialCategory, initialGenre, initialSort, initialTrending, initialIsHistorical]);
+
+  // Debounce search text changes
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [searchText]);
+
+  // Debounce genre changes
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedGenre(genre);
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [genre]);
 
   useEffect(() => {
     if (!enableSmartSearch) {
@@ -68,11 +88,11 @@ export default function Search() {
   // Fetch search results
   const fetchUrl = category === 'movie' ? '/api/media/movies' : '/api/media/dramas';
   const { data, isLoading } = useQuery({
-    queryKey: ['searchResults', category, searchText, genre, year, country, rating, sortBy, trendingOnly, isHistorical, page, isAiMode],
+    queryKey: ['searchResults', category, debouncedSearchText, debouncedGenre, year, country, rating, sortBy, trendingOnly, isHistorical, page, isAiMode],
     queryFn: async () => {
       // If AI mode is enabled and there is text, use the AI endpoint
-      if (isAiMode && searchText.trim().length > 2) {
-        const res = await apiClient.post('/api/ai/search', { query: searchText.trim() });
+      if (isAiMode && debouncedSearchText.trim().length > 2) {
+        const res = await apiClient.post('/api/ai/search', { query: debouncedSearchText.trim() });
         setAiKeywords(res.data.keywords || []);
         return { items: res.data.results || [], totalPages: 1 };
       }
@@ -80,13 +100,13 @@ export default function Search() {
       setAiKeywords([]); // Clear keywords if not AI search or empty
 
       // Trigger search query logging (analytics) via backend when search starts
-      if (searchText.trim().length > 1) {
-        apiClient.post('/api/analytics/search', { query: searchText.trim() }).catch(() => {});
+      if (debouncedSearchText.trim().length > 1) {
+        apiClient.post('/api/analytics/search', { query: debouncedSearchText.trim() }).catch(() => {});
       }
 
       const params = {
-        search: searchText || undefined,
-        genre: genre || undefined,
+        search: debouncedSearchText || undefined,
+        genre: debouncedGenre || undefined,
         year: year || undefined,
         country: country || undefined,
         rating: rating || undefined,
@@ -142,6 +162,8 @@ export default function Search() {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    setDebouncedSearchText(searchText);
+    setDebouncedGenre(genre);
     setSearchParams({
       ...(searchText ? { q: searchText } : {}),
       ...(category !== 'drama' ? { category } : {}),
@@ -155,8 +177,10 @@ export default function Search() {
 
   const handleReset = () => {
     setSearchText('');
+    setDebouncedSearchText('');
     setCategory('drama');
     setGenre('');
+    setDebouncedGenre('');
     setYear('');
     setCountry('');
     setRating('');
