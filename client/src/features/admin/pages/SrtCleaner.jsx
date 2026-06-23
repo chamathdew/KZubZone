@@ -466,13 +466,13 @@ export default function SrtCleaner() {
         // Re-index
         subs = subs.map((sub, idx) => ({ ...sub, id: idx + 1 }));
 
-        // 8. AI Polish (Spoken to Formal Written Sinhala)
+        // 8. AI Polish (English to Spoken Sinhala)
         if (config.aiPolish) {
           setFiles(prev => prev.map(f => f.id === id ? { 
             ...f, 
             isPolishing: true, 
             polishProgress: 0, 
-            polishStatusMsg: 'Initializing AI Sinhala Polishing...' 
+            polishStatusMsg: 'Initializing AI Subtitle Polish...' 
           } : f));
 
           const chunkSize = 40;
@@ -487,7 +487,7 @@ export default function SrtCleaner() {
 
             setFiles(prev => prev.map(f => f.id === id ? { 
               ...f, 
-              polishStatusMsg: `AI Polishing Sinhala blocks ${startIndex + 1} to ${endIndex} of ${totalSubs}...` 
+              polishStatusMsg: `AI Polishing blocks ${startIndex + 1} to ${endIndex} of ${totalSubs}...` 
             } : f));
 
             const chunkSrtText = stringifySRT(chunk);
@@ -973,7 +973,7 @@ export default function SrtCleaner() {
                       <Switch optionKey="filterProfanity" label="Filter Profanity" />
                       <Switch optionKey="splitLongLines" label="Split Long Lines (> 45 chars)" />
                       <Switch optionKey="convertToVtt" label="Convert to VTT Format (Web)" />
-                      <Switch optionKey="aiPolish" label="AI Polish Spoken Sinhala to Formal" />
+                      <Switch optionKey="aiPolish" label="AI Polish (English to Spoken Sinhala)" />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
