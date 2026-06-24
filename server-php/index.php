@@ -469,6 +469,50 @@ $routes = [
         ]);
     }]],
 
+    // TEMP: One-time links update (remove after use)
+    ['GET', '/api/setup/update-links', [function() {
+        $key = $_GET['key'] ?? '';
+        if ($key !== 'ksubzone_update_2026') {
+            http_response_code(403);
+            echo json_encode(['message' => 'Invalid key']);
+            exit;
+        }
+        
+        $db = \Config\Database::getInstance();
+        $setting = $db->findOne('settings', ['key' => 'siteContent']);
+        
+        header('Content-Type: application/json');
+        if ($setting) {
+            $value = $setting['value'];
+            
+            // Update navigation links
+            $value['navigation']['links'] = [
+                ['label' => 'Movies', 'url' => '/movies'],
+                ['label' => 'TV Series', 'url' => '/dramas'],
+                ['label' => 'Articles', 'url' => '/articles'],
+                ['label' => 'About Us', 'url' => '/about'],
+                ['label' => 'Contact Us', 'url' => '/contact']
+            ];
+            
+            // Update footer links
+            $value['footer']['links'] = [
+                ['label' => 'Home', 'url' => '/'],
+                ['label' => 'Movies', 'url' => '/movies'],
+                ['label' => 'TV Series', 'url' => '/dramas'],
+                ['label' => 'About Us', 'url' => '/about'],
+                ['label' => 'Contact Us', 'url' => '/contact']
+            ];
+            
+            $db->updateOne('settings', ['_id' => $setting['_id']], ['value' => $value]);
+            echo json_encode(['status' => 'success', 'message' => 'Navigation and Footer links updated in the database.']);
+        } else {
+            require_once __DIR__ . '/utils/SiteContentDefaults.php';
+            $defaults = \Utils\SiteContentDefaults::get();
+            $db->insertOne('settings', ['key' => 'siteContent', 'value' => $defaults]);
+            echo json_encode(['status' => 'success', 'message' => 'Initialized settings database with new links.']);
+        }
+    }]],
+
     // Public Catalog
     ['GET', '/api/media/home', 'Controllers\MovieController::getHomeCatalog'],
     ['GET', '/api/media/genres', 'Controllers\GenreController::getAllGenres'],
