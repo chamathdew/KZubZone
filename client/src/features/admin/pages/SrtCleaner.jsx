@@ -198,6 +198,7 @@ export default function SrtCleaner() {
         console.error("Failed to restore files from session storage", err);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCleanAndNavigate = () => {

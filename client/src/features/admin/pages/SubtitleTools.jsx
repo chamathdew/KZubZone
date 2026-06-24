@@ -7,7 +7,7 @@ import AdminSidebar from '@/features/admin/components/AdminSidebar';
 import { useToast } from '@/features/admin/components/Toast';
 import {
   Languages, Sparkles, UploadCloud, Download, AlertTriangle, Play,
-  CheckCircle, Plus, Trash2, Edit2, RefreshCw, Layers, ArrowRight, Check, Eye, Settings, FileText, Undo
+  CheckCircle, Plus, Trash2, Edit2, RefreshCw, Layers, ArrowRight, Check, Eye, Settings, FileText, Undo, Wand2
 } from 'lucide-react';
 
 // Time Conversions
@@ -197,6 +197,7 @@ export default function SubtitleTools() {
         console.error("Failed to restore files from session storage", err);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Editing Block State (for Visual Preview inline editor)
