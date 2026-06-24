@@ -180,7 +180,7 @@ export default function Watch({ initialDramaData }) {
                     key={sub._id}
                     type="button"
                     onClick={() => {
-                      const cleanDramaTitle = (drama.title || 'Subtitle').replace(/[^a-zA-Z0-9]/g, '_');
+                      const cleanDramaTitle = (drama.title || 'Subtitle').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                       const formattedSeason = String(seasonNumber).padStart(2, '0');
                       const formattedEpisode = String(episodeNumber).padStart(2, '0');
                       const subLang = sub.language || 'Sinhala';

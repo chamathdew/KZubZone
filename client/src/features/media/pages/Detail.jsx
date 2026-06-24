@@ -816,7 +816,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                                   onClick={() => {
                                     if (episodeFiles.length > 0) {
                                       const sub = episodeFiles[0];
-                                      const cleanMediaTitle = (media.title || 'Subtitle').replace(/[^a-zA-Z0-9]/g, '_');
+                                      const cleanMediaTitle = (media.title || 'Subtitle').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                                       const formattedSeason = String(selectedSeason).padStart(2, '0');
                                       const formattedEpisode = String(ep.episodeNumber).padStart(2, '0');
                                       const subLang = sub.language || 'Sinhala';
@@ -848,7 +848,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                                 <button
                                   key={sub._id}
                                   onClick={() => {
-                                    const cleanMediaTitle = (media.title || 'Subtitle').replace(/[^a-zA-Z0-9]/g, '_');
+                                    const cleanMediaTitle = (media.title || 'Subtitle').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                                     const formattedSeason = String(selectedSeason).padStart(2, '0');
                                     const formattedEpisode = String(ep.episodeNumber).padStart(2, '0');
                                     const subLang = sub.language || 'Sinhala';
@@ -922,7 +922,7 @@ export default function Detail({ type = 'Movie', initialData }) {
                         </div>
                         <button
                           onClick={() => {
-                            const cleanMediaTitle = (media.title || 'Subtitle').replace(/[^a-zA-Z0-9]/g, '_');
+                            const cleanMediaTitle = (media.title || 'Subtitle').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
                             let customFileName = '';
                             const subLang = sub.language || 'Sinhala';
                             if (media.type === 'movie' || (!sub.seasonNumber && !sub.episodeNumber)) {
