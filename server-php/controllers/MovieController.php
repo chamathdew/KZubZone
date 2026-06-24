@@ -120,7 +120,7 @@ class MovieController {
 
     public static function getHomeCatalog() {
         // Cache layer
-        $cachedCatalog = \Utils\Cache::get('home_catalog_v2');
+        $cachedCatalog = \Utils\Cache::get('home_catalog_v3');
         if ($cachedCatalog !== false) {
             header('Content-Type: application/json');
             echo json_encode($cachedCatalog);
@@ -293,7 +293,7 @@ class MovieController {
         ];
 
         // Cache for 2 hours (7200 seconds)
-        \Utils\Cache::set('home_catalog_v2', $catalogData, 7200);
+        \Utils\Cache::set('home_catalog_v3', $catalogData, 7200);
 
         header('Content-Type: application/json');
         echo json_encode($catalogData);

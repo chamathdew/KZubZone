@@ -42,7 +42,7 @@ export default function Home({
     const movies = (homeCatalog.latestMovies || []).map(item => ({ ...item, mediaType: 'movie' }));
     const dramas = (homeCatalog.latestDramas || []).map(item => ({ ...item, mediaType: 'drama' }));
     return [...dramas, ...movies]
-      .sort((a, b) => new Date(b.createdAt || b.updatedAt || b.releaseDate || 0) - new Date(a.createdAt || a.updatedAt || a.releaseDate || 0))
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt || b.releaseDate || 0) - new Date(a.updatedAt || a.createdAt || a.releaseDate || 0))
       .slice(0, 10);
   }, [homeCatalog.latestMovies, homeCatalog.latestDramas]);
 
@@ -185,7 +185,7 @@ export default function Home({
   }
 
   const librarySlides = [...dramas, ...movies]
-    .sort((a, b) => new Date(b.createdAt || b.updatedAt || b.releaseDate || 0) - new Date(a.createdAt || a.updatedAt || a.releaseDate || 0))
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || b.releaseDate || 0) - new Date(a.updatedAt || a.createdAt || a.releaseDate || 0))
     .slice(0, 10);
 
   // Handle slide fallbacks
