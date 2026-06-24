@@ -325,17 +325,17 @@ export default function SrtCleaner() {
 
           // Round Brackets
           if (config.removeRoundBrackets) {
-            text = text.replace(/\(([^)]*)\)/g, '$1');
+            text = text.replace(/\([^)]*\)/g, '');
           }
 
           // Square Brackets
           if (config.removeSquareBrackets) {
-            text = text.replace(/\[([^\]]*)\]/g, '$1');
+            text = text.replace(/\[[^\]]*\]/g, '');
           }
 
           // Curly Braces
           if (config.removeCurlyBraces) {
-            text = text.replace(/\{([^}]*)\}/g, '$1');
+            text = text.replace(/\{[^}]*\}/g, '');
           }
 
           // Quotes
@@ -964,9 +964,9 @@ export default function SrtCleaner() {
                       <Switch optionKey="removeSpeakers" label="Remove Speaker Names" />
                       <Switch optionKey="removeMusic" label="Remove Music Notes (♪)" />
                       <Switch optionKey="removeSdh" label="Remove SDH Descriptions" />
-                      <Switch optionKey="removeRoundBrackets" label="Strip (Round Brackets) Keep Text" />
-                      <Switch optionKey="removeSquareBrackets" label="Strip [Square Brackets] Keep Text" />
-                      <Switch optionKey="removeCurlyBraces" label="Strip {Curly Braces} Keep Text" />
+                      <Switch optionKey="removeRoundBrackets" label="Remove Text in (Round Brackets)" />
+                      <Switch optionKey="removeSquareBrackets" label="Remove Text in [Square Brackets]" />
+                      <Switch optionKey="removeCurlyBraces" label="Remove Text in {Curly Braces}" />
                       <Switch optionKey="removeQuotes" label='Strip "Quotes" Keep Text' />
                       <Switch optionKey="removeHashtags" label="Remove Text in #Hashtags#" />
                     </div>
