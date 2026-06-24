@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
@@ -100,6 +100,104 @@ export default function SubtitleTools() {
   // Batch Files State
   const [files, setFiles] = useState([]);
   const [selectedFileId, setSelectedFileId] = useState(null);
+
+  // Transfer files helper
+  const navigateToCleaner = () => {
+    if (files.length === 0) return;
+
+    toast.info("Preparing files for SRT Cleaner...");
+    const transferData = files.map(fileObj => ({
+      name: fileObj.name,
+      content: fileObj.originalText
+    }));
+
+    sessionStorage.setItem("sub_transfer_files", JSON.stringify(transferData));
+    window.location.href = "/management/srt-cleaner";
+  };
+
+  useEffect(() => {
+    const rawData = sessionStorage.getItem("sub_transfer_files");
+    if (rawData) {
+      try {
+        const transferFiles = JSON.parse(rawData);
+        sessionStorage.removeItem("sub_transfer_files");
+
+        if (transferFiles && transferFiles.length > 0) {
+          const loadedFiles = transferFiles.map(tf => {
+            const parsed = parseSRT(tf.content);
+            
+            // Detect Gaps
+            const gaps = [];
+            for (let i = 0; i < parsed.length - 1; i++) {
+              const endMs = timeToMs(parsed[i].end);
+              const nextStartMs = timeToMs(parsed[i + 1].start);
+              const gapMs = nextStartMs - endMs;
+
+              if (gapMs >= minGapSeconds * 1000) {
+                gaps.push({
+                  index: i,
+                  start: parsed[i].end,
+                  end: parsed[i + 1].start,
+                  durationSec: Math.floor(gapMs / 1000),
+                  recommendedStart: msToTime(endMs + 3000),
+                  recommendedEnd: msToTime(Math.min(endMs + 33000, nextStartMs - 3000))
+                });
+              }
+            }
+
+            // Detect Competitor Brandings
+            const competitorKeywords = [
+              'baiscope', 'cineru', 'zoom.lk', 'subz.lk', 'sinhalasub',
+              'subz.site', 'subzlk', 'baiscopelk', 'zoom', 'බයිස්කෝප්', 'සිනේරු',
+              'cinerulk', 'subz', 'adl_drama', '@adl_drama'
+            ];
+
+            const detected = [];
+            const initialActions = {};
+
+            parsed.forEach((sub) => {
+              const textLower = (sub.text || '').toLowerCase();
+              const matches = competitorKeywords.some(keyword => textLower.includes(keyword));
+
+              if (matches) {
+                detected.push(sub);
+                initialActions[sub.id] = 'replace';
+              }
+            });
+
+            return {
+              id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
+              name: tf.name,
+              originalText: tf.content,
+              subtitles: parsed,
+              processedSubs: JSON.parse(JSON.stringify(parsed)),
+              editableSrtText: tf.content,
+              detectedCompetitors: detected,
+              competitorActions: initialActions,
+              detectedGaps: gaps,
+              selectedGaps: gaps.map((_, idx) => idx),
+              isProcessed: false,
+              isTranslated: false,
+              translationProgress: 0,
+              translateStatusMsg: '',
+              translationError: '',
+              isTranslating: false
+            };
+          });
+
+          setFiles(prev => {
+            const combined = [...prev, ...loadedFiles];
+            setSelectedFileId(combined[0].id);
+            return combined;
+          });
+          setActiveTab('brand');
+          toast.success(`Successfully loaded ${transferFiles.length} file(s) from SRT Cleaner.`);
+        }
+      } catch (err) {
+        console.error("Failed to restore files from session storage", err);
+      }
+    }
+  }, []);
 
   // Editing Block State (for Visual Preview inline editor)
   const [editingBlockId, setEditingBlockId] = useState(null);
@@ -596,14 +694,25 @@ export default function SubtitleTools() {
       <main className="flex-grow p-6 sm:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase flex items-center gap-3">
-              <Languages className="w-8 h-8 text-brand-accent animate-pulse" />
-              Subtitle Branding & AI Translator
-            </h1>
-            <p className="text-slate-400 text-xs mt-1">
-              Upload English/Sinhala subtitles, automatically inject branding credits, clean competitor ads, and translate using Gemini 1.5.
-            </p>
+          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase flex items-center gap-3">
+                <Languages className="w-8 h-8 text-brand-accent animate-pulse" />
+                Subtitle Branding & AI Translator
+              </h1>
+              <p className="text-slate-400 text-xs mt-1">
+                Upload English/Sinhala subtitles, automatically inject branding credits, clean competitor ads, and translate using Gemini 1.5.
+              </p>
+            </div>
+            {files.length > 0 && (
+              <button
+                type="button"
+                onClick={navigateToCleaner}
+                className="px-4 py-2.5 bg-brand-primary/10 border border-brand-primary/20 hover:bg-brand-primary/20 text-brand-primary rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5"
+              >
+                <Wand2 className="w-4 h-4" /> Send to SRT Cleaner
+              </button>
+            )}
           </div>
 
           {/* Workflow Tabs */}

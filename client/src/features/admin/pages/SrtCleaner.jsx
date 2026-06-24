@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import apiClient from '@/services/api/apiClient';
 import AdminSidebar from '@/features/admin/components/AdminSidebar';
@@ -127,6 +127,78 @@ export default function SrtCleaner() {
 
   // Workflow Tab State: 'upload' | 'settings' | 'preview'
   const [activeTab, setActiveTab] = useState('upload');
+
+  const navigateToBranding = async () => {
+    if (files.length === 0) return;
+
+    toast.info("Preparing files for Subtitle Branding...");
+    try {
+      const transferData = await Promise.all(
+        files.map((fileObj) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              resolve({
+                name: fileObj.name,
+                content: e.target.result,
+              });
+            };
+            reader.onerror = () => reject(new Error(`Failed to read file ${fileObj.name}`));
+            reader.readAsText(fileObj.file);
+          });
+        })
+      );
+
+      sessionStorage.setItem("sub_transfer_files", JSON.stringify(transferData));
+      window.location.href = "/management/subtitle-tools";
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to read files for transfer.");
+    }
+  };
+
+  useEffect(() => {
+    const rawData = sessionStorage.getItem("sub_transfer_files");
+    if (rawData) {
+      try {
+        const transferFiles = JSON.parse(rawData);
+        sessionStorage.removeItem("sub_transfer_files");
+
+        if (transferFiles && transferFiles.length > 0) {
+          const loadedFiles = transferFiles.map(tf => {
+            const blob = new Blob([tf.content], { type: 'text/plain' });
+            const file = new File([blob], tf.name, { type: 'text/plain' });
+            const fileId = Math.random().toString(36).substring(2, 9);
+            
+            return {
+              id: fileId,
+              file: file,
+              name: tf.name,
+              size: (blob.size / 1024).toFixed(1),
+              options: { ...DEFAULT_OPTIONS },
+              cleanedText: '',
+              isCleaned: false,
+              isCleaning: false,
+              isPolishing: false,
+              polishProgress: 0,
+              polishStatusMsg: '',
+              error: '',
+            };
+          });
+
+          setFiles(prev => {
+            const updated = [...prev, ...loadedFiles];
+            setActiveId(updated[0].id);
+            return updated;
+          });
+          setActiveTab('settings');
+          toast.success(`Successfully loaded ${transferFiles.length} file(s) from Subtitle Tools.`);
+        }
+      } catch (err) {
+        console.error("Failed to restore files from session storage", err);
+      }
+    }
+  }, []);
 
   const handleCleanAndNavigate = () => {
     if (!activeId) return;
@@ -797,14 +869,25 @@ export default function SrtCleaner() {
         <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Header */}
-          <div className="text-left border-b border-white/5 pb-4">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase flex items-center gap-3">
-              <Wand2 className="w-8 h-8 text-brand-primary animate-pulse" />
-              SRT Cleaner
-            </h1>
-            <p className="text-slate-400 text-xs mt-1">
-              Professional subtitle tools. Fix timings, remove ads, and format automatically. Supports batch queue processing.
-            </p>
+          <div className="text-left border-b border-white/5 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase flex items-center gap-3">
+                <Wand2 className="w-8 h-8 text-brand-primary animate-pulse" />
+                SRT Cleaner
+              </h1>
+              <p className="text-slate-400 text-xs mt-1">
+                Professional subtitle tools. Fix timings, remove ads, and format automatically. Supports batch queue processing.
+              </p>
+            </div>
+            {files.length > 0 && (
+              <button
+                type="button"
+                onClick={navigateToBranding}
+                className="px-4 py-2.5 bg-brand-primary/10 border border-brand-primary/20 hover:bg-brand-primary/20 text-brand-primary rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5"
+              >
+                <Languages className="w-4 h-4" /> Send to Branding
+              </button>
+            )}
           </div>
 
           {/* Workflow Tabs */}
