@@ -125,6 +125,25 @@ export default function SrtCleaner() {
   const [files, setFiles] = useState([]);
   const [activeId, setActiveId] = useState(null);
 
+  // Workflow Tab State: 'upload' | 'settings' | 'preview'
+  const [activeTab, setActiveTab] = useState('upload');
+
+  const handleCleanAndNavigate = () => {
+    if (!activeId) return;
+    cleanFile(activeId);
+    setActiveTab('preview');
+  };
+
+  const handleCleanAllAndNavigate = () => {
+    handleCleanAll();
+    setActiveTab('preview');
+  };
+
+  const handleClearQueueAndReset = () => {
+    handleClearQueue();
+    setActiveTab('upload');
+  };
+
   // Drag and Drop
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -175,6 +194,7 @@ export default function SrtCleaner() {
         setActiveId(currentActive);
         return updated;
       });
+      setActiveTab('settings');
     }
   };
 
@@ -787,21 +807,50 @@ export default function SrtCleaner() {
             </p>
           </div>
 
-          {/* Main Layout Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* Left Column: Files Queue (lg:col-span-5) */}
-            <div className="lg:col-span-5 space-y-4">
-              <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4.5 h-4.5 text-brand-primary" /> Subtitle Queue ({files.length})
-              </h2>
+          {/* Workflow Tabs */}
+          <div className="flex overflow-x-auto whitespace-nowrap border-b border-white/5 mb-6 scrollbar-none">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all ${
+                activeTab === 'upload'
+                  ? 'border-brand-primary text-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              1. Upload
+            </button>
+            <button
+              onClick={() => { if (files.length > 0) setActiveTab('settings'); }}
+              disabled={files.length === 0}
+              className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                activeTab === 'settings'
+                  ? 'border-brand-primary text-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              2. Cleanup Settings
+            </button>
+            <button
+              onClick={() => { if (files.length > 0) setActiveTab('preview'); }}
+              disabled={files.length === 0}
+              className={`px-6 py-3 border-b-2 text-xs uppercase tracking-widest font-black transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                activeTab === 'preview'
+                  ? 'border-brand-primary text-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              3. Clean & Download
+            </button>
+          </div>
 
-              {/* Compact Drag & Drop Upload Zone */}
+          {/* 1. UPLOAD TAB */}
+          {activeTab === 'upload' && (
+            <div className="space-y-6">
               <div 
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-white/10 hover:border-brand-primary/40 bg-white/[0.01] hover:bg-white/[0.03] transition-all rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer text-center"
+                className="border-2 border-dashed border-white/10 hover:border-brand-primary/40 bg-white/[0.01] hover:bg-white/[0.03] transition-all rounded-3xl p-16 flex flex-col items-center justify-center gap-4 cursor-pointer text-center min-h-[300px]"
               >
                 <input 
                   type="file" 
@@ -811,370 +860,438 @@ export default function SrtCleaner() {
                   multiple
                   className="hidden" 
                 />
-                <UploadCloud className="w-6 h-6 text-slate-400" />
+                <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary border border-brand-primary/20">
+                  <UploadCloud className="w-8 h-8" />
+                </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Upload SRT subtitles</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Drag & drop or browse (select multiple)</p>
+                  <h3 className="text-lg font-bold text-white">Drag & drop your subtitle files here</h3>
+                  <p className="text-slate-400 text-xs mt-1">Supports uploading multiple standard SubRip (.srt) subtitle files at once</p>
+                </div>
+                <button className="px-5 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-wider transition">
+                  Browse Files
+                </button>
+              </div>
+
+              {files.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Uploaded Files ({files.length})</h3>
+                    <button 
+                      onClick={() => setActiveTab('settings')}
+                      className="px-5 py-2.5 bg-gradient-to-r from-brand-secondary to-brand-primary hover:brightness-110 text-white rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                    >
+                      Next: Configure Settings <Wand2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {files.map(f => (
+                      <div key={f.id} className="p-4 bg-luxury-900 border border-white/5 rounded-2xl flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate" title={f.name}>{f.name}</h4>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{f.size} KB</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFile(f.id)}
+                          className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 2. SETTINGS TAB */}
+          {activeTab === 'settings' && activeFile && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column: File Selector List */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Select Subtitle</h3>
+                  <button
+                    onClick={() => setActiveTab('upload')}
+                    className="text-xs text-brand-primary font-bold hover:underline"
+                  >
+                    + Add Files
+                  </button>
+                </div>
+                
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                  {files.map(f => (
+                    <div
+                      key={f.id}
+                      onClick={() => setActiveId(f.id)}
+                      className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
+                        f.id === activeId 
+                          ? 'bg-brand-primary/10 border-brand-primary/30' 
+                          : 'bg-white/[0.02] border-white/5 hover:border-white/10'
+                      }`}
+                    >
+                      <h4 className="text-xs font-bold text-white truncate" title={f.name}>{f.name}</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{f.size} KB</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button 
+                    onClick={handleCleanAllAndNavigate}
+                    className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md shadow-brand-primary/10 flex items-center justify-center gap-1.5"
+                  >
+                    <Wand2 className="w-4 h-4" /> Clean All ({files.length})
+                  </button>
+                  <button
+                    onClick={handleClearQueueAndReset}
+                    className="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" /> Clear Queue & Reset
+                  </button>
                 </div>
               </div>
 
-              {/* Batch Actions Bar */}
-              {files.length > 0 && (
+              {/* Right Column: Settings Panel */}
+              <div className="lg:col-span-8 space-y-6">
+                {/* File Indicator Header */}
+                <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest block">Configure Settings For:</span>
+                    <h3 className="text-xs font-bold text-white truncate pr-2" title={activeFile.name}>{activeFile.name}</h3>
+                  </div>
+                  
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button 
+                      type="button"
+                      onClick={handleApplyActiveSettingsToAll}
+                      className="px-3.5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                      title="Apply current settings to all subtitles in queue"
+                    >
+                      <Settings className="w-3.5 h-3.5" /> Apply to All
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => handleRunSmartBotForFile(activeFile.id)}
+                      className="px-3.5 py-2 bg-gradient-to-r from-brand-secondary to-brand-primary hover:brightness-110 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
+                    >
+                      <Bot className="w-3.5 h-3.5" /> Smart Auto-Clean
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Essential Cleanup (Manual) */}
+                <div className="bg-luxury-900 border border-white/5 rounded-3xl p-6 space-y-4 text-left">
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4.5 h-4.5 text-brand-accent" /> Essential Cleanup (Manual)
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Switch optionKey="fixOverlaps" label="Fix Overlaps & Durations" />
+                    <Switch optionKey="removeInvalidTimes" label="Remove Invalid Times (<0s)" />
+                    <Switch optionKey="removeEmptyBrackets" label="Remove Empty Brackets () []" />
+                    <Switch optionKey="mergeBlankLines" label="Merge Consecutive Blank Lines" />
+                    <Switch optionKey="mergeSameText" label="Merge cues with the same text" />
+                  </div>
+                </div>
+
+                {/* 4. Removal Tools */}
+                <div className="bg-luxury-900 border border-white/5 rounded-3xl p-6 space-y-4 text-left">
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <Trash2 className="w-4.5 h-4.5 text-red-400" /> Removal Tools
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Switch optionKey="removeHtml" label="Remove HTML Tags" />
+                    <Switch optionKey="removeAds" label="Remove Ads & Watermarks" />
+                    <Switch optionKey="removeSpeakers" label="Remove Speaker Names" />
+                    <Switch optionKey="removeMusic" label="Remove Music Notes (♪)" />
+                    <Switch optionKey="removeSdh" label="Remove SDH Descriptions" />
+                    <Switch optionKey="removeRoundBrackets" label="Remove Text in (Round Brackets)" />
+                    <Switch optionKey="removeSquareBrackets" label="Remove Text in [Square Brackets]" />
+                    <Switch optionKey="removeCurlyBraces" label="Remove Text in {Curly Braces}" />
+                    <Switch optionKey="removeQuotes" label='Strip "Quotes" Keep Text' />
+                    <Switch optionKey="removeHashtags" label="Remove Text in #Hashtags#" />
+                  </div>
+                </div>
+
+                {/* 5. Formatting & Advanced */}
+                <div className="bg-luxury-900 border border-white/5 rounded-3xl p-6 space-y-6 text-left">
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <Settings className="w-4.5 h-4.5 text-brand-primary" /> Formatting & Advanced
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Switch optionKey="toLowercase" label="Convert Text to Lowercase" />
+                    <Switch optionKey="removeAllCaps" label="Remove ALL CAPS Lines" />
+                    <Switch optionKey="stripInlineTimes" label="Strip Inline Times [00:12]" />
+                    <Switch optionKey="filterProfanity" label="Filter Profanity" />
+                    <Switch optionKey="splitLongLines" label="Split Long Lines (> 45 chars)" />
+                    <Switch optionKey="convertToVtt" label="Convert to VTT Format (Web)" />
+                    <Switch optionKey="aiPolish" label="AI Polish (English to Spoken Sinhala)" />
+                    <Switch optionKey="autoBrand" label="Auto-Inject KSubZone Branding Ads (Start & End)" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Time Shift (Milliseconds)</span>
+                      <input 
+                        type="text" 
+                        placeholder="-500 or 1000"
+                        value={activeFile.options.timeShift || ''}
+                        onChange={(e) => updateActiveOption('timeShift', e.target.value)}
+                        className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
+                      />
+                      <span className="text-[9px] text-slate-500 block">-500 (earlier), 1000 (later)</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Find & Replace</span>
+                      <textarea 
+                        placeholder="Find | Replace"
+                        rows={1}
+                        value={activeFile.options.findReplaceText || ''}
+                        onChange={(e) => updateActiveOption('findReplaceText', e.target.value)}
+                        className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono resize-y"
+                      />
+                      <span className="text-[9px] text-slate-500 block">One per line, e.g. old | new</span>
+                    </div>
+                  </div>
+
+                  {/* Advanced Resync */}
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <h4 className="text-xs font-black text-brand-primary uppercase tracking-widest">
+                      Advanced Resync (Linear Correction)
+                    </h4>
+                    <p className="text-[10px] text-slate-500 leading-normal">
+                      Fix progressive sync issues by setting two reference points. (Format: HH:MM:SS,ms or just Seconds)
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <input 
+                          type="text" 
+                          placeholder="Point 1: Wrong Time"
+                          value={activeFile.options.wrongTime1 || ''}
+                          onChange={(e) => updateActiveOption('wrongTime1', e.target.value)}
+                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Point 1: Correct Time"
+                          value={activeFile.options.correctTime1 || ''}
+                          onChange={(e) => updateActiveOption('correctTime1', e.target.value)}
+                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <input 
+                          type="text" 
+                          placeholder="Point 2: Wrong Time"
+                          value={activeFile.options.wrongTime2 || ''}
+                          onChange={(e) => updateActiveOption('wrongTime2', e.target.value)}
+                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Point 2: Correct Time"
+                          value={activeFile.options.correctTime2 || ''}
+                          onChange={(e) => updateActiveOption('correctTime2', e.target.value)}
+                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Remove Specific Words */}
+                  <div className="space-y-2 pt-4 border-t border-white/5">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Remove Specific Words</span>
+                    <textarea 
+                      placeholder="e.g. Encoded by, Ripped by..."
+                      rows={2}
+                      value={activeFile.options.specificWords || ''}
+                      onChange={(e) => updateActiveOption('specificWords', e.target.value)}
+                      className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary resize-y"
+                    />
+                    <span className="text-[9px] text-slate-500 block">Comma-separated values</span>
+                  </div>
+                </div>
+
+                {/* Clean Button */}
+                <button 
+                  disabled={activeFile.isCleaning}
+                  onClick={handleCleanAndNavigate}
+                  className="w-full py-3.5 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black uppercase tracking-widest rounded-2xl transition shadow-lg shadow-brand-primary/10 text-xs sm:text-sm flex items-center justify-center gap-2"
+                >
+                  {activeFile.isCleaning ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" /> Processing AI Polish...
+                    </>
+                  ) : (
+                    'Clean & Preview Subtitle'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 3. PREVIEW TAB */}
+          {activeTab === 'preview' && activeFile && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column: Progress Queue */}
+              <div className="lg:col-span-4 space-y-4">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Queue Progress</h3>
+                
+                {/* Batch Download / Reset buttons */}
                 <div className="flex gap-2">
                   <button
-                    type="button"
-                    onClick={handleCleanAll}
-                    disabled={files.every(f => f.isCleaned || f.isCleaning || f.isPolishing)}
-                    className="flex-grow h-10 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-brand-primary/10"
-                  >
-                    <Wand2 className="w-3.5 h-3.5" /> Clean All ({files.filter(f => !f.isCleaned).length})
-                  </button>
-                  
-                  <button
-                    type="button"
                     onClick={handleDownloadAll}
                     disabled={!files.some(f => f.isCleaned)}
-                    className="flex-grow h-10 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-emerald-600/10"
+                    className="flex-grow h-9 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-1 transition"
                   >
-                    <Download className="w-3.5 h-3.5" /> Download All ({files.filter(f => f.isCleaned).length})
+                    <Download className="w-3 h-3" /> Download All
                   </button>
-
                   <button
-                    type="button"
-                    onClick={handleClearQueue}
-                    className="h-10 px-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center justify-center gap-1"
-                    title="Clear Queue"
+                    onClick={handleClearQueueAndReset}
+                    className="h-9 px-3.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center justify-center gap-1"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Reset
+                    Reset
                   </button>
                 </div>
-              )}
 
-              {/* Files list */}
-              {files.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-xs border border-white/5 bg-white/[0.01] rounded-2xl">
-                  No files in queue. Upload files above to get started.
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                   {files.map(f => {
                     const isActive = f.id === activeId;
                     return (
-                      <div 
+                      <div
                         key={f.id}
                         onClick={() => setActiveId(f.id)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer text-left relative ${
+                        className={`p-3 border rounded-xl text-left cursor-pointer transition-all ${
                           isActive 
-                            ? 'bg-brand-primary/10 border-brand-primary/40' 
-                            : 'bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.03]'
+                            ? 'bg-brand-primary/10 border-brand-primary/30' 
+                            : 'bg-white/[0.02] border-white/5 hover:border-white/10'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-grow">
-                            <h4 className="text-xs font-bold text-white truncate pr-2" title={f.name}>{f.name}</h4>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{f.size} KB</p>
-                          </div>
+                        <div className="flex justify-between items-center gap-2">
+                          <h4 className="text-xs font-bold text-white truncate max-w-[150px]">{f.name}</h4>
                           
-                          {/* Badges / Delete */}
-                          <div className="flex-shrink-0 flex items-center gap-1.5">
-                            {f.isCleaning || f.isPolishing ? (
-                              <span className="flex items-center gap-1 text-[9px] bg-brand-primary/10 border border-brand-primary/25 text-brand-primary px-2 py-0.5 rounded font-black uppercase animate-pulse">
-                                <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Processing
-                              </span>
-                            ) : f.isCleaned ? (
-                              <span className="flex items-center gap-1 text-[9px] bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 px-2 py-0.5 rounded font-black uppercase">
-                                Cleaned
-                              </span>
-                            ) : f.error ? (
-                              <span className="flex items-center gap-1 text-[9px] bg-red-500/10 border border-red-500/25 text-red-400 px-2 py-0.5 rounded font-black uppercase">
-                                Failed
-                              </span>
-                            ) : (
-                              <span className="text-[9px] bg-slate-500/10 border border-slate-500/25 text-slate-400 px-2 py-0.5 rounded font-black uppercase">
-                                Pending
-                              </span>
-                            )}
-                            
+                          {f.isCleaning || f.isPolishing ? (
+                            <span className="text-[8px] bg-brand-primary/10 border border-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded font-black uppercase animate-pulse">
+                              Processing
+                            </span>
+                          ) : f.isCleaned ? (
+                            <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-black uppercase">
+                              Cleaned
+                            </span>
+                          ) : f.error ? (
+                            <span className="text-[8px] bg-red-500/10 border border-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-black uppercase">
+                              Failed
+                            </span>
+                          ) : (
+                            <span className="text-[8px] bg-slate-500/10 border border-slate-500/20 text-slate-400 px-1.5 py-0.5 rounded font-black uppercase">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Progress/Actions */}
+                        {(f.isCleaning || f.isPolishing) && (
+                          <div className="mt-2 w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                            <div className="bg-brand-primary h-full transition-all duration-300" style={{ width: f.isPolishing ? `${f.polishProgress}%` : '50%' }} />
+                          </div>
+                        )}
+
+                        {f.isCleaned && (
+                          <div className="mt-2 flex justify-end">
                             <button
                               onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveFile(f.id);
-                              }}
-                              className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg transition"
-                              title="Remove from queue"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Error info */}
-                        {f.error && (
-                          <p className="text-[9px] text-red-400 font-mono mt-2 p-2 bg-red-950/40 border border-red-900/30 rounded-lg whitespace-pre-wrap break-all" title={f.error}>
-                            Error: {f.error}
-                          </p>
-                        )}
-
-                        {/* Polishing progress bar */}
-                        {f.isPolishing && (
-                          <div className="space-y-1.5 mt-3">
-                            <div className="flex justify-between items-center text-[9px] text-slate-400 font-semibold">
-                              <span className="truncate max-w-[180px]">{f.polishStatusMsg}</span>
-                              <span className="font-bold text-brand-primary">{f.polishProgress}%</span>
-                            </div>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div className="bg-brand-primary h-full transition-all duration-300" style={{ width: `${f.polishProgress}%` }} />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Card Footer Actions */}
-                        <div className="flex justify-between items-center gap-2 mt-3 pt-3 border-t border-white/5">
-                          <span className="text-[9px] text-slate-500 font-semibold uppercase">
-                            {isActive ? 'Active Configuration' : 'Click to select'}
-                          </span>
-                          <div className="flex gap-2">
-                            {f.isCleaned ? (
-                              <button
-                                onClick={(e) => {
                                   e.stopPropagation();
                                   triggerDownloadForFile(f);
-                                }}
-                                className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition flex items-center gap-1"
-                              >
-                                <Download className="w-3 h-3" /> Download
-                              </button>
-                            ) : (
-                              <button
-                                disabled={f.isCleaning}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  cleanFile(f.id);
-                                }}
-                                className="px-2.5 py-1 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[9px] font-black uppercase tracking-wider rounded-lg transition"
-                              >
-                                Clean
-                              </button>
-                            )}
+                              }}
+                              className="px-2 py-0.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-black uppercase tracking-wider rounded transition flex items-center gap-0.5"
+                            >
+                              <Download className="w-2.5 h-2.5" /> Download
+                            </button>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Right Column: Settings Panel (lg:col-span-7) */}
-            <div className="lg:col-span-7 space-y-6">
-              {activeFile ? (
-                <>
-                  {/* File Indicator Header */}
-                  <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest block">Configure Settings For:</span>
-                      <h3 className="text-xs font-bold text-white truncate pr-2" title={activeFile.name}>{activeFile.name}</h3>
-                    </div>
-                    
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button 
-                        type="button"
-                        onClick={handleApplyActiveSettingsToAll}
-                        className="px-3.5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
-                        title="Apply current settings to all subtitles in queue"
-                      >
-                        <Settings className="w-3.5 h-3.5" /> Apply to All
-                      </button>
-
-                      <button 
-                        type="button"
-                        onClick={() => handleRunSmartBotForFile(activeFile.id)}
-                        className="px-3.5 py-2 bg-gradient-to-r from-brand-secondary to-brand-primary hover:brightness-110 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1.5"
-                      >
-                        <Bot className="w-3.5 h-3.5" /> Smart Auto-Clean
-                      </button>
+              {/* Right Column: Visual Result / Preview */}
+              <div className="lg:col-span-8 space-y-6">
+                {activeFile.isCleaning || activeFile.isPolishing ? (
+                  <div className="min-h-[400px] border border-white/5 bg-luxury-900 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-center">
+                    <RefreshCw className="w-10 h-10 text-brand-primary animate-spin" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Processing Subtitle</h3>
+                      <p className="text-xs text-slate-400 mt-1">{activeFile.polishStatusMsg || 'Cleaning timings and formatting...'}</p>
                     </div>
                   </div>
-
-                  {/* 3. Essential Cleanup (Manual) */}
-                  <div className="bg-luxury-900 border border-white/5 rounded-3xl p-6 space-y-4 text-left">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles className="w-4.5 h-4.5 text-brand-accent" /> Essential Cleanup (Manual)
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Switch optionKey="fixOverlaps" label="Fix Overlaps & Durations" />
-                      <Switch optionKey="removeInvalidTimes" label="Remove Invalid Times (<0s)" />
-                      <Switch optionKey="removeEmptyBrackets" label="Remove Empty Brackets () []" />
-                      <Switch optionKey="mergeBlankLines" label="Merge Consecutive Blank Lines" />
-                      <Switch optionKey="mergeSameText" label="Merge cues with the same text" />
-                    </div>
-                  </div>
-
-                  {/* 4. Removal Tools */}
-                  <div className="bg-luxury-900 border border-white/5 rounded-3xl p-6 space-y-4 text-left">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                      <Trash2 className="w-4.5 h-4.5 text-red-400" /> Removal Tools
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Switch optionKey="removeHtml" label="Remove HTML Tags" />
-                      <Switch optionKey="removeAds" label="Remove Ads & Watermarks" />
-                      <Switch optionKey="removeSpeakers" label="Remove Speaker Names" />
-                      <Switch optionKey="removeMusic" label="Remove Music Notes (♪)" />
-                      <Switch optionKey="removeSdh" label="Remove SDH Descriptions" />
-                      <Switch optionKey="removeRoundBrackets" label="Remove Text in (Round Brackets)" />
-                      <Switch optionKey="removeSquareBrackets" label="Remove Text in [Square Brackets]" />
-                      <Switch optionKey="removeCurlyBraces" label="Remove Text in {Curly Braces}" />
-                      <Switch optionKey="removeQuotes" label='Strip "Quotes" Keep Text' />
-                      <Switch optionKey="removeHashtags" label="Remove Text in #Hashtags#" />
-                    </div>
-                  </div>
-
-                  {/* 5. Formatting & Advanced */}
-                  <div className="bg-luxury-900 border border-white/5 rounded-3xl p-6 space-y-6 text-left">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                      <Settings className="w-4.5 h-4.5 text-brand-primary" /> Formatting & Advanced
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Switch optionKey="toLowercase" label="Convert Text to Lowercase" />
-                      <Switch optionKey="removeAllCaps" label="Remove ALL CAPS Lines" />
-                      <Switch optionKey="stripInlineTimes" label="Strip Inline Times [00:12]" />
-                      <Switch optionKey="filterProfanity" label="Filter Profanity" />
-                      <Switch optionKey="splitLongLines" label="Split Long Lines (> 45 chars)" />
-                      <Switch optionKey="convertToVtt" label="Convert to VTT Format (Web)" />
-                      <Switch optionKey="aiPolish" label="AI Polish (English to Spoken Sinhala)" />
-                      <Switch optionKey="autoBrand" label="Auto-Inject KSubZone Branding Ads (Start & End)" />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Time Shift (Milliseconds)</span>
-                        <input 
-                          type="text" 
-                          placeholder="-500 or 1000"
-                          value={activeFile.options.timeShift || ''}
-                          onChange={(e) => updateActiveOption('timeShift', e.target.value)}
-                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
-                        />
-                        <span className="text-[9px] text-slate-500 block">-500 (earlier), 1000 (later)</span>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Find & Replace</span>
-                        <textarea 
-                          placeholder="Find | Replace"
-                          rows={1}
-                          value={activeFile.options.findReplaceText || ''}
-                          onChange={(e) => updateActiveOption('findReplaceText', e.target.value)}
-                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono resize-y"
-                        />
-                        <span className="text-[9px] text-slate-500 block">One per line, e.g. old | new</span>
-                      </div>
-                    </div>
-
-                    {/* Advanced Resync */}
-                    <div className="space-y-4 pt-4 border-t border-white/5">
-                      <h4 className="text-xs font-black text-brand-primary uppercase tracking-widest">
-                        Advanced Resync (Linear Correction)
-                      </h4>
-                      <p className="text-[10px] text-slate-500 leading-normal">
-                        Fix progressive sync issues by setting two reference points. (Format: HH:MM:SS,ms or just Seconds)
-                      </p>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <input 
-                            type="text" 
-                            placeholder="Point 1: Wrong Time"
-                            value={activeFile.options.wrongTime1 || ''}
-                            onChange={(e) => updateActiveOption('wrongTime1', e.target.value)}
-                            className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Point 1: Correct Time"
-                            value={activeFile.options.correctTime1 || ''}
-                            onChange={(e) => updateActiveOption('correctTime1', e.target.value)}
-                            className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
-                          />
+                ) : activeFile.isCleaned ? (
+                  <div className="space-y-6 text-left">
+                    {/* Success Banner */}
+                    <div className="border border-emerald-500/20 bg-emerald-500/5 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                          <CheckCircle2 className="w-5 h-5" />
                         </div>
-
-                        <div className="space-y-2">
-                          <input 
-                            type="text" 
-                            placeholder="Point 2: Wrong Time"
-                            value={activeFile.options.wrongTime2 || ''}
-                            onChange={(e) => updateActiveOption('wrongTime2', e.target.value)}
-                            className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
-                          />
-                          <input 
-                            type="text" 
-                            placeholder="Point 2: Correct Time"
-                            value={activeFile.options.correctTime2 || ''}
-                            onChange={(e) => updateActiveOption('correctTime2', e.target.value)}
-                            className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary font-mono"
-                          />
+                        <div>
+                          <h3 className="text-sm font-black text-white uppercase tracking-wider">Subtitle Cleaned Successfully!</h3>
+                          <p className="text-[11px] text-slate-400">Your cleaned file is ready for download.</p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Remove Specific Words */}
-                    <div className="space-y-2 pt-4 border-t border-white/5">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Remove Specific Words</span>
-                      <textarea 
-                        placeholder="e.g. Encoded by, Ripped by..."
-                        rows={2}
-                        value={activeFile.options.specificWords || ''}
-                        onChange={(e) => updateActiveOption('specificWords', e.target.value)}
-                        className="w-full bg-luxury-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-300 outline-none focus:border-brand-primary resize-y"
-                      />
-                      <span className="text-[9px] text-slate-500 block">Comma-separated values</span>
-                    </div>
-                  </div>
-
-                  {/* Clean Button */}
-                  <button 
-                    disabled={activeFile.isCleaning}
-                    onClick={() => cleanFile(activeFile.id)}
-                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black uppercase tracking-widest rounded-2xl transition shadow-lg shadow-red-500/10 text-xs sm:text-sm flex items-center justify-center gap-2"
-                  >
-                    {activeFile.isCleaning ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" /> Processing AI Polish...
-                      </>
-                    ) : (
-                      'Clean Subtitle'
-                    )}
-                  </button>
-
-                  {/* Success Banner */}
-                  {activeFile.isCleaned && (
-                    <div className="border border-emerald-500/20 bg-emerald-500/5 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-center">
-                      <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                        <CheckCircle2 className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">Success!</h3>
-                        <p className="text-xs text-slate-400 mt-1">Subtitle file has been cleaned and optimized.</p>
-                      </div>
-                      <button 
+                      <button
                         onClick={() => triggerDownloadForFile(activeFile)}
-                        className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-wider text-xs rounded-xl flex items-center gap-2 transition shadow-lg shadow-emerald-500/10"
+                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-wider text-xs rounded-xl flex items-center gap-1.5 transition"
                       >
-                        <Download className="w-4 h-4" /> Download Cleaned Subtitle
+                        <Download className="w-4 h-4" /> Download File
                       </button>
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="h-full min-h-[450px] border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center p-8 text-center text-slate-500 text-xs bg-white/[0.01]">
-                  <Wand2 className="w-12 h-12 text-slate-700 mb-4 animate-pulse" />
-                  Select a subtitle file from the queue on the left to configure and clean it.
-                </div>
-              )}
-            </div>
 
-          </div>
+                    {/* Cleaned Text Preview */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">Subtitle Content Preview</span>
+                      <textarea
+                        readOnly
+                        value={activeFile.cleanedText}
+                        rows={12}
+                        className="w-full bg-luxury-950 border border-white/10 rounded-2xl p-4 text-xs font-mono text-slate-300 outline-none focus:border-brand-primary resize-y"
+                      />
+                    </div>
+                  </div>
+                ) : activeFile.error ? (
+                  <div className="min-h-[400px] border border-red-500/20 bg-red-500/5 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 text-center">
+                    <AlertTriangle className="w-10 h-10 text-red-400 animate-bounce" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Processing Failed</h3>
+                      <p className="text-xs text-red-400 mt-1">{activeFile.error}</p>
+                    </div>
+                    <button
+                      onClick={() => cleanFile(activeFile.id)}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="min-h-[400px] border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center p-8 text-center text-slate-500 text-xs bg-white/[0.01]">
+                    <Wand2 className="w-10 h-10 text-slate-700 mb-4 animate-pulse" />
+                    <p>This file is pending cleaning.</p>
+                    <button
+                      onClick={() => cleanFile(activeFile.id)}
+                      className="mt-4 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs rounded-xl transition"
+                    >
+                      Clean Now
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         </div>
       </main>
