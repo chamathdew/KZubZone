@@ -135,6 +135,12 @@ export default function SrtCleaner() {
     try {
       const transferData = await Promise.all(
         files.map((fileObj) => {
+          if (fileObj.isCleaned && fileObj.cleanedText) {
+            return Promise.resolve({
+              name: fileObj.name,
+              content: fileObj.cleanedText,
+            });
+          }
           return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
