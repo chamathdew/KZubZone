@@ -16,6 +16,11 @@ export default function SeoTags({
 }) {
   
   useEffect(() => {
+    // Skip client-side DOM overrides if standard Next.js routing is active
+    if (typeof window !== 'undefined' && document.querySelector('script[src*="/_next/"]')) {
+      return;
+    }
+
     // 1. Update Title
     if (title) {
       document.title = title;

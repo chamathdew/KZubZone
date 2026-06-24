@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/services/api/apiClient';
 import { ArrowLeft, CalendarDays, Clock3, Tag, Eye } from 'lucide-react';
-import SeoTags from '@/components/seo/SeoTags';
 
 // Helper to extract YouTube ID from URL or return plain ID
 const getYoutubeId = (urlOrId) => {
@@ -83,6 +82,30 @@ const renderFormattedText = (text, isDarkMode) => {
   }
   
   return parts;
+};
+
+const AUTHOR_REGISTRY = {
+  'KSubZone Editorial': {
+    name: 'KSubZone Editorial',
+    role: 'Senior K-Drama Critic & Editor',
+    bio: 'Our in-house editorial team brings together years of passion for Korean cinematography. From character studies to ending explanations, we cover it all.',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop'
+  },
+  'KSubZone Contributor': {
+    name: 'KSubZone Contributor',
+    role: 'Community Guest Writer',
+    bio: 'A passionate drama fan sharing subtitle notes, watchlists, and viewer guides with the Sri Lankan K-drama community.',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=150&auto=format&fit=crop'
+  }
+};
+
+const getAuthor = (name) => {
+  return AUTHOR_REGISTRY[name] || {
+    name: name || 'KSubZone Writer',
+    role: 'K-Drama Enthusiast',
+    bio: 'Dedicated reviewer and community translator sharing detailed insights into the latest Korean entertainment releases.',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&auto=format&fit=crop'
+  };
 };
 
 // Helper to parse FAQ lines into Q&A lists
@@ -403,17 +426,10 @@ export default function ArticleDetail({ initialData }) {
 
   const { article, related = [] } = data;
   const parsedBlocks = parseArticleBlocks(article.content || '');
+  const author = getAuthor(article.authorName);
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
-      <SeoTags
-        title={article.metaTitle || `${article.title} | KSubZone Articles`}
-        description={article.metaDescription || article.excerpt}
-        keywords={article.seoKeywords || article.tags || []}
-        canonical={`https://www.ksubzone.com/articles/${article.slug}`}
-        image={article.coverImage}
-      />
-
       <article>
         {/* Hero Banner */}
         <section className="relative min-h-[72vh] lg:min-h-[80vh] overflow-hidden flex items-end border-b border-white/5">
@@ -472,6 +488,26 @@ export default function ArticleDetail({ initialData }) {
             }`} />
             <div className="p-6 sm:p-10 lg:p-14">
               {parsedBlocks.map((block, index) => renderBlock(block, index, theme === 'dark'))}
+            </div>
+          </div>
+
+          {/* Author Bio Panel */}
+          <div className="mt-10 p-6 sm:p-8 rounded-3xl border border-white/5 bg-white/[0.015] flex flex-col sm:flex-row gap-6 items-center sm:items-start text-left">
+            <img 
+              src={author.avatar} 
+              alt={author.name} 
+              className="w-16 h-16 rounded-full object-cover border border-white/10 flex-shrink-0"
+              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&auto=format&fit=crop'; }}
+            />
+            <div className="flex-grow flex flex-col gap-1 text-center sm:text-left">
+              <div>
+                <span className="text-[10px] text-brand-primary font-extrabold uppercase tracking-widest">Written By</span>
+                <h3 className="text-lg font-black text-white">{author.name}</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{author.role}</p>
+              </div>
+              <p className="text-sm text-slate-300 leading-6 mt-2 font-light">
+                {author.bio}
+              </p>
             </div>
           </div>
 
