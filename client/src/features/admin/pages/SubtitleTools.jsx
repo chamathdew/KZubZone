@@ -112,6 +112,9 @@ export default function SubtitleTools() {
   const [brandingText, setBrandingText] = useState(
     `<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
   );
+  const [endingBrandingText, setEndingBrandingText] = useState(
+    `{\\an5}{\\fad(1000,1000)}<font color="#FF2400" size="34"><b>මීලඟ කතාංගයත් සමඟ නැවත හමුවෙමු...!</b></font>\n<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
+  );
 
   // Ad Inject Configs
   const [insertStart, setInsertStart] = useState(true);
@@ -323,7 +326,7 @@ export default function SubtitleTools() {
       adsToInject.push({
         start: msToTime(adStartMs),
         end: msToTime(adEndMs),
-        text: brandingText
+        text: endingBrandingText
       });
     }
 
@@ -855,6 +858,15 @@ export default function SubtitleTools() {
                               className="w-full max-w-[150px] bg-luxury-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 outline-none"
                             />
                             <p className="text-[10px] text-slate-500 mt-1">Will automatically insert 2 seconds after the final subtitle block finishes.</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase block mb-1">Ending Advertisement Template</span>
+                            <textarea
+                              value={endingBrandingText}
+                              onChange={(e) => setEndingBrandingText(e.target.value)}
+                              rows={4}
+                              className="w-full bg-luxury-950 border border-white/10 rounded-xl p-4 text-xs font-mono text-slate-200 outline-none focus:border-brand-primary resize-none"
+                            />
                           </div>
                         </div>
                       )}
