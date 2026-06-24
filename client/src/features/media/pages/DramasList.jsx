@@ -23,10 +23,6 @@ export default function DramasList({ initialData }) {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const dramas = (data?.dramas || []).map(d => ({ ...m, mediaType: 'drama' })); // Wait, copy-paste typo check: 'm' is undefined here! I should change 'm' to 'd' in the mapping!
-  // Yes: (data?.dramas || []).map(d => ({ ...d, mediaType: 'drama' }))
-  // Let me correct that.
-  
   const dramasMapped = (data?.dramas || []).map(d => ({ ...d, mediaType: 'drama' }));
   const totalPages = data?.totalPages || 1;
 
