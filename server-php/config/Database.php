@@ -553,7 +553,7 @@ class Database {
         $lastPart = end($parts);
         $numericFields = [
             'viewCount', 'imdbRating', 'tmdbRating', 'runtime', 'tmdbId', 
-            'episodeNumber', 'seasonNumber', 'subtitleCount', 'downloadCount'
+            'episodeNumber', 'seasonNumber', 'subtitleCount', 'downloadCount', 'downloads', 'rating'
         ];
         $isNumeric = in_array($lastPart, $numericFields);
 
@@ -566,7 +566,7 @@ class Database {
                 $expr = "\"data\" #>> '{$jsonPath}'";
             }
             if ($isNumeric) {
-                $castType = in_array($lastPart, ['imdbRating', 'tmdbRating']) ? 'NUMERIC' : 'INTEGER';
+                $castType = in_array($lastPart, ['imdbRating', 'tmdbRating', 'rating']) ? 'NUMERIC' : 'INTEGER';
                 return "CAST(COALESCE(NULLIF({$expr}, ''), '0') AS {$castType})";
             }
             return $expr;
@@ -575,7 +575,7 @@ class Database {
         if ($this->driver === 'mysql') {
             $expr = "JSON_UNQUOTE(JSON_EXTRACT(data, '{$path}'))";
             if ($isNumeric) {
-                $castType = in_array($lastPart, ['imdbRating', 'tmdbRating']) ? 'DECIMAL(10,2)' : 'SIGNED';
+                $castType = in_array($lastPart, ['imdbRating', 'tmdbRating', 'rating']) ? 'DECIMAL(10,2)' : 'SIGNED';
                 return "CAST(NULLIF({$expr}, '') AS {$castType})";
             }
             return $expr;
