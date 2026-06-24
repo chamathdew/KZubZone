@@ -120,7 +120,7 @@ class MovieController {
 
     public static function getHomeCatalog() {
         // Cache layer
-        $cachedCatalog = \Utils\Cache::get('home_catalog');
+        $cachedCatalog = \Utils\Cache::get('home_catalog_v2');
         if ($cachedCatalog !== false) {
             header('Content-Type: application/json');
             echo json_encode($cachedCatalog);
@@ -133,8 +133,8 @@ class MovieController {
         // 1. Latest movies (status: Published, sort: createdAt DESC, limit 12)
         $latestMovies = $db->find('movies', $statusFilter, ['sort' => ['createdAt' => -1], 'limit' => 12]);
         
-        // 2. Latest dramas (status: Published, sort: updatedAt DESC, limit 12)
-        $latestDramas = $db->find('dramas', $statusFilter, ['sort' => ['updatedAt' => -1], 'limit' => 12]);
+        // 2. Latest dramas (status: Published, sort: updatedAt DESC, limit 40 to prioritize ongoing and new ones)
+        $latestDramas = $db->find('dramas', $statusFilter, ['sort' => ['updatedAt' => -1], 'limit' => 40]);
         
         // 3. Historical movies (status: Published, isHistorical: true, sort: imdbRating DESC, limit 12)
         $historicalMovies = $db->find('movies', array_merge($statusFilter, ['isHistorical' => true]), ['sort' => ['imdbRating' => -1], 'limit' => 12]);
@@ -184,6 +184,29 @@ class MovieController {
             $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
         }
         unset($d);
+
+        // Sort $latestDramas by prioritizing Ongoing and New releases, then by updatedAt DESC
+        usort($latestDramas, function($a, $b) {
+            $aOngoing = ($a['subtitleSummary']['seasonStatus'] ?? '') === 'Ongoing';
+            $bOngoing = ($b['subtitleSummary']['seasonStatus'] ?? '') === 'Ongoing';
+            
+            $aNew = !empty($a['isNew']);
+            $bNew = !empty($b['isNew']);
+            
+            $aScore = ($aOngoing ? 2 : 0) + ($aNew ? 1 : 0);
+            $bScore = ($bOngoing ? 2 : 0) + ($bNew ? 1 : 0);
+            
+            if ($aScore !== $bScore) {
+                return $bScore <=> $aScore;
+            }
+            
+            $aTime = isset($a['updatedAt']) ? strtotime($a['updatedAt']) : 0;
+            $bTime = isset($b['updatedAt']) ? strtotime($b['updatedAt']) : 0;
+            return $bTime <=> $aTime;
+        });
+
+        // Slice to the requested limit of 12 for the homepage updates
+        $latestDramas = array_slice($latestDramas, 0, 12);
         foreach ($historicalDramas as &$d) {
             $d['isNew'] = $dramaMetadata[$d['_id']]['isNew'];
             $d['subtitleSummary'] = $dramaMetadata[$d['_id']]['subtitleSummary'];
@@ -270,7 +293,7 @@ class MovieController {
         ];
 
         // Cache for 2 hours (7200 seconds)
-        \Utils\Cache::set('home_catalog', $catalogData, 7200);
+        \Utils\Cache::set('home_catalog_v2', $catalogData, 7200);
 
         header('Content-Type: application/json');
         echo json_encode($catalogData);
