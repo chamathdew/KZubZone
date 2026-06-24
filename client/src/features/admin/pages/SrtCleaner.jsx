@@ -1003,7 +1003,7 @@ export default function SrtCleaner() {
                   </button>
                 </div>
                 
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                <div className="space-y-2 pr-1">
                   {files.map(f => (
                     <div
                       key={f.id}
@@ -1243,7 +1243,7 @@ export default function SrtCleaner() {
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                <div className="space-y-2 pr-1">
                   {files.map(f => {
                     const isActive = f.id === activeId;
                     return (
