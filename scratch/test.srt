@@ -1,0 +1,15 @@
+1
+00:00:01,000 --> 00:00:04,000
+I can't believe you actually did that.
+
+2
+00:00:05,000 --> 00:00:08,000
+Where were you last night?
+
+3
+00:00:09,000 --> 00:00:12,000
+I'm sorry, I didn't mean to hurt you.
+
+4
+00:00:13,000 --> 00:00:16,000
+Let's go, we're already late.
