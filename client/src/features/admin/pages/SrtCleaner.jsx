@@ -79,6 +79,10 @@ const stringifySRT = (subs) => {
   }).join('\n\n') + '\n';
 };
 
+const START_BRAND_AD = `<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`;
+
+const END_BRAND_AD = `{\\an5}{\\fad(1000,1000)}<font color="#FF2400" size="34"><b>මීලඟ කතාංගයත් සමඟ නැවත හමුවෙමු...!</b></font>\n<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`;
+
 const DEFAULT_OPTIONS = {
   fixOverlaps: true,
   removeInvalidTimes: true,
@@ -102,6 +106,7 @@ const DEFAULT_OPTIONS = {
   splitLongLines: false,
   convertToVtt: false,
   aiPolish: false,
+  autoBrand: false,
   timeShift: '',
   findReplaceText: '',
   specificWords: '',
@@ -525,6 +530,57 @@ export default function SrtCleaner() {
           subs = updatedSubs;
         }
 
+        // 6. Auto-Inject Branding Ads
+        if (config.autoBrand && subs.length > 0) {
+          const adsToInject = [];
+          
+          // Start Ad
+          const firstStartMs = timeToMs(subs[0].start);
+          let startAdStart = '00:00:01,000';
+          let startAdEnd = '00:00:31,000';
+          if (firstStartMs > 5000) {
+            const endMs = Math.min(31000, firstStartMs - 1500);
+            startAdEnd = msToTime(endMs);
+          } else {
+            startAdStart = '00:00:00,500';
+            startAdEnd = msToTime(Math.max(500, firstStartMs - 500));
+          }
+          
+          if (timeToMs(startAdEnd) - timeToMs(startAdStart) >= 2000) {
+            adsToInject.push({
+              start: startAdStart,
+              end: startAdEnd,
+              text: START_BRAND_AD
+            });
+          }
+
+          // End Ad
+          const lastSub = subs[subs.length - 1];
+          const lastEndMs = timeToMs(lastSub.end);
+          const endAdStartMs = lastEndMs + 2000;
+          const endAdEndMs = endAdStartMs + 30000; // 30 seconds duration
+
+          adsToInject.push({
+            start: msToTime(endAdStartMs),
+            end: msToTime(endAdEndMs),
+            text: END_BRAND_AD
+          });
+
+          subs = [...subs, ...adsToInject.map((ad, idx) => ({
+            id: `ad-${idx}`,
+            start: ad.start,
+            end: ad.end,
+            text: ad.text
+          }))];
+
+          subs.sort((a, b) => timeToMs(a.start) - timeToMs(b.start));
+
+          subs = subs.map((sub, idx) => ({
+            ...sub,
+            id: idx + 1
+          }));
+        }
+
         // Format output string
         let finalStr = '';
         if (config.convertToVtt) {
@@ -650,7 +706,8 @@ export default function SrtCleaner() {
             correctTime1: '',
             wrongTime2: '',
             correctTime2: '',
-            aiPolish: false
+            aiPolish: false,
+            autoBrand: true
           }
         };
       }
@@ -986,6 +1043,7 @@ export default function SrtCleaner() {
                       <Switch optionKey="splitLongLines" label="Split Long Lines (> 45 chars)" />
                       <Switch optionKey="convertToVtt" label="Convert to VTT Format (Web)" />
                       <Switch optionKey="aiPolish" label="AI Polish (English to Spoken Sinhala)" />
+                      <Switch optionKey="autoBrand" label="Auto-Inject KSubZone Branding Ads (Start & End)" />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
