@@ -37,6 +37,22 @@ const nextConfig = {
     const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:5000';
     return [
       {
+        source: '/robots.txt',
+        destination: `${backendUrl}/robots.txt`,
+      },
+      {
+        source: '/sitemap.xml',
+        destination: `${backendUrl}/sitemap.xml`,
+      },
+      {
+        source: '/sitemap-:type.xml',
+        destination: `${backendUrl}/sitemap-:type.xml`,
+      },
+      {
+        source: '/news-sitemap.xml',
+        destination: `${backendUrl}/news-sitemap.xml`,
+      },
+      {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
       },
