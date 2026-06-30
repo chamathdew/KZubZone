@@ -111,10 +111,10 @@ try {
             $pass   = rawurldecode($parts['pass'] ?? '');
         }
 
-        // Auto-translate IPv6 host to IPv4 Session Pooler
+        // Auto-translate IPv6 host to IPv4 Session Pooler (port 5432 is open on most firewalls)
         if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
             $host = 'aws-1-ap-south-1.pooler.supabase.com';
-            $port = 6543;
+            $port = 5432;
             if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
                 $user = $user . '.ejvczjiueysbiewzsuin';
             }
@@ -128,10 +128,10 @@ try {
         $user   = $_ENV['DB_USER'] ?? 'postgres';
         $pass   = $_ENV['DB_PASSWORD'] ?? '';
 
-        // Auto-translate IPv6 host to IPv4 Session Pooler
+        // Auto-translate IPv6 host to IPv4 Session Pooler (port 5432 is open on most firewalls)
         if ($host === 'db.ejvczjiueysbiewzsuin.supabase.co') {
             $host = 'aws-1-ap-south-1.pooler.supabase.com';
-            $port = 6543;
+            $port = 5432;
             if (strpos($user, 'ejvczjiueysbiewzsuin') === false) {
                 $user = $user . '.ejvczjiueysbiewzsuin';
             }

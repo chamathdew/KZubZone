@@ -92,6 +92,74 @@ const cleanBaseName = (fileName) => {
   return base.trim().replace(/\.+$/, '');
 };
 
+// Parse Drama name and Episode number from file name
+const parseDramaAndEpisode = (fileName) => {
+  let base = fileName.replace(/\.[a-zA-Z0-9]+$/i, '').trim();
+  
+  // Clean branding suffixes first
+  while (true) {
+    const prev = base;
+    base = base.replace(/_(KSubZone|KSubZone_branded|cleaned|www\.ksubzone\.com|branded|KSubZonesrt)/gi, '');
+    base = base.replace(/-(cleaned|branded)/gi, '');
+    base = base.replace(/[-_@\s]*ADL_Drama[-_@\s]*/gi, '');
+    if (base === prev) break;
+  }
+
+  let dramaName = '';
+  let episodeNum = '';
+
+  // Match standard SxxExx pattern (e.g. S01E09, S1E9)
+  const sxxexxMatch = base.match(/(.*?)\b[sS](\d+)[eE](\d+)\b/i);
+  if (sxxexxMatch) {
+    dramaName = sxxexxMatch[1];
+    episodeNum = sxxexxMatch[3];
+  } else {
+    // Match Exx / EPxx pattern (e.g. E09, Ep09, Episode 09)
+    const exxMatch = base.match(/(.*?)\b(?:[eE]|ep|episode|ep\.)\s*(\d+)\b/i);
+    if (exxMatch) {
+      dramaName = exxMatch[1];
+      episodeNum = exxMatch[2];
+    } else {
+      // Match hyphenated numbers at the end, e.g. "Drama Name - 09"
+      const hyphenNumMatch = base.match(/(.*?)\s*[-_ ]\s*(\d+)$/);
+      if (hyphenNumMatch) {
+        dramaName = hyphenNumMatch[1];
+        episodeNum = hyphenNumMatch[2];
+      } else {
+        // Fallback to any trailing number
+        const trailingNumMatch = base.match(/(.*?)\s+(\d+)\s*$/);
+        if (trailingNumMatch) {
+          dramaName = trailingNumMatch[1];
+          episodeNum = trailingNumMatch[2];
+        } else {
+          dramaName = base;
+          episodeNum = '';
+        }
+      }
+    }
+  }
+
+  // Clean drama name from quality tags, dots, underscores
+  dramaName = dramaName
+    .replace(/\b(?:720p|1080p|2160p|480p|576p|hdtv|web\-dl|webdl|webrip|web|bluray|brrip|bdrip|x264|x265|h264|h265|hevc|aac|mp3|dts|dd5\.1|ac3|nf|netflix|dnp|dnp\+)\b/gi, '')
+    .replace(/[\.\-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Format year in parentheses if it's a standalone year (e.g. "Drama Name 2026" -> "Drama Name (2026)")
+  dramaName = dramaName.replace(/\b(19\d\d|20\d\d)\b(?!\))/g, '($1)');
+
+  // Pad single digit episodes with leading zero
+  if (episodeNum && episodeNum.length === 1) {
+    episodeNum = '0' + episodeNum;
+  }
+
+  return {
+    drama: dramaName || 'Unknown Drama',
+    episode: episodeNum || '01'
+  };
+};
+
 export default function SubtitleTools() {
   const { admin } = useAuth();
   const fileInputRef = useRef(null);
@@ -165,9 +233,12 @@ export default function SubtitleTools() {
               }
             });
 
+            const parsedInfo = parseDramaAndEpisode(tf.name);
             return {
               id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
               name: tf.name,
+              dramaName: parsedInfo.drama,
+              episodeNum: parsedInfo.episode,
               originalText: tf.content,
               subtitles: parsed,
               processedSubs: JSON.parse(JSON.stringify(parsed)),
@@ -210,6 +281,9 @@ export default function SubtitleTools() {
   const [previewMode, setPreviewMode] = useState('blocks'); // 'blocks' | 'raw'
   const [brandingText, setBrandingText] = useState(
     `<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
+  );
+  const [startBrandingText, setStartBrandingText] = useState(
+    `{\\an5}{\\fad(1000,1000)}<font color="#FF2400" size="34"><b>✤ {drama} ✤</b></font>\n<font color="#FFFFFF" size="22"><b>— Episode | {episode} —</b></font>\n<font color="#ffcc00">නවතම කොරියානු චිත්රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
   );
   const [endingBrandingText, setEndingBrandingText] = useState(
     `{\\an5}{\\fad(1000,1000)}<font color="#FF2400" size="34"><b>මීලඟ කතාංගයත් සමඟ නැවත හමුවෙමු...!</b></font>\n<font color="#ffcc00">නවතම කොරියානු චිත්‍රපටවල සහා රූපවාහිනි කතාමාලා සඳහා සිංහල උපසිරැසි</font>\n<font color="#ff9416">ලබා ගෑනිමට පිවිසෙන්න </font>www.ksubzone.com <font color="#ff9416">අපගේ වෙබ් අඩවියට.</font>`
@@ -306,9 +380,12 @@ export default function SubtitleTools() {
             }
           });
 
+          const parsedInfo = parseDramaAndEpisode(file.name);
           resolve({
             id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15),
             name: file.name,
+            dramaName: parsedInfo.drama,
+            episodeNum: parsedInfo.episode,
             originalText: text,
             subtitles: parsed,
             processedSubs: JSON.parse(JSON.stringify(parsed)), // Deep copy
@@ -408,10 +485,14 @@ export default function SubtitleTools() {
 
     // Start Ad
     if (insertStart) {
+      const resolvedStartBranding = startBrandingText
+        .replace(/{drama}/g, file.dramaName || 'Unknown Drama')
+        .replace(/{episode}/g, file.episodeNum || '01');
+
       adsToInject.push({
         start: startTimeStart,
         end: startTimeEnd,
-        text: brandingText
+        text: resolvedStartBranding
       });
     }
 
@@ -849,18 +930,64 @@ export default function SubtitleTools() {
                 {/* Configuration Left Panel */}
                 <div className="lg:col-span-2 space-y-6">
                   
+                  {/* Selected File Branding Details */}
+                  <div className="bg-luxury-900 border border-white/5 rounded-2xl p-6 space-y-4">
+                    <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      <Edit2 className="w-4 h-4 text-brand-accent" /> Selected File Branding Details
+                    </h2>
+                    <p className="text-slate-400 text-xs">
+                      Verify or edit the drama name and episode number parsed from <b className="text-slate-300">{activeFile.name}</b>.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase block mb-1">Drama Name</span>
+                        <input
+                          type="text"
+                          value={activeFile.dramaName || ''}
+                          onChange={(e) => updateFileState(activeFile.id, { dramaName: e.target.value })}
+                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 outline-none focus:border-brand-primary"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase block mb-1">Episode Number</span>
+                        <input
+                          type="text"
+                          value={activeFile.episodeNum || ''}
+                          onChange={(e) => updateFileState(activeFile.id, { episodeNum: e.target.value })}
+                          className="w-full bg-luxury-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 outline-none focus:border-brand-primary"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Start Advertisement Template Card */}
+                  <div className="bg-luxury-900 border border-white/5 rounded-2xl p-6 space-y-4">
+                    <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-brand-primary" /> Start Advertisement Template (Dynamic)
+                    </h2>
+                    <p className="text-slate-400 text-xs">
+                      Use <code>{'{drama}'}</code> and <code>{'{episode}'}</code> placeholders. They will be replaced dynamically for each file in the batch.
+                    </p>
+                    <textarea
+                      value={startBrandingText}
+                      onChange={(e) => setStartBrandingText(e.target.value)}
+                      rows={5}
+                      className="w-full bg-luxury-950 border border-white/10 rounded-xl p-4 text-xs font-mono text-slate-200 outline-none focus:border-brand-primary resize-none"
+                    />
+                  </div>
+
                   {/* Branding Template Card */}
                   <div className="bg-luxury-900 border border-white/5 rounded-2xl p-6 space-y-4">
                     <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-brand-accent" /> Branding Advertisement Template
+                      <Layers className="w-4 h-4 text-brand-accent" /> Middle Gap & Competitor Branding Template
                     </h2>
                     <p className="text-slate-400 text-xs">
-                      This template will be injected at specified positions and replaces detected competitor credits.
+                      This template is used for middle timeline gaps and when replacing competitor credits.
                     </p>
                     <textarea
                       value={brandingText}
                       onChange={(e) => setBrandingText(e.target.value)}
-                      rows={4}
+                      rows={3}
                       className="w-full bg-luxury-950 border border-white/10 rounded-xl p-4 text-xs font-mono text-slate-200 outline-none focus:border-brand-primary resize-none"
                     />
                   </div>
