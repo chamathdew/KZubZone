@@ -9,17 +9,28 @@ export async function generateMetadata() {
       const data = await res.json();
       const seo = data.seo || {};
       const brand = data.brand || {};
+      
+      // Normalize primaryUrl to use www.ksubzone.com lowercase and https protocol
+      let primaryUrl = brand.primaryUrl || 'https://www.ksubzone.com';
+      primaryUrl = primaryUrl.trim().toLowerCase();
+      if (primaryUrl.includes('ksubzone.com') && !primaryUrl.includes('www.ksubzone.com')) {
+        primaryUrl = primaryUrl.replace('ksubzone.com', 'www.ksubzone.com');
+      }
+      if (!primaryUrl.startsWith('http://') && !primaryUrl.startsWith('https://')) {
+        primaryUrl = 'https://' + primaryUrl;
+      }
+
       return {
         title: seo.homeTitle || `${brand.siteName || 'KSubZone'} - ${brand.tagline || 'K-Drama & Movie Subtitles'}`,
         description: seo.homeDescription || 'Download synchronized Sinhala and English subtitles for Korean dramas and movies.',
         keywords: seo.keywords || 'ksubzone, k-drama subtitles, sinhala subtitles, korean movies',
         alternates: {
-          canonical: brand.primaryUrl || 'https://www.ksubzone.com',
+          canonical: primaryUrl,
         },
         openGraph: {
           title: seo.homeTitle || brand.siteName || 'KSubZone',
           description: seo.homeDescription,
-          url: brand.primaryUrl || 'https://www.ksubzone.com',
+          url: primaryUrl,
           siteName: brand.siteName || 'KSubZone',
           images: seo.ogImage ? [{ url: seo.ogImage }] : [],
           type: 'website',

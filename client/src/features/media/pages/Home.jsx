@@ -225,11 +225,20 @@ export default function Home({
   const seoKeywords = (seo.keywords || '').split(',').map((item) => item.trim()).filter(Boolean);
   const mediaGridClass = 'grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(150px,180px))] justify-center gap-x-3.5 sm:gap-x-5 gap-y-6 sm:gap-y-8 items-start';
 
+  let primaryUrl = brand.primaryUrl || 'https://www.ksubzone.com';
+  primaryUrl = primaryUrl.trim().toLowerCase();
+  if (primaryUrl.includes('ksubzone.com') && !primaryUrl.includes('www.ksubzone.com')) {
+    primaryUrl = primaryUrl.replace('ksubzone.com', 'www.ksubzone.com');
+  }
+  if (!primaryUrl.startsWith('http://') && !primaryUrl.startsWith('https://')) {
+    primaryUrl = 'https://' + primaryUrl;
+  }
+
   const homeSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": brand.siteName || "KSubZone",
-    "url": brand.primaryUrl || "https://www.ksubzone.com",
+    "url": primaryUrl,
     "description": seo.homeDescription || "Premium Korean Entertainment Platform. Search and download Sinhala and English subtitles."
   };
 
@@ -241,7 +250,7 @@ export default function Home({
         title={seo.homeTitle || `${brand.siteName || 'KSubZone'} - ${brand.tagline || 'K-Drama & Movie Subtitles'}`}
         description={seo.homeDescription}
         keywords={seoKeywords}
-        canonical={brand.primaryUrl || 'https://www.ksubzone.com'}
+        canonical={primaryUrl}
         image={seo.ogImage || slideItems[0]?.banner}
         schemaMarkup={homeSchema}
       />
